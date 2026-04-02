@@ -16,26 +16,18 @@ log_error() {
     echo "❌ [ERROR]: $1"
 }
 
-# 🛠️ Docker va Compose'ni avtomatik o'rnatish funksiyasi (Ubuntu/Debian uchun)
+# 🛠️ Docker va Compose'ni avtomatik o'rnatish funksiyasi
 install_docker_if_missing() {
     if ! command -v docker &> /dev/null; then
         log_info "Docker topilmadi. O'rnatish boshlanmoqda..."
-        
         sudo apt-get update -y >> "$LOG_FILE" 2>&1
         sudo apt-get install -y ca-certificates curl gnupg >> "$LOG_FILE" 2>&1
-        
         sudo install -m 0755 -d /etc/apt/keyrings >> "$LOG_FILE" 2>&1
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg >> "$LOG_FILE" 2>&1
         sudo chmod a+r /etc/apt/keyrings/docker.gpg >> "$LOG_FILE" 2>&1
-
-        echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update -y >> "$LOG_FILE" 2>&1
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >> "$LOG_FILE" 2>&1
-        
         log_info "Docker muvaffaqiyatli o'rnatildi."
     else
         log_info "Docker allaqachon o'rnatilgan."
@@ -75,22 +67,45 @@ fi
 # Navigate to project directory
 cd "$PROJECT_DIR" || { log_error "Papka topilmadi: $PROJECT_DIR"; exit 1; }
 
+# 🔄 Smart Update: Mahalliy o'zgarishlarni vaqtinchalik saqlab turish
+log_info "Mahalliy o'zgarishlarni tekshirish va stash qilish..."
+HAS_CHANGES=$(git status --porcelain)
+if [ -n "$HAS_CHANGES" ]; then
+    log_info "Mahalliy o'zgarishlar topildi. Stash qilinmoqda..."
+    git stash push -m "Auto-stash before deploy $(date)" >> "$LOG_FILE" 2>&1
+    STASHED=true
+else
+    log_info "Mahalliy o'zgarishlar yo'q."
+    STASHED=false
+fi
+
 # Update from GitHub
 log_info "Github bilan sinxronizatsiya qilinmoqda..."
 git remote set-url origin "$REPO_URL" >> "$LOG_FILE" 2>&1
 if git pull origin main >> "$LOG_FILE" 2>&1; then
     log_info "Github'dan yangilanishlar muvaffaqiyatli olindi."
 else
-    log_error "Github bilan aloqa uzildi. Tokenni tekshiring."
+    log_error "Github bilan bog'liq xatolik yuz berdi! Stash tiklanishi mumkin."
+    [ "$STASHED" = true ] && git stash pop >> "$LOG_FILE" 2>&1
     tail -n 10 "$LOG_FILE"
     exit 1
+fi
+
+# 🔄 Smart Update: O'zgarishlarni qayta tiklash
+if [ "$STASHED" = true ]; then
+    log_info "Mahalliy o'zgarishlar qayta tiklanmoqda (git stash pop)..."
+    if git stash pop >> "$LOG_FILE" 2>&1; then
+        log_info "O'zgarishlar muvaffaqiyatli saqlandi."
+    else
+        log_error "Stash pop paytida to'qnashuv (conflict) yuz berdi! Iltimos, qo'lda tekshiring."
+    fi
 fi
 
 # Environment faylini tekshirish (Docker uchun .env shart)
 if [ ! -f "backend/.env" ]; then
     log_info "backend/.env topilmadi. .env.example'dan nusxa olinmoqda..."
     cp backend/.env.example backend/.env
-    log_info "backend/.env fayli yaratildi. Iltimos, keyinchalik real ma'lumotlarni kiriting."
+    log_info "backend/.env fayli yaratildi."
 fi
 
 # Build and Restart Containers
