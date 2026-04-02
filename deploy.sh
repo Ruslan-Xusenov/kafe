@@ -45,9 +45,19 @@ else
     exit 1
 fi
 
+# Docker Compose buyrug'ini aniqlash (v2 yoki v1)
+if docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+elif docker-compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    log_error "Docker Compose topilmadi! Iltimos, uni o'rnating."
+    exit 1
+fi
+
 # Build and Restart Containers
-log_info "Docker konteynerlari qayta yig'ilmoqda (Build & Up)..."
-if docker-compose up -d --build >> "$LOG_FILE" 2>&1; then
+log_info "Docker konteynerlari qayta yig'ilmoqda ($DOCKER_COMPOSE Build & Up)..."
+if $DOCKER_COMPOSE up -d --build >> "$LOG_FILE" 2>&1; then
     log_info "Docker muvaffaqiyatli yangilandi."
 else
     log_error "Docker bilan bog'liq xatolik yuz berdi!"
