@@ -27,8 +27,6 @@ backend/*.log
 .vscode/
 .idea/
 
-# Local deployment script (contains no token now)
-# deploy.sh  <-- REMOVED FROM IGNORE
-
 # GitHub Token for deployment
 .github_token
+.txt

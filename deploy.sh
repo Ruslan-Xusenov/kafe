@@ -86,6 +86,13 @@ else
     exit 1
 fi
 
+# Environment faylini tekshirish (Docker uchun .env shart)
+if [ ! -f "backend/.env" ]; then
+    log_info "backend/.env topilmadi. .env.example'dan nusxa olinmoqda..."
+    cp backend/.env.example backend/.env
+    log_info "backend/.env fayli yaratildi. Iltimos, keyinchalik real ma'lumotlarni kiriting."
+fi
+
 # Build and Restart Containers
 log_info "Docker konteynerlari qayta yig'ilmoqda ($DOCKER_COMPOSE Build & Up)..."
 if $DOCKER_COMPOSE up -d --build >> "$LOG_FILE" 2>&1; then
