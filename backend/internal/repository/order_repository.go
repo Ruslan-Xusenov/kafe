@@ -253,7 +253,7 @@ func (r *OrderRepository) GetKitchenStats() (*models.DeliveryStats, error) {
 		COUNT(*) FILTER (WHERE updated_at >= CURRENT_DATE - INTERVAL '1 month') as month,
 		COUNT(*) FILTER (WHERE updated_at >= CURRENT_DATE - INTERVAL '1 year') as year
 	FROM orders 
-	WHERE status IN ('ready', 'on_way', 'delivered')
+	WHERE status IN ('new', 'preparing', 'ready', 'on_way', 'delivered')
 	`
 	err := r.db.Get(stats, query)
 	return stats, err

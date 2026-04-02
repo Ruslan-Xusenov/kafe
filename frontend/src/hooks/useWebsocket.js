@@ -9,7 +9,7 @@ export const useWebsocket = (onMessage) => {
     if (!isAuthenticated || !token) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//localhost:8080/api/ws?token=${token}`);
+    const socket = new WebSocket(`${protocol}//${window.location.host}/api/ws?token=${token}`);
     
     socket.onopen = () => {
       console.log('WS Shared Connection Opened');
