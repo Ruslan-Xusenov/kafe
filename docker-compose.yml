@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: kafe-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-kafe_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/internal/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  backend:
+    build: 
+      context: ./backend
+    container_name: kafe-api-prod
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      DB_HOST: db
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: kafe-web-prod
+    restart: always
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

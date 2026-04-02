@@ -1,0 +1,31 @@
+# Environment Files
+.env
+*.env.local
+
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+backend/printer_bridge.exe
+
+# Dependency directories
+node_modules/
+backend/vendor/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+deploy.log
+backend/*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Local deployment script (contains token)
+# deploy.sh  <-- REMOVED FROM IGNORE
