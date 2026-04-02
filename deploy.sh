@@ -1,5 +1,8 @@
+#!/bin/bash
+
 # Configuration
-PROJECT_DIR="/home/kali/Desktop/projects/Django/Kafe"
+# Skript o'z papkasini avtomatik aniqlaydigan qilindi
+PROJECT_DIR="$(pwd)"
 GITHUB_TOKEN="YOUR_GITHUB_TOKEN_HERE"
 REPO_URL="https://Ruslan-Xusenov:${GITHUB_TOKEN}@github.com/Ruslan-Xusenov/kafe.git"
 LOG_FILE="${PROJECT_DIR}/deploy.log"
