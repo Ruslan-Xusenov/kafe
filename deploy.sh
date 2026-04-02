@@ -2,9 +2,8 @@
 
 # Configuration
 PROJECT_DIR="$(pwd)"
-GITHUB_TOKEN="YOUR_GITHUB_TOKEN_HERE"
-REPO_URL="https://Ruslan-Xusenov:${GITHUB_TOKEN}@github.com/Ruslan-Xusenov/kafe.git"
 LOG_FILE="${PROJECT_DIR}/deploy.log"
+TOKEN_FILE="${PROJECT_DIR}/.github_token"
 
 # Function to log messages
 log_info() {
@@ -16,6 +15,17 @@ log_error() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - [ERROR] - $1" >> "$LOG_FILE"
     echo "❌ [ERROR]: $1"
 }
+
+# 1. GitHub Tokenni tekshirish
+if [ -f "$TOKEN_FILE" ]; then
+    GITHUB_TOKEN=$(cat "$TOKEN_FILE" | tr -d '\r\n ')
+else
+    log_error "'.github_token' fayli topilmadi! Iltimos, serverda tokenni yarating."
+    echo "Buyruq: echo 'ghp_sizning_tokeningiz' > .github_token"
+    exit 1
+fi
+
+REPO_URL="https://Ruslan-Xusenov:${GITHUB_TOKEN}@github.com/Ruslan-Xusenov/kafe.git"
 
 # Start Deployment
 echo "------------------------------------------------"
@@ -31,6 +41,7 @@ if git pull origin main >> "$LOG_FILE" 2>&1; then
     log_info "Github'dan yangilanishlar muvaffaqiyatli olindi."
 else
     log_error "Github bilan aloqa uzildi. Tokenni tekshiring."
+    tail -n 10 "$LOG_FILE"
     exit 1
 fi
 
@@ -39,7 +50,11 @@ log_info "Docker konteynerlari qayta yig'ilmoqda (Build & Up)..."
 if docker-compose up -d --build >> "$LOG_FILE" 2>&1; then
     log_info "Docker muvaffaqiyatli yangilandi."
 else
-    log_error "Docker bilan bog'liq xatolik yuz berdi."
+    log_error "Docker bilan bog'liq xatolik yuz berdi!"
+    echo "------------------------------------------------"
+    echo "↓↓↓ Xatolik tafsilotlari (Logdan) ↓↓↓"
+    tail -n 25 "$LOG_FILE"
+    echo "------------------------------------------------"
     exit 1
 fi
 
