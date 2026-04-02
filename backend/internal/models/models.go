@@ -69,7 +69,7 @@ type Order struct {
 	CookName    *string     `json:"cook_name,omitempty" db:"cook_name"`       // Joined field
 	Comment    *string     `json:"comment" db:"comment"`
 	CreatedAt  time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time   `json:"updated_at" db:"updated_at"`
+	UpdatedAt  *time.Time  `json:"updated_at" db:"updated_at"`
 	Items      []OrderItem `json:"items,omitempty" db:"-"`
 }
 
