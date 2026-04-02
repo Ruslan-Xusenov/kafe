@@ -16,6 +16,32 @@ log_error() {
     echo "❌ [ERROR]: $1"
 }
 
+# 🛠️ Docker va Compose'ni avtomatik o'rnatish funksiyasi (Ubuntu/Debian uchun)
+install_docker_if_missing() {
+    if ! command -v docker &> /dev/null; then
+        log_info "Docker topilmadi. O'rnatish boshlanmoqda..."
+        
+        sudo apt-get update -y >> "$LOG_FILE" 2>&1
+        sudo apt-get install -y ca-certificates curl gnupg >> "$LOG_FILE" 2>&1
+        
+        sudo install -m 0755 -d /etc/apt/keyrings >> "$LOG_FILE" 2>&1
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg >> "$LOG_FILE" 2>&1
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg >> "$LOG_FILE" 2>&1
+
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        sudo apt-get update -y >> "$LOG_FILE" 2>&1
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >> "$LOG_FILE" 2>&1
+        
+        log_info "Docker muvaffaqiyatli o'rnatildi."
+    else
+        log_info "Docker allaqachon o'rnatilgan."
+    fi
+}
+
 # 1. GitHub Tokenni tekshirish
 if [ -f "$TOKEN_FILE" ]; then
     GITHUB_TOKEN=$(cat "$TOKEN_FILE" | tr -d '\r\n ')
@@ -31,6 +57,21 @@ REPO_URL="https://Ruslan-Xusenov:${GITHUB_TOKEN}@github.com/Ruslan-Xusenov/kafe.
 echo "------------------------------------------------"
 log_info "Deployment jarayoni boshlandi..."
 
+# Docker o'rnatishni tekshirish
+install_docker_if_missing
+
+# Docker Compose buyrug'ini aniqlash (v2 yoki v1)
+if docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+elif docker-compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    log_info "Docker Compose topilmadi. O'rnatishga harakat qilinmoqda..."
+    sudo apt-get update -y >> "$LOG_FILE" 2>&1
+    sudo apt-get install -y docker-compose-plugin >> "$LOG_FILE" 2>&1
+    DOCKER_COMPOSE="docker compose"
+fi
+
 # Navigate to project directory
 cd "$PROJECT_DIR" || { log_error "Papka topilmadi: $PROJECT_DIR"; exit 1; }
 
@@ -42,16 +83,6 @@ if git pull origin main >> "$LOG_FILE" 2>&1; then
 else
     log_error "Github bilan aloqa uzildi. Tokenni tekshiring."
     tail -n 10 "$LOG_FILE"
-    exit 1
-fi
-
-# Docker Compose buyrug'ini aniqlash (v2 yoki v1)
-if docker compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE="docker compose"
-elif docker-compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE="docker-compose"
-else
-    log_error "Docker Compose topilmadi! Iltimos, uni o'rnating."
     exit 1
 fi
 
