@@ -25,6 +25,8 @@ services:
       - ./backend/.env
     ports:
       - "${PORT:-8080}:8080"
+    volumes:
+      - ./backend/uploads:/app/uploads
     environment:
       DB_HOST: db
 

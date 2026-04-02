@@ -17,7 +17,7 @@ const Home = () => {
 
   const getImageUrl = (url) => {
     if (!url) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
-    if (url.startsWith('/')) return `http://localhost:8080${url}`;
+    if (url.startsWith('/')) return url; // Use relative path for production
     return url;
   };
 

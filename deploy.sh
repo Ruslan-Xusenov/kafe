@@ -101,11 +101,18 @@ if [ "$STASHED" = true ]; then
     fi
 fi
 
-# Environment faylini tekshirish (Docker uchun .env shart)
+# Environment va Storage fayllarini tekshirish
 if [ ! -f "backend/.env" ]; then
     log_info "backend/.env topilmadi. .env.example'dan nusxa olinmoqda..."
     cp backend/.env.example backend/.env
     log_info "backend/.env fayli yaratildi."
+fi
+
+# Rasmlar papkasini yaratish va ruxsat berish
+if [ ! -d "backend/uploads" ]; then
+    mkdir -p backend/uploads
+    chmod 777 backend/uploads
+    log_info "backend/uploads papkasi yaratildi."
 fi
 
 # Build and Restart Containers
