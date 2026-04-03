@@ -27,8 +27,8 @@ const Home = () => {
         api.get('/catalog/categories'),
         api.get('/catalog/products')
       ]);
-      setCategories(catRes.data || []);
-      setProducts(prodRes.data || []);
+      setCategories(Array.isArray(catRes.data) ? catRes.data : []);
+      setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
     } catch (err) {
       console.error(err);
     } finally {
