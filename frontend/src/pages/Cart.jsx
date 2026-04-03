@@ -16,22 +16,180 @@ const Cart = () => {
 
   if (items.length === 0) {
     return (
-      <div className="empty-cart-page">
+      <div className="empty-cart-root">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          initial={{ opacity: 0, scale: 0.88, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
           className="empty-cart-card"
         >
-          <div className="empty-cart-emoji">🛒</div>
-          <h2 className="empty-cart-title">Savatingiz bo'sh</h2>
-          <p className="empty-cart-desc">
-            Sevimli taomlaringizni tanlang va buyurtma bering!
+          {/* Glow ring */}
+          <div className="ec-glow" />
+
+          {/* Icon */}
+          <div className="ec-icon-wrap">
+            <span className="ec-emoji">🛒</span>
+          </div>
+
+          <h2 className="ec-title">Savatingiz bo'sh</h2>
+          <p className="ec-desc">
+            Hali hech narsa qo'shilmagan. <br />
+            Menyudan sevimli taomingizni tanlang!
           </p>
-          <Link to="/" className="btn-primary empty-cart-btn">
-            <ArrowLeft size={18} /> Menyuga o'tish
+
+          <Link to="/" className="ec-btn">
+            <ArrowLeft size={18} />
+            <span>Menyuga o'tish</span>
           </Link>
+
+          <div className="ec-hint">
+            🔥 Bugun maxsus taomlar bilan tanishing!
+          </div>
         </motion.div>
+
+        <style>{`
+          .empty-cart-root {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            pointer-events: none;
+            z-index: 0;
+          }
+
+          .empty-cart-card {
+            pointer-events: all;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(249,115,22,0.20);
+            border-radius: 28px;
+            padding: 3.5rem 2.5rem;
+            max-width: 420px;
+            width: 100%;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow:
+              0 32px 80px rgba(0,0,0,0.55),
+              0 0 0 1px rgba(255,255,255,0.06),
+              inset 0 1px 0 rgba(255,255,255,0.10);
+            overflow: hidden;
+          }
+
+          .ec-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%);
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: ecGlow 3s ease-in-out infinite;
+          }
+
+          @keyframes ecGlow {
+            0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+            50% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+          }
+
+          .ec-icon-wrap {
+            position: relative;
+            z-index: 1;
+            width: 96px; height: 96px;
+            background: rgba(249,115,22,0.12);
+            border: 2px solid rgba(249,115,22,0.25);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+            box-shadow: 0 8px 32px rgba(249,115,22,0.20);
+          }
+
+          .ec-emoji {
+            font-size: 3rem;
+            animation: ecFloat 3s ease-in-out infinite;
+            display: block;
+          }
+
+          @keyframes ecFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(-5deg); }
+          }
+
+          .ec-title {
+            position: relative;
+            z-index: 1;
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 0.85rem;
+            background: linear-gradient(135deg, #fff 30%, #fb923c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+          }
+
+          .ec-desc {
+            position: relative;
+            z-index: 1;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+          }
+
+          .ec-btn {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--grad-brand);
+            color: white;
+            padding: 0.85rem 2rem;
+            border-radius: 14px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.40);
+            transition: var(--transition);
+            margin-bottom: 1.5rem;
+          }
+
+          .ec-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(249,115,22,0.55);
+          }
+
+          .ec-hint {
+            position: relative;
+            z-index: 1;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 0.5rem 1rem;
+          }
+
+          @media (max-width: 480px) {
+            .empty-cart-card {
+              padding: 2.5rem 1.5rem;
+              border-radius: 22px;
+            }
+            .ec-icon-wrap { width: 80px; height: 80px; border-radius: 22px; }
+            .ec-emoji { font-size: 2.5rem; }
+            .ec-title { font-size: 1.5rem; }
+          }
+        `}</style>
       </div>
     );
   }
