@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/username/kafe-backend/internal/models"
@@ -41,7 +42,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	user, token, err := h.authService.Register(req.FullName, req.Phone, req.Password, req.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		msg := err.Error()
+		if strings.Contains(msg, "unique constraint \"users_phone_key\"") {
+			c.JSON(http.StatusConflict, gin.H{"error": "Bu telefon raqami allaqachon ro'yxatdan o'tgan"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 

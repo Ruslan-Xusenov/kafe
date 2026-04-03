@@ -88,8 +88,8 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 	var orders []models.Order
 	query := `
 		SELECT o.*, 
-			   u1.full_name as courier_name, 
-			   u2.full_name as cook_name
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -104,7 +104,7 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.*, p.name as product_name 
+			SELECT oi.*, COALESCE(p.name, 'Noma''lum') as product_name 
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
 			WHERE oi.order_id = $1
@@ -120,8 +120,8 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	var orders []models.Order
 	query := `
 		SELECT o.*, 
-			   u1.full_name as courier_name, 
-			   u2.full_name as cook_name
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -132,11 +132,10 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 		return nil, err
 	}
 	
-	// Preload items (simple approach for small quantities)
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.*, p.name as product_name 
+			SELECT oi.*, COALESCE(p.name, 'Noma''lum') as product_name 
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
 			WHERE oi.order_id = $1
