@@ -49,12 +49,12 @@ func main() {
 	
 	printerIP := os.Getenv("PRINTER_IP")
 	if printerIP == "" {
-		printerIP = "192.168.123.10"
+		printerIP = "\\\\localhost\\XP-80C"
 	}
 
 	printerPort := os.Getenv("PRINTER_PORT")
 	if printerPort == "" {
-		printerPort = "9100"
+		printerPort = "usb"
 	}
 
 	u := url.URL{
