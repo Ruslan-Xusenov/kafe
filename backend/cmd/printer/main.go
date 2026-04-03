@@ -45,7 +45,7 @@ func main() {
 	if serverHost == "" { serverHost = "46.224.133.140:8080" }
 	
 	printerIP := os.Getenv("PRINTER_IP")
-	if printerIP == "" { printerIP = "\\\\localhost\\XP-80C" }
+	if printerIP == "" { printerIP = "\\\\localhost\\shashlik" }
 
 	u := url.URL{
 		Scheme: "ws", 
