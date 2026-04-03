@@ -2,323 +2,413 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft } from 'lucide-react';
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getTotal } = useCartStore();
   const navigate = useNavigate();
 
   const getImageUrl = (url) => {
-    if (!url) return 'https://via.placeholder.com/100x100?text=Taom';
-    if (url.startsWith('/')) return `http://localhost:8080${url}`;
+    if (!url) return null;
+    if (url.startsWith('/')) return url;
     return url;
   };
 
   if (items.length === 0) {
     return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="premium-card empty-cart glass"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="empty-cart-wrap"
       >
-        <div className="empty-illustration">
-          <div className="icon-glow"></div>
-          <ShoppingBag size={80} className="empty-icon-modern" />
-        </div>
+        <div className="empty-cart-icon">🛒</div>
         <h2>Savatingiz bo'sh</h2>
-        <p className="empty-desc">Sevimli taomlaringizni tanlang va tasavvuringizdagi mazani kashf eting. Biz ularni tezda yetkazib beramiz!</p>
-        <Link to="/" className="btn-modern-primary back-btn">Menyuga o'tish <ArrowRight size={20} /></Link>
+        <p>Sevimli taomlaringizni tanlang va buyurtma bering!</p>
+        <Link to="/" className="btn-primary empty-cart-btn">
+          <ArrowLeft size={18} /> Menyuga o'tish
+        </Link>
       </motion.div>
     );
   }
 
   return (
     <div className="cart-page animate-fade">
-      <div className="cart-header">
-        <h1>Savat</h1>
-        <p>{items.length} xil mahsulot</p>
+      {/* Header */}
+      <div className="cart-head">
+        <div>
+          <h1>Savat</h1>
+          <p className="cart-subtitle">{items.length} xil mahsulot</p>
+        </div>
+        <button className="clear-all-btn" onClick={() => navigate('/')}>
+          <ArrowLeft size={16} /> Davom etish
+        </button>
       </div>
 
-      <div className="cart-content">
-        <div className="cart-items">
-          <AnimatePresence mode='popLayout'>
-            {items.map(item => (
-              <motion.div 
+      <div className="cart-layout">
+        {/* Items */}
+        <div className="cart-items-list">
+          <AnimatePresence mode="popLayout">
+            {items.map((item, i) => (
+              <motion.div
                 key={item.id}
                 layout
                 initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="premium-card cart-item"
+                animate={{ opacity: 1, x: 0, transition: { delay: i * 0.05 } }}
+                exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                className="cart-item-card"
               >
-                <div className="item-img">
-                  <img 
-                    src={getImageUrl(item.image_url)} 
-                    alt={item.name} 
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/100x100?text=Taom';
-                    }}
-                  />
+                {/* Image */}
+                <div className="cart-item-img">
+                  {getImageUrl(item.image_url) ? (
+                    <img
+                      src={getImageUrl(item.image_url)}
+                      alt={item.name}
+                      onError={e => {
+                        e.target.onerror = null;
+                        e.target.parentElement.innerHTML = '<div class="cart-img-ph">🍽</div>';
+                      }}
+                    />
+                  ) : (
+                    <div className="cart-img-ph">🍽</div>
+                  )}
                 </div>
-                <div className="item-info">
+
+                {/* Info */}
+                <div className="cart-item-info">
                   <h3>{item.name}</h3>
-                  <div className="item-price">{item.price.toLocaleString()} so'm</div>
+                  <span className="cart-unit-price">{item.price.toLocaleString()} so'm / dona</span>
                 </div>
-                <div className="item-controls">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="control-btn"><Minus size={16} /></button>
-                  <span className="qty">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} className="control-btn"><Plus size={16} /></button>
+
+                {/* Qty controls */}
+                <div className="qty-ctrl">
+                  <button className="qty-btn" onClick={() => updateQuantity(item.id, -1)}>
+                    <Minus size={14} />
+                  </button>
+                  <span className="qty-num">{item.quantity}</span>
+                  <button className="qty-btn plus" onClick={() => updateQuantity(item.id, 1)}>
+                    <Plus size={14} />
+                  </button>
                 </div>
-                <div className="item-total">
-                  {(item.price * item.quantity).toLocaleString()} so'm
+
+                {/* Line total */}
+                <div className="line-total">
+                  {(item.price * item.quantity).toLocaleString()} <small>so'm</small>
                 </div>
-                <button onClick={() => removeItem(item.id)} className="remove-btn">
-                  <Trash2 size={20} />
+
+                {/* Remove */}
+                <button className="remove-btn" onClick={() => removeItem(item.id)} title="O'chirish">
+                  <Trash2 size={16} />
                 </button>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
 
-        <div className="cart-summary premium-card glass">
-          <h2>Umumiy</h2>
-          <div className="summary-row">
-            <span>Mahsulotlar</span>
-            <span>{getTotal().toLocaleString()} so'm</span>
+        {/* Summary */}
+        <div className="cart-summary">
+          <div className="summary-card">
+            <h2 className="summary-title">Buyurtma xulosasi</h2>
+            
+            <div className="divider" />
+
+            <div className="summary-rows">
+              <div className="summary-row">
+                <span>Mahsulotlar ({items.reduce((s,i) => s + i.quantity, 0)} ta)</span>
+                <span>{getTotal().toLocaleString()} so'm</span>
+              </div>
+              <div className="summary-row">
+                <span>Yetkazib berish</span>
+                <span style={{ color: 'var(--success)' }}>15 000 so'm</span>
+              </div>
+            </div>
+
+            <div className="divider" />
+
+            <div className="summary-total">
+              <span>Jami</span>
+              <span className="total-price">{(getTotal() + 15000).toLocaleString()} so'm</span>
+            </div>
+
+            <button
+              className="btn-primary checkout-btn"
+              onClick={() => navigate('/checkout')}
+            >
+              Buyurtma berish <ArrowRight size={18} />
+            </button>
+
+            <Link to="/" className="continue-btn">
+              ← Xarid qilishni davom eting
+            </Link>
           </div>
-          <div className="summary-row">
-            <span>Yetkazib berish</span>
-            <span>15,000 so'm</span>
-          </div>
-          <div className="summary-total">
-            <span>Jami</span>
-            <span>{(getTotal() + 15000).toLocaleString()} so'm</span>
-          </div>
-          <button className="btn-primary checkout-btn" onClick={() => navigate('/checkout')}>
-            Buyurtma berish <ArrowRight size={20} />
-          </button>
         </div>
       </div>
 
       <style>{`
-        .cart-page {
-          padding-top: 1rem;
-        }
+        .cart-page { padding-bottom: 2rem; }
 
-        .cart-header {
+        .cart-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           margin-bottom: 2rem;
         }
 
-        .cart-content {
+        .cart-head h1 { font-size: 2rem; }
+
+        .cart-subtitle {
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          margin-top: 0.2rem;
+        }
+
+        .clear-all-btn {
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          padding: 0.55rem 1rem;
+          font-size: 0.85rem;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          border-radius: var(--radius-sm);
+        }
+
+        .clear-all-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* Layout */
+        .cart-layout {
           display: grid;
-          grid-template-columns: 1fr 350px;
-          gap: 2rem;
+          grid-template-columns: 1fr 340px;
+          gap: 1.75rem;
           align-items: start;
         }
 
-        .cart-items {
+        /* Items */
+        .cart-items-list {
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.75rem;
         }
 
-        .cart-item {
+        .cart-item-card {
           display: flex;
           align-items: center;
-          gap: 1.5rem;
-          padding: 1rem;
+          gap: 1rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: 0.9rem 1.1rem;
+          transition: var(--transition);
+          backdrop-filter: blur(12px);
         }
 
-        .item-img img {
-          width: 80px;
-          height: 80px;
-          border-radius: 12px;
+        .cart-item-card:hover {
+          border-color: rgba(249,115,22,0.25);
+          background: var(--bg-card-hover);
+        }
+
+        .cart-item-img {
+          width: 68px; height: 68px;
+          border-radius: 10px;
+          overflow: hidden;
+          flex-shrink: 0;
+          background: rgba(255,255,255,0.04);
+        }
+
+        .cart-item-img img {
+          width: 100%; height: 100%;
           object-fit: cover;
         }
 
-        .item-info {
-          flex: 1;
+        .cart-img-ph {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 2rem;
+          opacity: 0.4;
         }
 
-        .item-info h3 {
-          font-size: 1.1rem;
-          margin-bottom: 0.25rem;
-        }
+        .cart-item-info { flex: 1; min-width: 0; }
 
-        .item-price {
-          color: var(--text-dim);
-          font-size: 0.9rem;
-        }
-
-        .item-controls {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          background: var(--bg-dark);
-          padding: 0.5rem;
-          border-radius: 10px;
-        }
-
-        .control-btn {
-          background: none;
-          color: var(--text-main);
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .qty {
-          width: 20px;
-          text-align: center;
-          font-weight: 600;
-        }
-
-        .item-total {
-          width: 120px;
-          text-align: right;
+        .cart-item-info h3 {
+          font-size: 0.95rem;
+          font-family: var(--font);
           font-weight: 700;
-          color: var(--primary);
+          margin-bottom: 0.25rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
+        .cart-unit-price {
+          font-size: 0.78rem;
+          color: var(--text-secondary);
+        }
+
+        /* Qty */
+        .qty-ctrl {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 0.35rem 0.5rem;
+          flex-shrink: 0;
+        }
+
+        .qty-btn {
+          background: none;
+          color: var(--text-secondary);
+          width: 22px; height: 22px;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 4px;
+          transition: var(--transition);
+        }
+
+        .qty-btn:hover { background: rgba(249,115,22,0.15); color: var(--primary); }
+        .qty-btn.plus { color: var(--primary); }
+
+        .qty-num {
+          min-width: 22px;
+          text-align: center;
+          font-weight: 800;
+          font-size: 0.95rem;
+        }
+
+        /* Line total */
+        .line-total {
+          min-width: 110px;
+          text-align: right;
+          font-weight: 800;
+          font-size: 0.95rem;
+          background: var(--grad-brand);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          flex-shrink: 0;
+        }
+
+        .line-total small {
+          font-size: 0.72rem;
+          -webkit-text-fill-color: var(--text-secondary);
+          color: var(--text-secondary);
+        }
+
+        /* Remove */
         .remove-btn {
           background: none;
-          color: #ef4444;
-          padding: 0.5rem;
+          color: var(--text-muted);
+          padding: 0.4rem;
+          border-radius: 6px;
+          flex-shrink: 0;
+          transition: var(--transition);
         }
 
-        .cart-summary {
+        .remove-btn:hover { color: var(--danger); background: rgba(239,68,68,0.10); }
+
+        /* Summary */
+        .summary-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 1.75rem;
           position: sticky;
-          top: 90px;
-          padding: 2rem;
+          top: 88px;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          box-shadow: var(--shadow-card);
         }
 
-        .cart-summary h2 {
-          margin-bottom: 1.5rem;
+        .summary-title {
+          font-size: 1.15rem;
+          margin-bottom: 1rem;
+          color: var(--text-primary);
         }
+
+        .summary-rows { display: flex; flex-direction: column; gap: 0.85rem; margin: 1rem 0; }
 
         .summary-row {
           display: flex;
           justify-content: space-between;
-          color: var(--text-dim);
-          margin-bottom: 1rem;
+          font-size: 0.9rem;
+          color: var(--text-secondary);
         }
 
         .summary-total {
           display: flex;
           justify-content: space-between;
-          border-top: 1px solid var(--border);
-          padding-top: 1.5rem;
-          margin-top: 1.5rem;
-          font-size: 1.25rem;
+          align-items: center;
+          margin: 1rem 0 1.5rem;
           font-weight: 700;
-          color: white;
-          margin-bottom: 2rem;
+        }
+
+        .total-price {
+          font-size: 1.25rem;
+          background: var(--grad-brand);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .checkout-btn {
           width: 100%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem;
-          font-size: 1.1rem;
-        }
-
-        .empty-cart {
-          text-align: center;
-          padding: 5rem 3rem;
-          max-width: 500px;
-          margin: 4rem auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          background: linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6));
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          border-radius: 24px;
-        }
-
-        .empty-illustration {
-          position: relative;
-          margin-bottom: 2.5rem;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .icon-glow {
-          position: absolute;
-          width: 120px;
-          height: 120px;
-          background: var(--primary);
-          filter: blur(50px);
-          opacity: 0.2;
-          border-radius: 50%;
-          animation: pulse 3s infinite ease-in-out;
-        }
-
-        .empty-icon-modern {
-          color: white;
-          z-index: 1;
-          filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
-          animation: float 4s ease-in-out infinite;
-        }
-
-        .empty-cart h2 {
-          font-size: 2rem;
-          font-weight: 800;
+          padding: 0.9rem;
+          display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+          font-size: 0.95rem;
           margin-bottom: 1rem;
-          background: linear-gradient(to right, #ffffff, #94a3b8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
         }
 
-        .empty-desc {
-          font-size: 1.1rem;
-          color: var(--text-dim);
-          margin-bottom: 2.5rem;
-          line-height: 1.6;
+        .continue-btn {
+          display: block;
+          text-align: center;
+          font-size: 0.82rem;
+          color: var(--text-secondary);
+          transition: var(--transition);
+          padding: 0.5rem;
         }
 
-        .btn-modern-primary {
-          background: linear-gradient(135deg, var(--primary), #4f46e5);
-          color: white;
-          padding: 1rem 2rem;
-          border-radius: 50px;
-          text-decoration: none;
-          font-weight: 700;
-          font-size: 1.1rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          transition: all 0.3s ease;
-          box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+        .continue-btn:hover { color: var(--primary); }
+
+        /* Empty */
+        .empty-cart-wrap {
+          text-align: center;
+          padding: 5rem 2rem;
+          max-width: 420px;
+          margin: 0 auto;
         }
 
-        .btn-modern-primary:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.6);
+        .empty-cart-icon {
+          font-size: 5rem;
+          margin-bottom: 1.5rem;
+          animation: float 3s ease-in-out infinite;
         }
 
         @keyframes float {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-12px); }
         }
 
-        @keyframes pulse {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.2); }
+        .empty-cart-wrap h2 { font-size: 1.75rem; margin-bottom: 0.75rem; }
+        .empty-cart-wrap p { color: var(--text-secondary); margin-bottom: 2rem; }
+
+        .empty-cart-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          padding: 0.8rem 1.75rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.95rem;
         }
 
-        @media (max-width: 992px) {
-          .cart-content {
-            grid-template-columns: 1fr;
-          }
+        @media (max-width: 900px) {
+          .cart-layout { grid-template-columns: 1fr; }
+          .summary-card { position: static; }
+        }
+
+        @media (max-width: 600px) {
+          .cart-item-card { flex-wrap: wrap; }
+          .line-total { min-width: auto; }
         }
       `}</style>
     </div>

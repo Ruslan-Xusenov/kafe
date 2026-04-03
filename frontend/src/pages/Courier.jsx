@@ -2,34 +2,29 @@ import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, MapPin, Phone, CheckCircle, Navigation, Loader2, RefreshCw, BarChart3 } from 'lucide-react';
+import { Truck, MapPin, Phone, CheckCircle, Navigation, RefreshCw, Package } from 'lucide-react';
 import StatsSection from '../components/StatsSection';
 
 const Courier = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const onWSMessage = (data) => {
-    if (data.type === 'status_update' || data.type === 'new_order') {
-      fetchOrders();
-    }
-  };
+  useWebsocket((data) => {
+    if (data.type === 'status_update' || data.type === 'new_order') fetchOrders();
+  });
 
-  useWebsocket(onWSMessage);
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  useEffect(() => { fetchOrders(); }, []);
 
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders/active');
-      // Show orders that are 'ready' (available to pick up) or 'on_way' (already picked up by this courier)
-      setOrders(res.data.filter(o => o.status === 'ready' || o.status === 'on_way'));
+      setOrders((res.data || []).filter(o => o.status === 'ready' || o.status === 'on_way'));
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -43,235 +38,357 @@ const Courier = () => {
   };
 
   const deliver = async (orderId) => {
-    // Optimistic Update: remove from view immediately
-    const originalOrders = [...orders];
-    setOrders(prev => prev.filter(o => o.id !== orderId));
-
+    const prev = [...orders];
+    setOrders(o => o.filter(x => x.id !== orderId));
     try {
       await api.put(`/orders/${orderId}/status`, { status: 'delivered' });
-      // Re-fetch to ensure sync, but optimistic update already handled the UI
       fetchOrders();
     } catch (err) {
-      // Rollback on error
-      setOrders(originalOrders);
+      setOrders(prev);
       alert('Statusni yangilashda xatolik');
     }
   };
 
-  if (loading) return <div className="flex-center h-full"><Loader2 className="animate-spin" size={40} /></div>;
+  const readyOrders = orders.filter(o => o.status === 'ready');
+  const activeOrders = orders.filter(o => o.status === 'on_way');
+
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="spinner" />
+      <p>Yuklanmoqda...</p>
+    </div>
+  );
 
   return (
     <div className="courier-page animate-fade">
-      <div className="page-header">
-        <div className="flex items-center gap-4">
-          <Truck size={32} className="text-primary" />
-          <h1>Kuryer Paneli</h1>
+      {/* Header */}
+      <div className="courier-header">
+        <div className="courier-title-wrap">
+          <div className="courier-icon">
+            <Truck size={24} />
+          </div>
+          <div>
+            <h1>Kuryer Paneli</h1>
+            <p className="courier-subtitle">
+              {readyOrders.length} tayyor · {activeOrders.length} yo'lda
+            </p>
+          </div>
         </div>
-        <button className="refresh-btn" onClick={() => window.location.reload()} title="Sahifani yangilash"><RefreshCw size={20} /></button>
+        <button
+          className={`refresh-btn ${refreshing ? 'refreshing' : ''}`}
+          onClick={() => { setRefreshing(true); fetchOrders(); }}
+        >
+          <RefreshCw size={16} />
+        </button>
       </div>
 
       <StatsSection role="courier" />
 
-      <div className="orders-list">
-        <div className="section">
-          <h2>Tayyor buyurtmalar (Olish mumkin)</h2>
-          <div className="order-cards">
+      {/* Ready for pickup */}
+      <section className="courier-section">
+        <div className="section-header">
+          <div className="section-pill">
+            <Package size={14} />
+            Olish mumkin
+          </div>
+          <span className="section-count">{readyOrders.length} ta</span>
+        </div>
+
+        {readyOrders.length === 0 ? (
+          <div className="empty-section">
+            <span>📦</span>
+            <p>Hozircha tayyor buyurtmalar yo'q</p>
+          </div>
+        ) : (
+          <div className="courier-grid">
             <AnimatePresence>
-              {orders.filter(o => o.status === 'ready').map(order => (
-                <motion.div 
+              {readyOrders.map(order => (
+                <motion.div
                   key={order.id}
                   layout
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="premium-card courier-card ready"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="courier-card ready-card"
                 >
-                  <div className="card-top">
-                    <span className="order-id">#{order.id}</span>
-                    <span className="price">{(order.total_price).toLocaleString()} so'm</span>
+                  <div className="ccard-top">
+                    <span className="ccard-id">#{order.id}</span>
+                    <span className="ccard-price">{order.total_price?.toLocaleString()} so'm</span>
                   </div>
-                  
-                  <div className="card-address">
-                    <MapPin size={18} />
+                  <div className="ccard-addr">
+                    <MapPin size={15} />
                     <span>{order.address}</span>
                   </div>
-                  
-                  <button className="btn-primary action-btn" onClick={() => pickUp(order.id)}>
-                    <Navigation size={18} /> Olib ketish
+                  <button className="btn-primary ccard-btn" onClick={() => pickUp(order.id)}>
+                    <Navigation size={16} /> Olib ketish
                   </button>
                 </motion.div>
               ))}
-              {orders.filter(o => o.status === 'ready').length === 0 && (
-                <p className="empty-msg">Hozircha tayyor buyurtmalar yo'q.</p>
-              )}
             </AnimatePresence>
           </div>
+        )}
+      </section>
+
+      {/* Active deliveries */}
+      <section className="courier-section">
+        <div className="section-header">
+          <div className="section-pill" style={{ background: 'rgba(249,115,22,0.12)', borderColor: 'rgba(249,115,22,0.25)', color: 'var(--primary)' }}>
+            <Truck size={14} />
+            Faol yetkazishlar
+          </div>
+          <span className="section-count">{activeOrders.length} ta</span>
         </div>
 
-        <div className="section mt-4">
-          <h2>Sizning faol buyurtmalaringiz</h2>
-          <div className="order-cards">
+        {activeOrders.length === 0 ? (
+          <div className="empty-section">
+            <span>🚴</span>
+            <p>Hozircha faol buyurtmalar yo'q</p>
+          </div>
+        ) : (
+          <div className="courier-grid">
             <AnimatePresence>
-              {orders.filter(o => o.status === 'on_way').map(order => (
-                <motion.div 
+              {activeOrders.map(order => (
+                <motion.div
                   key={order.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="premium-card courier-card active"
+                  className="courier-card active-card"
                 >
-                  <div className="card-top">
-                    <span className="order-id">#{order.id}</span>
-                    <span className="status-label">Yo'lda</span>
-                  </div>
-                  
-                  <div className="card-body">
-                    <div className="info-row">
-                      <MapPin size={18} /> <span>{order.address}</span>
-                    </div>
-                    <div className="info-row">
-                      <Phone size={18} /> <span>{order.phone}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="order-items-mini">
-                    {order.items?.map((item, idx) => (
-                      <span key={idx}>{item.quantity}x {item.product_name}</span>
-                    ))}
+                  <div className="ccard-top">
+                    <span className="ccard-id">#{order.id}</span>
+                    <span className="on-way-badge">🚴 Yo'lda</span>
                   </div>
 
-                  <button className="btn-delivered action-btn" onClick={() => deliver(order.id)}>
-                    <CheckCircle size={18} /> Yetkazib berildi
+                  <div className="ccard-details">
+                    <div className="ccard-addr">
+                      <MapPin size={15} />
+                      <span>{order.address}</span>
+                    </div>
+                    <div className="ccard-addr">
+                      <Phone size={15} />
+                      <a href={`tel:${order.phone}`} style={{ color: 'var(--primary)' }}>{order.phone}</a>
+                    </div>
+                  </div>
+
+                  {order.items && order.items.length > 0 && (
+                    <div className="ccard-items">
+                      {order.items.map((item, i) => (
+                        <span key={i} className="item-chip">
+                          {item.quantity}× {item.product_name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <button className="ccard-delivered-btn ccard-btn" onClick={() => deliver(order.id)}>
+                    <CheckCircle size={16} /> Yetkazib berildi
                   </button>
                 </motion.div>
               ))}
-              {orders.filter(o => o.status === 'on_way').length === 0 && (
-                <p className="empty-msg">Sizda hozircha faol buyurtmalar yo'q.</p>
-              )}
             </AnimatePresence>
           </div>
-        </div>
-      </div>
+        )}
+      </section>
 
       <style>{`
-        .courier-page {
-          padding-top: 1rem;
-        }
+        .courier-page { padding-bottom: 3rem; }
 
-        .page-header {
+        .courier-header {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 3rem;
-        }
-
-        .section h2 {
-          font-size: 1.25rem;
-          margin-bottom: 1.5rem;
-          color: var(--text-dim);
-          border-left: 4px solid var(--primary);
-          padding-left: 1rem;
-        }
-
-        .order-cards {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 3rem;
-        }
-
-        .courier-card {
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-
-        .card-top {
-          display: flex;
           justify-content: space-between;
-          align-items: center;
+          margin-bottom: 2rem;
         }
 
-        .order-id {
-          font-weight: 800;
-          font-size: 1.25rem;
-        }
-
-        .price {
-          font-weight: 700;
-          color: var(--primary);
-        }
-
-        .card-address, .info-row {
+        .courier-title-wrap {
           display: flex;
+          align-items: center;
           gap: 1rem;
-          color: var(--text-main);
-          font-size: 1rem;
-          line-height: 1.4;
         }
 
-        .card-address span, .info-row span {
-          flex: 1;
-        }
-
-        .action-btn {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
-          font-weight: 700;
-          width: 100%;
-        }
-
-        .btn-delivered {
-          background: #10b981;
+        .courier-icon {
+          width: 52px; height: 52px;
+          background: var(--grad-brand);
+          border-radius: 14px;
+          display: flex; align-items: center; justify-content: center;
           color: white;
+          box-shadow: 0 6px 20px rgba(249,115,22,0.35);
+          flex-shrink: 0;
         }
 
-        .btn-delivered:hover {
-          background: #059669;
-        }
+        .courier-header h1 { font-size: 1.75rem; }
 
-        .status-label {
-          background: #3b82f6;
-          color: white;
-          padding: 2px 10px;
-          border-radius: 12px;
-          font-size: 0.8rem;
-          font-weight: 700;
-        }
-
-        .order-items-mini {
+        .courier-subtitle {
+          color: var(--text-secondary);
           font-size: 0.85rem;
-          color: var(--text-dim);
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
+          margin-top: 0.2rem;
         }
-
-        .order-items-mini span {
-          background: var(--bg-dark);
-          padding: 2px 8px;
-          border-radius: 4px;
-        }
-
-        .empty-msg {
-          color: var(--text-dim);
-          font-style: italic;
-        }
-
-        .mt-4 { margin-top: 4rem; }
 
         .refresh-btn {
+          width: 40px; height: 40px;
           background: var(--bg-surface);
-          color: var(--text-dim);
-          width: 40px;
-          height: 40px;
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 10px;
+          transition: var(--transition);
+        }
+
+        .refresh-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .refresh-btn.refreshing svg { animation: spin 1s linear infinite; }
+
+        .courier-section { margin-bottom: 2.5rem; }
+
+        .section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.1rem;
+        }
+
+        .section-count {
+          font-size: 0.82rem;
+          color: var(--text-secondary);
+          font-weight: 600;
+        }
+
+        .courier-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1rem;
+        }
+
+        /* Cards */
+        .courier-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: 1.1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          transition: var(--transition);
+          backdrop-filter: blur(12px);
+        }
+
+        .ready-card {
+          border-top: 3px solid rgba(16,185,129,0.5);
+        }
+
+        .ready-card:hover {
+          border-color: rgba(16,185,129,0.4);
+          box-shadow: 0 8px 24px rgba(16,185,129,0.12);
+        }
+
+        .active-card {
+          border-top: 3px solid var(--primary);
+        }
+
+        .active-card:hover {
+          border-color: rgba(249,115,22,0.4);
+          box-shadow: 0 8px 24px rgba(249,115,22,0.12);
+        }
+
+        .ccard-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .ccard-id {
+          font-size: 1.15rem;
+          font-weight: 800;
+          background: var(--grad-brand);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .ccard-price {
+          font-weight: 700;
+          color: var(--success);
+          font-size: 0.9rem;
+        }
+
+        .on-way-badge {
+          background: rgba(249,115,22,0.15);
+          color: var(--primary);
+          border: 1px solid rgba(249,115,22,0.30);
+          padding: 0.2rem 0.7rem;
+          border-radius: 99px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          animation: pulse-orange 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-orange {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
+        .ccard-addr {
+          display: flex;
+          gap: 0.6rem;
+          color: var(--text-secondary);
+          font-size: 0.88rem;
+          align-items: flex-start;
+        }
+
+        .ccard-addr svg { flex-shrink: 0; margin-top: 2px; color: var(--primary-light); }
+        .ccard-details { display: flex; flex-direction: column; gap: 0.5rem; }
+
+        .ccard-items {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.35rem;
+        }
+
+        .item-chip {
+          background: rgba(255,255,255,0.06);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          padding: 0.2rem 0.6rem;
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+        }
+
+        .ccard-btn {
+          width: 100%;
+          padding: 0.7rem;
+          font-size: 0.88rem;
           display: flex;
           align-items: center;
           justify-content: center;
+          gap: 0.4rem;
+          border-radius: var(--radius-sm);
+          font-weight: 700;
         }
+
+        .ccard-delivered-btn {
+          background: rgba(16,185,129,0.15);
+          color: #34d399;
+          border: 1px solid rgba(16,185,129,0.30);
+        }
+
+        .ccard-delivered-btn:hover {
+          background: rgba(16,185,129,0.25);
+          transform: translateY(-1px);
+        }
+
+        .empty-section {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 2.5rem 1rem;
+          color: var(--text-muted);
+          font-size: 0.88rem;
+          font-weight: 600;
+        }
+
+        .empty-section span { font-size: 2rem; opacity: 0.5; }
       `}</style>
     </div>
   );
