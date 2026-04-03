@@ -135,8 +135,11 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	`
 	err := r.db.Select(&orders, query)
 	if err != nil {
+		fmt.Printf("DATABASE_DEBUG: GetAll select error: %v\n", err)
 		return nil, fmt.Errorf("GetAll error: %w", err)
 	}
+
+	fmt.Printf("DATABASE_DEBUG: GetAll returned %d orders from DB\n", len(orders))
 	
 	for i := range orders {
 		var items []models.OrderItem

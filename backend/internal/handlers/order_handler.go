@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -78,6 +79,8 @@ func (h *OrderHandler) GetActiveOrders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	fmt.Printf("API_DEBUG: Sending %d active orders to kitchen UI\n", len(orders))
 	c.JSON(http.StatusOK, orders)
 }
 
