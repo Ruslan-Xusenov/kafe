@@ -141,10 +141,23 @@ func main() {
 		}
 
 		// WebSocket
-		api.GET("/ws", middleware.AuthMiddleware(), func(c *gin.Context) {
-			userID, _ := c.Get("user_id")
-			role, _ := c.Get("role")
-			wsService.HandleConnection(c.Writer, c.Request, userID.(int), role.(string))
+		api.GET("/ws", func(c *gin.Context) {
+			// Printer bridge kabi maxsus ulanishlarni tekshiramiz
+			pk := c.Query("printer_key")
+			if pk == "KAFE_PRINTER_SECRET_2026" {
+				wsService.HandleConnection(c.Writer, c.Request, 0, "admin")
+				return
+			}
+
+			// Oddiy foydalanuvchilar (Oshpaz, Kuryer va h.k.) uchun auth kerak
+			middleware.AuthMiddleware()(c)
+			if c.IsAborted() {
+				return
+			}
+			
+			uID, _ := c.Get("user_id")
+			rol, _ := c.Get("role")
+			wsService.HandleConnection(c.Writer, c.Request, uID.(int), rol.(string))
 		})
 
 		// Health Check

@@ -52,7 +52,12 @@ func main() {
 		printerPort = "9100"
 	}
 
-	u := url.URL{Scheme: "ws", Host: serverHost, Path: "/api/ws"}
+	u := url.URL{
+		Scheme: "ws", 
+		Host: serverHost, 
+		Path: "/api/ws",
+		RawQuery: "printer_key=KAFE_PRINTER_SECRET_2026",
+	}
 	
 	// Infinite connection loop (Auto-Reconnect)
 	for {
