@@ -31,7 +31,7 @@ func main() {
 		Phone:      "+998 90 123 45 67",
 		Address:    "Toshkent shahri, Chilonzor 1-kvartal",
 		TotalPrice: 125000,
-		Comment:    &comment,
+		Comment:    comment,
 		CreatedAt:  time.Now(),
 		Items: []models.OrderItem{
 			{

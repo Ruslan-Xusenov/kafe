@@ -55,14 +55,14 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 
 	// Trigger Task: Send Notification to Telegram
-	var firstImageUrl *string
+	var firstImageUrl string
 	if len(order.Items) > 0 {
 		prod, err := s.productRepo.GetByID(order.Items[0].ProductID)
 		if err == nil && prod != nil {
 			firstImageUrl = prod.ImageURL
 		}
 	}
-	s.botService.SendNewOrderNotification(order, firstImageUrl)
+	s.botService.SendNewOrderNotification(order, &firstImageUrl)
 	
 	// Real-time: Notify Cooks, Admin and Printer
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})

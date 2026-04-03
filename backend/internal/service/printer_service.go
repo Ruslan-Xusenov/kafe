@@ -81,8 +81,8 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 	conn.Write(ALIGN_LEFT)
 	conn.Write([]byte(fmt.Sprintf("Mijoz: %s\n", order.Phone)))
 	conn.Write([]byte(fmt.Sprintf("Manzil: %s\n", s.transliterate(order.Address))))
-	if order.Comment != nil && *order.Comment != "" {
-		conn.Write([]byte(fmt.Sprintf("Izoh: %s\n", s.transliterate(*order.Comment))))
+	if order.Comment != "" {
+		conn.Write([]byte(fmt.Sprintf("Izoh: %s\n", s.transliterate(order.Comment))))
 	}
 	conn.Write([]byte("------------------------------------------------\n"))
 
@@ -101,8 +101,8 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 			name, item.Quantity, item.Price, item.Price*float64(item.Quantity))
 		conn.Write([]byte(line))
 		
-		if item.Comment != nil && *item.Comment != "" {
-			conn.Write([]byte(fmt.Sprintf("  * %s\n", s.transliterate(*item.Comment))))
+		if item.Comment != "" {
+			conn.Write([]byte(fmt.Sprintf("  * %s\n", s.transliterate(item.Comment))))
 		}
 	}
 	conn.Write([]byte("------------------------------------------------\n"))
