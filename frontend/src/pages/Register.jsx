@@ -313,6 +313,20 @@ const Register = () => {
           color: var(--primary-light);
           text-decoration: underline;
         }
+
+        @media (max-width: 640px) {
+          .auth-card {
+            padding: 2rem 1.4rem;
+            border-radius: var(--radius-lg);
+          }
+          .auth-brand-icon { width: 54px; height: 54px; border-radius: 14px; }
+          .auth-title { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 380px) {
+          .auth-card { padding: 1.75rem 1.1rem; margin: 0 0.25rem; }
+          .auth-brand-icon { width: 46px; height: 46px; }
+        }
       `}</style>
     </div>
   );

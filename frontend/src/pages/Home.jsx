@@ -438,10 +438,30 @@ const Home = () => {
           margin-bottom: 1.5rem;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
+          .hero-section { padding: 2.5rem 1rem 2rem; }
+          .hero-title { font-size: 2.4rem; }
+          .product-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+          .prod-img-wrap { height: 160px; }
+        }
+
+        @media (max-width: 640px) {
+          .hero-section { padding: 2rem 0.5rem 1.75rem; }
           .hero-title { font-size: 2rem; }
-          .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
-          .prod-img-wrap { height: 140px; }
+          .hero-sub { font-size: 0.9rem; margin-bottom: 1.75rem; }
+          .hero-badge { font-size: 0.75rem; padding: 0.3rem 0.75rem; }
+          .product-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+          .prod-img-wrap { height: 130px; }
+          .prod-body { padding: 0.9rem 0.9rem 0.75rem; }
+          .prod-name { font-size: 0.88rem; }
+          .prod-price { font-size: 0.95rem; }
+          .add-btn { width: 32px; height: 32px; border-radius: 8px; }
+          .search-bar { padding: 0 1rem; }
+        }
+
+        @media (max-width: 380px) {
+          .product-grid { grid-template-columns: 1fr; }
+          .prod-img-wrap { height: 180px; }
         }
       `}</style>
     </div>

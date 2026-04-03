@@ -436,7 +436,21 @@ const Kitchen = () => {
         }
 
         @media (max-width: 1100px) {
+          .kanban-board { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 720px) {
           .kanban-board { grid-template-columns: 1fr; }
+          .kitchen-header { flex-wrap: wrap; gap: 0.75rem; }
+          .kitchen-header h1 { font-size: 1.35rem; }
+          .kitchen-icon { width: 42px; height: 42px; }
+          .col-body { min-height: 100px; }
+        }
+
+        @media (max-width: 480px) {
+          .kitchen-title-wrap { gap: 0.6rem; }
+          .kitchen-icon { display: none; }
+          .order-card { padding: 0.75rem; }
         }
       `}</style>
     </div>

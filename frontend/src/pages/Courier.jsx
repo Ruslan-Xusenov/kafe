@@ -389,6 +389,24 @@ const Courier = () => {
         }
 
         .empty-section span { font-size: 2rem; opacity: 0.5; }
+
+        @media (max-width: 900px) {
+          .courier-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+          .courier-grid { grid-template-columns: 1fr; }
+          .courier-header { flex-wrap: wrap; gap: 0.75rem; }
+          .courier-header h1 { font-size: 1.35rem; }
+          .courier-icon { width: 42px; height: 42px; }
+          .section-header { flex-wrap: wrap; gap: 0.5rem; }
+          .ccard-addr { font-size: 0.82rem; }
+        }
+
+        @media (max-width: 420px) {
+          .courier-icon { display: none; }
+          .courier-title-wrap { gap: 0.5rem; }
+        }
       `}</style>
     </div>
   );

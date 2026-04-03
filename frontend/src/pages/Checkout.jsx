@@ -286,10 +286,19 @@ const Checkout = () => {
           font-size: 1.1rem;
         }
 
-        @media (max-width: 992px) {
+        @media (max-width: 900px) {
           .checkout-content {
             grid-template-columns: 1fr;
           }
+          .checkout-summary { position: static; }
+        }
+
+        @media (max-width: 600px) {
+          .checkout-page h1 { font-size: 1.5rem; margin-bottom: 1.25rem; }
+          .section-title { margin-bottom: 1.25rem; }
+          .section-title h2 { font-size: 1rem; }
+          .final-total { font-size: 1.2rem; }
+          .confirm-btn { padding: 0.85rem; font-size: 1rem; }
         }
       `}</style>
     </div>

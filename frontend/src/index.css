@@ -416,7 +416,36 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ─────────────────── RESPONSIVE BASE ─────────────────── */
-@media (max-width: 768px) {
-  h1 { font-size: 2rem; }
-  .premium-card { padding: 1rem; }
+/* ─────────────────── RESPONSIVE ─────────────────── */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .main-content { padding: 1.5rem 1.25rem 3rem; }
 }
+
+/* Mobile */
+@media (max-width: 768px) {
+  h1 { font-size: 1.75rem !important; letter-spacing: -0.02em; }
+  h2 { font-size: 1.35rem; }
+
+  .premium-card { padding: 1rem; }
+
+  .ss-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.6rem !important;
+  }
+
+  .ss-value { font-size: 1.25rem !important; }
+
+  .main-content {
+    padding: 1rem 0.85rem 3rem !important;
+    margin-top: 68px !important;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .ss-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .btn-primary { padding: 0.7rem 1.2rem; font-size: 0.9rem; }
+}
+

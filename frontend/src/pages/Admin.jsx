@@ -702,8 +702,45 @@ const Admin = () => {
           display: block;
         }
 
-        .input-group.has-error input, .input-group.has-error select {
-          border-color: #ef4444;
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+          .admin-page { flex-direction: column; gap: 1rem; }
+          .admin-sidebar {
+            width: 100%;
+            position: static;
+            padding: 1rem;
+            gap: 0.5rem;
+            border-radius: var(--radius);
+          }
+          .sidebar-header { display: none; }
+          .sidebar-nav { flex-direction: row; gap: 0.35rem; overflow-x: auto; }
+          .sidebar-nav button {
+            border-right: none !important;
+            border-bottom: 2px solid transparent;
+            padding: 0.55rem 0.9rem;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            border-radius: 8px;
+          }
+          .sidebar-nav button.active {
+            border-bottom-color: var(--primary);
+          }
+          .admin-main { flex: 1; }
+          .flex-header { flex-wrap: wrap; gap: 0.75rem; }
+          .actions { flex-wrap: wrap; gap: 0.5rem; }
+          .orders-table-wrapper, .admin-table-wrapper { overflow-x: auto; }
+          .admin-table { min-width: 520px; }
+          .performance-grid { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 600px) {
+          .modal-content {
+            width: 95%;
+            max-width: 100%;
+            margin: 1rem;
+            border-radius: var(--radius);
+          }
+          .sidebar-nav button { font-size: 0.75rem; padding: 0.45rem 0.7rem; }
         }
       `}</style>
     </div>
@@ -711,3 +748,4 @@ const Admin = () => {
 };
 
 export default Admin;
+

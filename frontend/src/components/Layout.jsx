@@ -4,9 +4,10 @@ import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import {
   ShoppingCart, LogOut, Utensils, LayoutDashboard,
-  Truck, ChefHat, Package, User, Menu, X
+  Truck, ChefHat, Package, Menu, X
 } from 'lucide-react';
 import { useState } from 'react';
+import BottomNav from './BottomNav';
 
 const Layout = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -116,6 +117,9 @@ const Layout = () => {
       <main className="main-content">
         <Outlet />
       </main>
+
+      {/* ── BOTTOM NAV (Mobile only) ── */}
+      <BottomNav />
 
       <style>{`
         .layout-root { min-height: 100vh; display: flex; flex-direction: column; }
@@ -325,11 +329,19 @@ const Layout = () => {
           padding: 2rem 1.5rem 4rem;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
           .navbar-links { display: none; }
           .user-chip-name { display: none; }
           .mobile-menu-btn { display: flex; }
-          .main-content { padding: 1.25rem 1rem 3rem; }
+        }
+
+        @media (max-width: 640px) {
+          .navbar-inner { padding: 0 0.85rem; gap: 0.75rem; }
+          .logo-text { font-size: 1.05rem; }
+          .logo-icon { width: 30px; height: 30px; border-radius: 8px; }
+          .icon-btn { width: 34px; height: 34px; border-radius: 8px; }
+          .nav-login-btn { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
+          .main-content { padding: 1rem 0.85rem 3rem; }
         }
       `}</style>
     </div>

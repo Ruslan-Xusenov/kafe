@@ -406,9 +406,27 @@ const Cart = () => {
           .summary-card { position: static; }
         }
 
-        @media (max-width: 600px) {
-          .cart-item-card { flex-wrap: wrap; }
+        @media (max-width: 640px) {
+          .cart-head { flex-wrap: wrap; gap: 0.75rem; }
+          .cart-head h1 { font-size: 1.5rem; }
+          .cart-item-card {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+          }
+          .cart-item-img { width: 56px; height: 56px; }
+          .cart-item-info { min-width: 0; flex: 1; }
           .line-total { min-width: auto; }
+          .qty-ctrl { padding: 0.25rem 0.4rem; }
+          .summary-card { padding: 1.25rem; }
+          .total-price { font-size: 1.1rem; }
+          .checkout-btn { padding: 0.8rem; font-size: 0.9rem; }
+        }
+
+        @media (max-width: 420px) {
+          .cart-item-card { padding: 0.75rem; }
+          .cart-item-img { width: 48px; height: 48px; border-radius: 8px; }
+          .remove-btn { padding: 0.3rem; }
+          .line-total { font-size: 0.85rem; }
         }
       `}</style>
     </div>
