@@ -95,9 +95,9 @@ const Layout = () => {
           </div>
         </div>
 
-        {/* Mobile nav */}
+        {/* Mobile nav — only show on desktop (BottomNav handles mobile) */}
         {mobileOpen && (
-          <nav className="mobile-nav">
+          <nav className="mobile-nav desktop-only-nav">
             {navLinks.map(link => (
               <Link
                 key={link.to}
@@ -329,10 +329,13 @@ const Layout = () => {
           padding: 2rem 1.5rem 4rem;
         }
 
+        /* ── Mobile: hide hamburger + dropdown, use BottomNav instead ── */
         @media (max-width: 900px) {
           .navbar-links { display: none; }
           .user-chip-name { display: none; }
-          .mobile-menu-btn { display: flex; }
+          /* Hide hamburger — BottomNav handles mobile nav */
+          .mobile-menu-btn { display: none !important; }
+          .desktop-only-nav { display: none !important; }
         }
 
         @media (max-width: 640px) {
@@ -342,6 +345,8 @@ const Layout = () => {
           .icon-btn { width: 34px; height: 34px; border-radius: 8px; }
           .nav-login-btn { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
           .main-content { padding: 1rem 0.85rem 3rem; }
+          /* Hide cart icon in navbar on mobile — bottom nav shows it */
+          .cart-btn { display: none !important; }
         }
       `}</style>
     </div>

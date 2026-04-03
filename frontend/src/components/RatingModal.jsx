@@ -56,13 +56,16 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
 
   return (
     <AnimatePresence>
-      <div className="modal-overlay">
+      <div className="rm-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="premium-card feedback-modal"
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 60 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          className="feedback-modal"
         >
+          {/* Drag handle (mobile) */}
+          <div className="rm-handle" />
           <div className="modal-header">
             <h3>Xizmat ko'rsatish sifatini baholang</h3>
             <button className="close-btn" onClick={onClose}><X size={20} /></button>
@@ -138,78 +141,92 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
           </button>
         </motion.div>
 
-        <style jsx>{`
-          .modal-overlay {
+        <style>{`
+          /* Overlay */
+          .rm-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
+            inset: 0;
+            background: rgba(0,0,0,0.75);
             backdrop-filter: blur(8px);
-            z-index: 1000;
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 2000;
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
-            padding: 1rem;
           }
+
+          /* Modal card */
           .feedback-modal {
             width: 100%;
-            max-width: 500px;
+            max-width: 520px;
             background: var(--bg-surface);
             border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 2rem;
+            border-radius: 24px 24px 0 0;
+            padding: 0.5rem 2rem 2rem;
             position: relative;
+            max-height: 92vh;
+            overflow-y: auto;
           }
+
+          /* Drag handle */
+          .rm-handle {
+            width: 40px; height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 99px;
+            margin: 0.75rem auto 1.25rem;
+          }
+
+          /* Desktop: center it */
+          @media (min-width: 640px) {
+            .rm-overlay { align-items: center; }
+            .feedback-modal {
+              border-radius: 24px;
+              padding: 2rem;
+              width: 90%;
+              max-width: 500px;
+            }
+            .rm-handle { display: none; }
+          }
+
           .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 0.5rem;
           }
-          .modal-header h3 { font-size: 1.5rem; font-weight: 700; color: #fff; }
-          .close-btn { color: var(--text-dim); transition: 0.2s; }
+          .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: #fff; }
+          .close-btn { color: var(--text-muted); transition: 0.2s; }
           .close-btn:hover { color: #fff; transform: rotate(90deg); }
           
           .order-summary-mini {
             display: flex;
             justify-content: space-between;
-            font-size: 0.9rem;
-            color: var(--text-dim);
-            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
           }
 
-          .rating-sections {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-          }
-          .rating-group {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-          }
-          .group-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-          }
+          .rating-sections { display: flex; flex-direction: column; gap: 1.25rem; }
+          .rating-group { display: flex; flex-direction: column; gap: 0.75rem; }
+          .group-header { display: flex; align-items: center; gap: 0.75rem; }
           .role-tag {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            padding: 4px 10px;
-            background: rgba(255, 107, 107, 0.1);
+            padding: 3px 8px;
+            background: rgba(249,115,22,0.12);
             color: var(--primary);
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 700;
           }
           .role-tag.courier {
-            background: rgba(77, 171, 245, 0.1);
-            color: var(--secondary);
+            background: rgba(99,102,241,0.12);
+            color: #818cf8;
           }
           .stars {
             display: flex;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
           }
           .star {
             cursor: pointer;
@@ -217,30 +234,29 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
             transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           }
           .star:hover { transform: scale(1.2); color: var(--primary); }
-          .star.filled { color: var(--primary); }
-          .rating-group:nth-child(3) .star.filled { color: var(--secondary); }
+          .star.filled { color: #fbbf24; }
           
           textarea {
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
+            border-radius: 10px;
+            padding: 0.85rem;
             color: #fff;
-            font-size: 0.9rem;
-            min-height: 80px;
+            font-size: 0.88rem;
+            min-height: 70px;
             resize: none;
             transition: 0.2s;
           }
-          textarea:focus { border-color: var(--primary); outline: none; background: rgba(255,255,255,0.06); }
+          textarea:focus { border-color: var(--primary); outline: none; }
           
           .divider { height: 1px; background: var(--border); opacity: 0.3; }
 
           .submit-rating-btn {
             width: 100%;
-            margin-top: 2rem;
-            background: linear-gradient(135deg, var(--primary), #ff8787);
+            margin-top: 1.5rem;
+            background: var(--grad-brand);
             color: #fff;
-            padding: 1rem;
+            padding: 0.9rem;
             border-radius: 14px;
             font-weight: 700;
             display: flex;
@@ -248,9 +264,9 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
             justify-content: center;
             gap: 0.75rem;
             transition: 0.3s;
-            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.2);
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
           }
-          .submit-rating-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(255, 107, 107, 0.3); }
+          .submit-rating-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(249,115,22,0.45); }
           .submit-rating-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
         `}</style>
       </div>

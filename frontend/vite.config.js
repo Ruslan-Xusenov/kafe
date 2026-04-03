@@ -7,9 +7,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
+        // Lokal backend ishlamasa — productionga bog'lanadi
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path,
       },
     },
   },
