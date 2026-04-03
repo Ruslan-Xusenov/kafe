@@ -186,3 +186,7 @@ func (s *OrderService) SubmitRating(orderID int, ratings []models.StaffRating) e
 func (s *OrderService) GetStaffPerformance() ([]models.StaffPerformance, error) {
 	return s.orderRepo.GetStaffPerformance()
 }
+
+func (s *OrderService) GetRatingsByOrderID(orderID int) ([]models.StaffRating, error) {
+	return s.orderRepo.GetRatingsByOrderID(orderID)
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../store/authStore';
@@ -9,9 +9,42 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
   const [cookComment, setCookComment] = useState('');
   const [courierComment, setCourierComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+
+  // Fetch current ratings if any
+  useEffect(() => {
+    if (isOpen && order?.id) {
+      const getRatings = async () => {
+        setFetching(true);
+        try {
+          const res = await api.get(`/orders/${order.id}/ratings`);
+          const existing = res.data || [];
+          existing.forEach(r => {
+            if (r.staff_role === 'cook') {
+              setCookRating(r.rating || 0);
+              setCookComment(r.comment || '');
+            } else if (r.staff_role === 'courier') {
+              setCourierRating(r.rating || 0);
+              setCourierComment(r.comment || '');
+            }
+          });
+        } catch (err) {
+          console.error('Failed to fetch existing ratings:', err);
+        } finally {
+          setFetching(false);
+        }
+      };
+      getRatings();
+    } else {
+      // Clear on close
+      setCookRating(0);
+      setCourierRating(0);
+      setCookComment('');
+      setCourierComment('');
+    }
+  }, [isOpen, order?.id]);
 
   const handleSubmit = async () => {
-    // Validate only for assigned staff
     if (order.cook_id && cookRating === 0) {
       alert('Iltimos, oshpazga baho bering');
       return;
@@ -81,69 +114,98 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
             <span>{new Date(order.created_at).toLocaleDateString()}</span>
           </div>
 
-          <div className="rating-sections">
-            {/* Cook Rating */}
-            {order.cook_id && (
-              <div className="rating-group">
-                <div className="group-header">
-                  <span className="role-tag">Oshpaz</span>
-                  <h4>Taom sifati va tayyorlanishi</h4>
+          <AnimatePresence mode="wait">
+            {fetching ? (
+              <motion.div 
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fetching-loader"
+              >
+                <Loader2 className="spinner" size={40} />
+                <p>Baholarni yuklamoqda...</p>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <div className="rating-sections">
+                  {/* Cook Rating */}
+                  {order.cook_id && (
+                    <div className="rating-group">
+                      <div className="group-header">
+                        <span className="role-tag">Oshpaz</span>
+                        <h4>Taom sifati va tayyorlanishi</h4>
+                      </div>
+                      <div className="stars">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star 
+                            key={star}
+                            size={32}
+                            className={star <= cookRating ? 'star filled' : 'star'}
+                            onClick={() => setCookRating(star)}
+                            fill={star <= cookRating ? 'var(--primary)' : 'none'}
+                          />
+                        ))}
+                      </div>
+                      <textarea 
+                        placeholder="Oshpaz haqida izohingiz..."
+                        value={cookComment}
+                        onChange={(e) => setCookComment(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {order.cook_id && order.courier_id && <div className="divider" />}
+
+                  {/* Courier Rating */}
+                  {order.courier_id && (
+                    <div className="rating-group">
+                      <div className="group-header">
+                        <span className="role-tag courier">Kuryer</span>
+                        <h4>Yetkazib berish xizmati</h4>
+                      </div>
+                      <div className="stars">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star 
+                            key={star}
+                            size={32}
+                            className={star <= courierRating ? 'star filled' : 'star'}
+                            onClick={() => setCourierRating(star)}
+                            fill={star <= courierRating ? 'var(--info)' : 'none'}
+                          />
+                        ))}
+                      </div>
+                      <textarea 
+                        placeholder="Kuryer haqida izohingiz..."
+                        value={courierComment}
+                        onChange={(e) => setCourierComment(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="stars">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star 
-                      key={star}
-                      size={32}
-                      className={star <= cookRating ? 'star filled' : 'star'}
-                      onClick={() => setCookRating(star)}
-                      fill={star <= cookRating ? 'var(--primary)' : 'none'}
-                    />
-                  ))}
-                </div>
-                <textarea 
-                  placeholder="Oshpaz haqida izohingiz..."
-                  value={cookComment}
-                  onChange={(e) => setCookComment(e.target.value)}
-                />
-              </div>
+
+                <button 
+                  className="submit-rating-btn" 
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="spinner" size={20} />
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      Bahoni yuborish
+                    </>
+                  )}
+                </button>
+              </motion.div>
             )}
-
-            {order.cook_id && order.courier_id && <div className="divider" />}
-
-            {/* Courier Rating */}
-            {order.courier_id && (
-              <div className="rating-group">
-                <div className="group-header">
-                  <span className="role-tag courier">Kuryer</span>
-                  <h4>Yetkazib berish xizmati</h4>
-                </div>
-                <div className="stars">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star 
-                      key={star}
-                      size={32}
-                      className={star <= courierRating ? 'star filled' : 'star'}
-                      onClick={() => setCourierRating(star)}
-                      fill={star <= courierRating ? 'var(--secondary)' : 'none'}
-                    />
-                  ))}
-                </div>
-                <textarea 
-                  placeholder="Kuryer haqida izohingiz..."
-                  value={courierComment}
-                  onChange={(e) => setCourierComment(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-
-          <button 
-            className="submit-rating-btn" 
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Bahoni yuborish</>}
-          </button>
+          </AnimatePresence>
         </motion.div>
 
         <style>{`
@@ -276,6 +338,19 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
           }
           .submit-rating-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(249,115,22,0.45); }
           .submit-rating-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+
+          .fetching-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 0;
+            color: var(--text-muted);
+            gap: 1rem;
+          }
+
+          .spinner { animation: spin 1s linear infinite; }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         `}</style>
       </div>
     </AnimatePresence>

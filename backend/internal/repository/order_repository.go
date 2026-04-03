@@ -196,6 +196,11 @@ func (r *OrderRepository) AddStaffRating(rating *models.StaffRating) error {
 	query := `
 		INSERT INTO staff_ratings (order_id, staff_id, staff_role, rating, comment)
 		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (order_id, staff_id, staff_role) 
+		DO UPDATE SET 
+			rating = EXCLUDED.rating,
+			comment = EXCLUDED.comment,
+			created_at = NOW()
 	`
 	_, err := r.db.Exec(query, rating.OrderID, rating.StaffID, rating.StaffRole, rating.Rating, rating.Comment)
 	return err
@@ -272,4 +277,11 @@ func (r *OrderRepository) GetAdminStats() (*models.DeliveryStats, error) {
 	`
 	err := r.db.Get(stats, query)
 	return stats, err
+}
+
+func (r *OrderRepository) GetRatingsByOrderID(orderID int) ([]models.StaffRating, error) {
+	var ratings []models.StaffRating
+	query := `SELECT * FROM staff_ratings WHERE order_id = $1`
+	err := r.db.Select(&ratings, query, orderID)
+	return ratings, err
 }

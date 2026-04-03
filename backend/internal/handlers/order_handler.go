@@ -151,3 +151,13 @@ func (h *OrderHandler) GetStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
+
+func (h *OrderHandler) GetOrderRatings(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	ratings, err := h.service.GetRatingsByOrderID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, ratings)
+}

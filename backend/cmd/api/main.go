@@ -118,6 +118,7 @@ func main() {
 			orders.POST("/", orderHandler.CreateOrder)
 			orders.GET("/my", orderHandler.GetMyOrders)
 			orders.GET("/:id", orderHandler.GetOrderByID)
+			orders.GET("/:id/ratings", orderHandler.GetOrderRatings)
 			orders.POST("/:id/rate", orderHandler.SubmitRating)
 
 			// Staff/Admin Protected
