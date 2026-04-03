@@ -16,18 +16,23 @@ const Cart = () => {
 
   if (items.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="empty-cart-wrap"
-      >
-        <div className="empty-cart-icon">🛒</div>
-        <h2>Savatingiz bo'sh</h2>
-        <p>Sevimli taomlaringizni tanlang va buyurtma bering!</p>
-        <Link to="/" className="btn-primary empty-cart-btn">
-          <ArrowLeft size={18} /> Menyuga o'tish
-        </Link>
-      </motion.div>
+      <div className="empty-cart-page">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          className="empty-cart-card"
+        >
+          <div className="empty-cart-emoji">🛒</div>
+          <h2 className="empty-cart-title">Savatingiz bo'sh</h2>
+          <p className="empty-cart-desc">
+            Sevimli taomlaringizni tanlang va buyurtma bering!
+          </p>
+          <Link to="/" className="btn-primary empty-cart-btn">
+            <ArrowLeft size={18} /> Menyuga o'tish
+          </Link>
+        </motion.div>
+      </div>
     );
   }
 
@@ -369,27 +374,59 @@ const Cart = () => {
 
         .continue-btn:hover { color: var(--primary); }
 
-        /* Empty */
-        .empty-cart-wrap {
+        /* Empty cart */
+        .empty-cart-page {
+          min-height: 70vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem 1rem;
+        }
+
+        .empty-cart-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           text-align: center;
-          padding: 5rem 2rem;
-          max-width: 420px;
-          margin: 0 auto;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-xl);
+          padding: 3.5rem 2.5rem;
+          max-width: 400px;
+          width: 100%;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          box-shadow: var(--shadow-card);
         }
 
-        .empty-cart-icon {
-          font-size: 5rem;
+        .empty-cart-emoji {
+          font-size: 4.5rem;
           margin-bottom: 1.5rem;
-          animation: float 3s ease-in-out infinite;
+          animation: floatCart 3s ease-in-out infinite;
         }
 
-        @keyframes float {
+        @keyframes floatCart {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-12px); }
+          50% { transform: translateY(-10px); }
         }
 
-        .empty-cart-wrap h2 { font-size: 1.75rem; margin-bottom: 0.75rem; }
-        .empty-cart-wrap p { color: var(--text-secondary); margin-bottom: 2rem; }
+        .empty-cart-title {
+          font-size: 1.6rem;
+          font-weight: 800;
+          margin-bottom: 0.75rem;
+          background: var(--grad-brand);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .empty-cart-desc {
+          color: var(--text-secondary);
+          font-size: 0.95rem;
+          line-height: 1.6;
+          margin-bottom: 2rem;
+          max-width: 280px;
+        }
 
         .empty-cart-btn {
           display: inline-flex;
@@ -397,8 +434,8 @@ const Cart = () => {
           gap: 0.5rem;
           text-decoration: none;
           padding: 0.8rem 1.75rem;
-          border-radius: var(--radius-sm);
           font-size: 0.95rem;
+          border-radius: var(--radius-sm);
         }
 
         @media (max-width: 900px) {
