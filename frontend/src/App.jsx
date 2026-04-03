@@ -15,6 +15,7 @@ import Courier from './pages/Courier';
 import Admin from './pages/Admin';
 import Printer from './pages/Printer';
 import MyOrders from './pages/MyOrders';
+import ProductDetail from './pages/ProductDetail';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
@@ -45,6 +46,7 @@ function App() {
           <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
           <Route path="my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+          <Route path="product/:id" element={<ProductDetail />} />
           
           {/* Protected Routes */}
           <Route path="admin" element={

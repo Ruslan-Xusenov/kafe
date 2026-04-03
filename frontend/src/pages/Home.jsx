@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api, { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
-import { Plus, ShoppingCart, Loader2, Search, SlidersHorizontal } from 'lucide-react';
+import { Plus, ShoppingCart, Loader2, Search, SlidersHorizontal, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Home = () => {
@@ -17,7 +18,6 @@ const Home = () => {
 
   const getImageUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith('/')) return url;
     return url;
   };
 
@@ -115,44 +115,55 @@ const Home = () => {
                 transition={{ duration: 0.35, delay: i * 0.04 }}
                 className="prod-card"
               >
-                {/* Image */}
-                <div className="prod-img-wrap">
-                  {getImageUrl(prod.image_url) ? (
-                    <img
-                      src={getImageUrl(prod.image_url)}
-                      alt={prod.name}
-                      className="prod-img"
-                      onError={e => {
-                        e.target.onerror = null;
-                        e.target.parentElement.innerHTML = '<div class="prod-img-placeholder">🍽</div>';
-                      }}
-                    />
-                  ) : (
-                    <div className="prod-img-placeholder">🍽</div>
-                  )}
-                  <div className="prod-img-overlay" />
-                </div>
-
-                {/* Info */}
-                <div className="prod-body">
-                  <p className="prod-cat-tag">
-                    {categories.find(c => c.id === prod.category_id)?.name || ''}
-                  </p>
-                  <h3 className="prod-name">{prod.name}</h3>
-                  {prod.description && (
-                    <p className="prod-desc">{prod.description}</p>
-                  )}
-                  <div className="prod-footer">
-                    <span className="prod-price">{prod.price.toLocaleString()} so'm</span>
-                    <button
-                      className="add-btn"
-                      onClick={() => addItem(prod)}
-                      title="Savatga qo'shish"
-                    >
-                      <Plus size={20} />
-                    </button>
+                <Link to={`/product/${prod.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  {/* Image */}
+                  <div className="prod-img-wrap">
+                    {getImageUrl(prod.image_url) ? (
+                      <img
+                        src={getImageUrl(prod.image_url)}
+                        alt={prod.name}
+                        className="prod-img"
+                        onError={e => {
+                          e.target.onerror = null;
+                          e.target.parentElement.innerHTML = '<div class="prod-img-placeholder">🍽</div>';
+                        }}
+                      />
+                    ) : (
+                      <div className="prod-img-placeholder">🍽</div>
+                    )}
+                    <div className="prod-img-overlay">
+                      <div className="view-details">
+                        <Eye size={18} />
+                        <span>Batafsil</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+
+                  {/* Info */}
+                  <div className="prod-body">
+                    <p className="prod-cat-tag">
+                      {categories.find(c => c.id === prod.category_id)?.name || ''}
+                    </p>
+                    <h3 className="prod-name">{prod.name}</h3>
+                    {prod.description && (
+                      <p className="prod-desc">{prod.description}</p>
+                    )}
+                    <div className="prod-footer">
+                      <span className="prod-price">{prod.price.toLocaleString()} so'm</span>
+                      <button
+                        className="add-btn"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          addItem(prod);
+                        }}
+                        title="Savatga qo'shish"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+                  </div>
+                </Link>
               </motion.div>
             ))
           ) : (
@@ -174,6 +185,23 @@ const Home = () => {
       </section>
 
       <style>{`
+        /* Existing Home Styles ... */
+        .prod-img-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, rgba(13,13,15,0.7) 0%, transparent 60%);
+          display: flex; align-items: flex-end; justify-content: center;
+          padding-bottom: 1.5rem; opacity: 0; transition: 0.3s;
+        }
+
+        .prod-card:hover .prod-img-overlay { opacity: 1; }
+
+        .view-details {
+          display: flex; align-items: center; gap: 0.5rem;
+          background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+          padding: 0.4rem 1rem; border-radius: 99px; font-size: 0.75rem;
+          font-weight: 700; color: white; border: 1px solid rgba(255,255,255,0.25);
+        }
         .home-page {
           padding-bottom: 4rem;
         }
