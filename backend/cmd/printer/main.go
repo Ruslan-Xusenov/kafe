@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 // ESC/POS Commands
@@ -37,7 +38,10 @@ type Item struct {
 }
 
 func main() {
-	// Configuration (Can be overridden by ENV)
+	// 1. .env faylini yuklash
+	_ = godotenv.Load()
+
+	// Configuration
 	serverHost := os.Getenv("API_HOST")
 	if serverHost == "" {
 		serverHost = "46.224.133.140:8080"
@@ -62,6 +66,7 @@ func main() {
 	
 	for {
 		log.Printf("Connecting to Server: %s...", u.String())
+		log.Printf("Current Target Printer: %s (%s)", printerIP, printerPort)
 		
 		dialer := websocket.Dialer{ HandshakeTimeout: 10 * time.Second }
 		c, _, err := dialer.Dial(u.String(), nil)
@@ -106,7 +111,6 @@ func handleMessages(c *websocket.Conn, printerIP, printerPort string) error {
 }
 
 func sendToPrinter(o OrderPrint, ip, port string) {
-	// 1. ESC/POS Formatlash
 	var payload []byte
 	payload = append(payload, ESC_INIT...)
 	payload = append(payload, BEEP...)
@@ -129,9 +133,8 @@ func sendToPrinter(o OrderPrint, ip, port string) {
 	payload = append(payload, []byte("\n\n\n\n\n")...)
 	payload = append(payload, PAPER_CUT...)
 
-	// 2. Chop etish (LAN yoki USB)
 	if strings.HasPrefix(ip, "\\\\") {
-		// WINDOWS USB (Shared)
+		// WINDOWS USB
 		log.Printf("🔌 Printing via USB Shared: %s", ip)
 		err := os.WriteFile(ip, payload, 0666)
 		if err != nil {
@@ -140,7 +143,7 @@ func sendToPrinter(o OrderPrint, ip, port string) {
 			log.Printf("✅ Order #%d printed via USB!", o.ID)
 		}
 	} else {
-		// NETWORK (LAN)
+		// NETWORK
 		address := net.JoinHostPort(ip, port)
 		log.Printf("🌐 Printing via LAN: %s", address)
 		conn, err := net.DialTimeout("tcp", address, 5*time.Second)
