@@ -133,6 +133,13 @@ func main() {
 			}
 		}
 
+		// Printer Control (Staff Only)
+		printer := api.Group("/printer")
+		printer.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "cook", "courier"))
+		{
+			printer.GET("/test", orderHandler.TestPrinter)
+		}
+
 		// WebSocket
 		api.GET("/ws", middleware.AuthMiddleware(), func(c *gin.Context) {
 			userID, _ := c.Get("user_id")

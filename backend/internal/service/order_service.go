@@ -190,3 +190,26 @@ func (s *OrderService) GetStaffPerformance() ([]models.StaffPerformance, error) 
 func (s *OrderService) GetRatingsByOrderID(orderID int) ([]models.StaffRating, error) {
 	return s.orderRepo.GetRatingsByOrderID(orderID)
 }
+
+func (s *OrderService) TestPrinter() error {
+	testOrder := &models.Order{
+		ID:         0,
+		Phone:      "+998990000000",
+		Address:    "TEST MANZIL",
+		TotalPrice: 50000,
+	}
+	testOrder.Items = []models.OrderItem{
+		{ProductName: "TEST TAOM 1", Quantity: 1, Price: 25000},
+		{ProductName: "TEST TAOM 2", Quantity: 1, Price: 25000},
+	}
+
+	// Broadcast to roles
+	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": testOrder})
+	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": testOrder})
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": testOrder})
+
+	// Direct Print
+	go s.printerService.PrintOrder(testOrder)
+
+	return nil
+}

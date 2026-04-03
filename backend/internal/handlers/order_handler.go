@@ -161,3 +161,11 @@ func (h *OrderHandler) GetOrderRatings(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, ratings)
 }
+
+func (h *OrderHandler) TestPrinter(c *gin.Context) {
+	if err := h.service.TestPrinter(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "test sent"})
+}
