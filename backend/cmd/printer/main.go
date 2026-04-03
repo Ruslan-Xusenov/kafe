@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -59,27 +60,19 @@ func main() {
 		RawQuery: "printer_key=KAFE_PRINTER_SECRET_2026",
 	}
 	
-	// Infinite connection loop (Auto-Reconnect)
 	for {
 		log.Printf("Connecting to Server: %s...", u.String())
 		
-		// Use a dialer with timeout
-		dialer := websocket.Dialer{
-			HandshakeTimeout: 10 * time.Second,
-		}
-		
+		dialer := websocket.Dialer{ HandshakeTimeout: 10 * time.Second }
 		c, _, err := dialer.Dial(u.String(), nil)
 		if err != nil {
-			log.Printf("❌ Failed to connect to server: %v. Retrying in 5 seconds...", err)
+			log.Printf("❌ Connection failed: %v. Retrying...", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
 
 		log.Println("✅ Connected to Server! Waiting for orders...")
-
-		// Handle incoming messages
 		err = handleMessages(c, printerIP, printerPort)
-		
 		if err != nil {
 			log.Printf("⚠️  Connection lost: %v. Reconnecting...", err)
 			c.Close()
@@ -101,46 +94,62 @@ func handleMessages(c *websocket.Conn, printerIP, printerPort string) error {
 		}
 
 		if err := json.Unmarshal(message, &event); err != nil {
-			log.Printf("Error unmarshaling message: %v", err)
+			log.Printf("JSON Error: %v", err)
 			continue
 		}
 
 		if event.Type == "new_order" {
-			log.Printf("📦 New order received: #%d. Printing to %s...", event.Order.ID, printerIP)
+			log.Printf("📦 New order received: #%d", event.Order.ID)
 			go sendToPrinter(event.Order, printerIP, printerPort)
 		}
 	}
 }
 
 func sendToPrinter(o OrderPrint, ip, port string) {
-	address := net.JoinHostPort(ip, port)
-	conn, err := net.DialTimeout("tcp", address, 10*time.Second)
-	if err != nil {
-		log.Printf("🚨 Printer Connection Error (%s): %v", address, err)
-		return
-	}
-	defer conn.Close()
-
-	// Format Receipt (Simplified ESC/POS)
-	conn.Write(ESC_INIT)
-	conn.Write(BEEP)
-	conn.Write(ALIGN_CTR)
-	conn.Write([]byte(fmt.Sprintf("\n*** YANGI BUYURTMA #%d ***\n", o.ID)))
-	conn.Write(ALIGN_LFT)
-	conn.Write([]byte(fmt.Sprintf("Mijoz:   %s\n", o.Phone)))
-	conn.Write([]byte(fmt.Sprintf("Vaqt:    %s\n", time.Now().Format("02.01.2006 15:04"))))
-	conn.Write([]byte("--------------------------------\n"))
+	// 1. ESC/POS Formatlash
+	var payload []byte
+	payload = append(payload, ESC_INIT...)
+	payload = append(payload, BEEP...)
+	payload = append(payload, ALIGN_CTR...)
+	payload = append(payload, []byte(fmt.Sprintf("\n*** YANGI BUYURTMA #%d ***\n\n", o.ID))...)
+	payload = append(payload, ALIGN_LFT...)
+	payload = append(payload, []byte(fmt.Sprintf("Mijoz:  %s\n", o.Phone))...)
+	payload = append(payload, []byte(fmt.Sprintf("Vaqt:   %s\n", time.Now().Format("02.01.2006 15:04")))...)
+	payload = append(payload, []byte(fmt.Sprintf("Manzil: %s\n", o.Address))...)
+	payload = append(payload, []byte("--------------------------------\n")...)
 	
 	for _, item := range o.Items {
 		name := item.ProductName
-		if len(name) > 18 { name = name[:15] + "..." }
-		conn.Write([]byte(fmt.Sprintf("%-18s x%-4d\n", name, item.Quantity)))
+		if len(name) > 20 { name = name[:17] + "..." }
+		payload = append(payload, []byte(fmt.Sprintf("%-20s x%-4d\n", name, item.Quantity))...)
 	}
 	
-	conn.Write([]byte("--------------------------------\n"))
-	conn.Write([]byte(fmt.Sprintf("JAMI:    %.0f so'm\n\n", o.TotalPrice)))
-	conn.Write([]byte("\n\n\n"))
-	conn.Write(PAPER_CUT)
-	
-	log.Printf("✅ Order #%d successfully sent to printer!", o.ID)
+	payload = append(payload, []byte("--------------------------------\n")...)
+	payload = append(payload, []byte(fmt.Sprintf("JAMI:   %.0f so'm\n\n", o.TotalPrice))...)
+	payload = append(payload, []byte("\n\n\n\n\n")...)
+	payload = append(payload, PAPER_CUT...)
+
+	// 2. Chop etish (LAN yoki USB)
+	if strings.HasPrefix(ip, "\\\\") {
+		// WINDOWS USB (Shared)
+		log.Printf("🔌 Printing via USB Shared: %s", ip)
+		err := os.WriteFile(ip, payload, 0666)
+		if err != nil {
+			log.Printf("🚨 USB Error: %v", err)
+		} else {
+			log.Printf("✅ Order #%d printed via USB!", o.ID)
+		}
+	} else {
+		// NETWORK (LAN)
+		address := net.JoinHostPort(ip, port)
+		log.Printf("🌐 Printing via LAN: %s", address)
+		conn, err := net.DialTimeout("tcp", address, 5*time.Second)
+		if err != nil {
+			log.Printf("🚨 LAN Error: %v", err)
+			return
+		}
+		defer conn.Close()
+		_, _ = conn.Write(payload)
+		log.Printf("✅ Order #%d printed via LAN!", o.ID)
+	}
 }
