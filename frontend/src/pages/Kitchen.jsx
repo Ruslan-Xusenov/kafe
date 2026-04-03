@@ -452,6 +452,12 @@ const Kitchen = () => {
           .kitchen-icon { display: none; }
           .order-card { padding: 0.75rem; }
         }
+
+        /* Prevent long strings from breaking layout */
+        .order-note, .item-name, .order-item-row, .order-card {
+          word-break: break-all;
+          overflow-wrap: break-word;
+        }
       `}</style>
     </div>
   );

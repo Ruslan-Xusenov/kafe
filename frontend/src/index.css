@@ -108,6 +108,9 @@ img { display: block; max-width: 100%; }
   transition: var(--transition);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  /* Prevent long string overflows */
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .premium-card:hover {

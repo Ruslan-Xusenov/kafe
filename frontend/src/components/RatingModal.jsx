@@ -41,12 +41,17 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
         });
       }
 
-      await api.post(`/orders/${order.id}/rate`, ratings);
+      await api.post(`/orders/${order.id}/rate`, ratings.map(r => ({
+        ...r,
+        staff_id: parseInt(r.staff_id, 10),
+        rating: parseInt(r.rating, 10)
+      })));
       onSuccess();
       onClose();
     } catch (err) {
-      console.error(err);
-      alert('Xatolik yuz berdi. Iltimos qaytadan urunib ko\'ring.');
+      console.error('Rating failed:', err);
+      const serverMsg = err.response?.data?.error || "Qaytadan urunib ko'ring.";
+      alert(`Baholashda xatolik yuz berdi: ${serverMsg}`);
     } finally {
       setLoading(false);
     }
@@ -237,6 +242,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
           .star.filled { color: #fbbf24; }
           
           textarea {
+            width: 100%;
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--border);
             border-radius: 10px;
@@ -246,6 +252,8 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
             min-height: 70px;
             resize: none;
             transition: 0.2s;
+            word-break: break-all;
+            overflow-wrap: break-word;
           }
           textarea:focus { border-color: var(--primary); outline: none; }
           

@@ -14,6 +14,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Backend xato xabarlarini o'zbek tiliga tarjima
+const translateError = (err) => {
+  const serverMsg = err.response?.data?.error || '';
+  const map = {
+    'user already exists':       'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan',
+    'invalid phone or password':  'Telefon raqam yoki parol noto\'g\'ri',
+    'unauthorized':               'Kirish huquqi yo\'q',
+    'invalid credentials':        'Telefon raqam yoki parol noto\'g\'ri',
+    'phone already taken':        'Bu telefon raqam band',
+    'user not found':             'Foydalanuvchi topilmadi',
+  };
+  return map[serverMsg] || serverMsg || null;
+};
+
 export const useAuthStore = create((set) => ({
   user: null,
   token: localStorage.getItem('token'),
@@ -30,7 +44,7 @@ export const useAuthStore = create((set) => ({
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true, role: user.role };
     } catch (err) {
-      const msg = err.response?.data?.error || 'Kirishda xatolik yuz berdi';
+      const msg = translateError(err) || 'Kirishda xatolik yuz berdi';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }
@@ -45,7 +59,7 @@ export const useAuthStore = create((set) => ({
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true };
     } catch (err) {
-      const msg = err.response?.data?.error || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
+      const msg = translateError(err) || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }
