@@ -4,16 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
+	"net"
 	"net/url"
 	"os"
-	"os/signal"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-// Simplified Order struct for printing
+// ESC/POS Commands
+var (
+	ESC_INIT  = []byte{0x1B, 0x40}
+	PAPER_CUT = []byte{0x1D, 0x56, 0x42, 0x00}
+	BEEP      = []byte{0x1B, 0x42, 0x02, 0x02}
+	ALIGN_CTR = []byte{0x1B, 0x61, 0x01}
+	ALIGN_LFT = []byte{0x1B, 0x61, 0x00}
+)
+
 type OrderPrint struct {
 	ID         int      `json:"id"`
 	Phone      string   `json:"phone"`
@@ -23,97 +30,112 @@ type OrderPrint struct {
 }
 
 type Item struct {
-	ProductName string `json:"product_name"`
-	Quantity    int    `json:"quantity"`
+	ProductName string  `json:"product_name"`
+	Quantity    int     `json:"quantity"`
+	Price       float64 `json:"price"`
 }
 
 func main() {
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	// In a real scenario, this would be the server address
-	serverAddr := os.Getenv("API_URL")
-	if serverAddr == "" {
-		serverAddr = "localhost:8080"
+	// Configuration (Can be overridden by ENV)
+	serverHost := os.Getenv("API_HOST")
+	if serverHost == "" {
+		serverHost = "46.224.133.140:8080"
+	}
+	
+	printerIP := os.Getenv("PRINTER_IP")
+	if printerIP == "" {
+		printerIP = "192.168.123.10"
 	}
 
-	u := url.URL{Scheme: "ws", Host: serverAddr, Path: "/api/ws"}
-	log.Printf("Connecting to %s", u.String())
-
-	// Simulated Auth Token for Printer (Admin or specific Printer role)
-	token := os.Getenv("PRINTER_TOKEN")
-	header := http.Header{}
-	header.Add("Authorization", "Bearer "+token)
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
-	if err != nil {
-		log.Fatal("Dial Error:", err)
+	printerPort := os.Getenv("PRINTER_PORT")
+	if printerPort == "" {
+		printerPort = "9100"
 	}
-	defer c.Close()
 
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("Read Error:", err)
-				return
-			}
-
-			var event struct {
-				Type  string      `json:"type"`
-				Order OrderPrint  `json:"order"`
-			}
-			
-			if err := json.Unmarshal(message, &event); err != nil {
-				continue
-			}
-
-			if event.Type == "new_order" {
-				printOrder(event.Order)
-			}
-		}
-	}()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
+	u := url.URL{Scheme: "ws", Host: serverHost, Path: "/api/ws"}
+	
+	// Infinite connection loop (Auto-Reconnect)
 	for {
-		select {
-		case <-done:
-			return
-		case <-interrupt:
-			log.Println("Interrupt received, closing...")
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("Write Close Error:", err)
-				return
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			return
+		log.Printf("Connecting to Server: %s...", u.String())
+		
+		// Use a dialer with timeout
+		dialer := websocket.Dialer{
+			HandshakeTimeout: 10 * time.Second,
+		}
+		
+		c, _, err := dialer.Dial(u.String(), nil)
+		if err != nil {
+			log.Printf("❌ Failed to connect to server: %v. Retrying in 5 seconds...", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		log.Println("✅ Connected to Server! Waiting for orders...")
+
+		// Handle incoming messages
+		err = handleMessages(c, printerIP, printerPort)
+		
+		if err != nil {
+			log.Printf("⚠️  Connection lost: %v. Reconnecting...", err)
+			c.Close()
+			time.Sleep(2 * time.Second)
 		}
 	}
 }
 
-func printOrder(o OrderPrint) {
-	fmt.Println("\n==============================")
-	fmt.Println("       YANGI BUYURTMA         ")
-	fmt.Println("==============================")
-	fmt.Printf("ID:      #%d\n", o.ID)
-	fmt.Printf("Mijoz:   %s\n", o.Phone)
-	fmt.Printf("Vaqt:    %s\n", time.Now().Format("15:04:05"))
-	fmt.Println("------------------------------")
-	for _, item := range o.Items {
-		fmt.Printf("%-20s x%-3d\n", item.ProductName, item.Quantity)
+func handleMessages(c *websocket.Conn, printerIP, printerPort string) error {
+	for {
+		_, message, err := c.ReadMessage()
+		if err != nil {
+			return err
+		}
+
+		var event struct {
+			Type  string     `json:"type"`
+			Order OrderPrint `json:"order"`
+		}
+
+		if err := json.Unmarshal(message, &event); err != nil {
+			log.Printf("Error unmarshaling message: %v", err)
+			continue
+		}
+
+		if event.Type == "new_order" {
+			log.Printf("📦 New order received: #%d. Printing to %s...", event.Order.ID, printerIP)
+			go sendToPrinter(event.Order, printerIP, printerPort)
+		}
 	}
-	fmt.Println("------------------------------")
-	fmt.Printf("JAMI:    %.0f so'm\n", o.TotalPrice)
-	fmt.Println("==============================")
+}
+
+func sendToPrinter(o OrderPrint, ip, port string) {
+	address := net.JoinHostPort(ip, port)
+	conn, err := net.DialTimeout("tcp", address, 10*time.Second)
+	if err != nil {
+		log.Printf("🚨 Printer Connection Error (%s): %v", address, err)
+		return
+	}
+	defer conn.Close()
+
+	// Format Receipt (Simplified ESC/POS)
+	conn.Write(ESC_INIT)
+	conn.Write(BEEP)
+	conn.Write(ALIGN_CTR)
+	conn.Write([]byte(fmt.Sprintf("\n*** YANGI BUYURTMA #%d ***\n", o.ID)))
+	conn.Write(ALIGN_LFT)
+	conn.Write([]byte(fmt.Sprintf("Mijoz:   %s\n", o.Phone)))
+	conn.Write([]byte(fmt.Sprintf("Vaqt:    %s\n", time.Now().Format("02.01.2006 15:04"))))
+	conn.Write([]byte("--------------------------------\n"))
 	
-	// In real setup, you would send ESC/POS commands to /dev/usb/lp0 or similar
+	for _, item := range o.Items {
+		name := item.ProductName
+		if len(name) > 18 { name = name[:15] + "..." }
+		conn.Write([]byte(fmt.Sprintf("%-18s x%-4d\n", name, item.Quantity)))
+	}
+	
+	conn.Write([]byte("--------------------------------\n"))
+	conn.Write([]byte(fmt.Sprintf("JAMI:    %.0f so'm\n\n", o.TotalPrice)))
+	conn.Write([]byte("\n\n\n"))
+	conn.Write(PAPER_CUT)
+	
+	log.Printf("✅ Order #%d successfully sent to printer!", o.ID)
 }
