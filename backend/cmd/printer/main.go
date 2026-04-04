@@ -3,13 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -32,7 +30,7 @@ func main() {
 		resp, err := http.Get(testURL)
 		if err != nil {
 			log.Printf("❌ Server topilmadi: %v. Qayta urinish (10s)...\n", err)
-			time.Sleep(10 * time.Sleep)
+			time.Sleep(10 * time.Second)
 			continue
 		}
 		resp.Body.Close()
