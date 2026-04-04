@@ -159,21 +159,27 @@ func (b *Bot) placeOrder(chatID int64) {
 	for _, it := range s.Cart { order.Items = append(order.Items, models.OrderItem{ProductID: it.ProductID, Quantity: it.Quantity, Price: it.Price}); total += it.Price * float64(it.Quantity) }
 	order.TotalPrice = total
 	if err := b.repo.CreateOrder(order); err != nil { b.sendMessage(chatID, "❌ Buyurtmada xatolik"); return }
-	go b.printerService.PrintOrder(order); b.notifyCooks(order)
 	
-	// Notify Central API for Printer Bridge
+	// Notify Backend for Printer and Real-time UI
 	go b.notifyAPI(order.ID)
+	
+	b.notifyCooks(order)
 
 	s.Cart = []CartItem{}; s.Address = ""; s.OrderPhone = ""; s.Comment = ""
 	b.sendMessage(chatID, fmt.Sprintf("✅ <b>Buyurtma #%d qabul qilindi!</b>\n\nTez orada tayyor bo'ladi.", order.ID))
 }
 
 func (b *Bot) notifyAPI(orderID int) {
-	key := os.Getenv("PRINTER_KEY")
-	if key == "" { key = "KAFE_PRINTER_SECRET_2026" }
-	url := fmt.Sprintf("%s/api/notify-order/%d?key=%s", b.apiBaseURL, orderID, key)
+	key := "KAFE_PRINTER_SECRET_2026" // Standard key as per backend config
+	url := fmt.Sprintf("http://localhost:8080/api/notify-order/%d?key=%s", orderID, key)
+	
 	resp, err := http.Get(url)
-	if err == nil { resp.Body.Close() }
+	if err != nil {
+		fmt.Printf("TELEGRAM_DEBUG: Failed to notify printer for order %d: %v\n", orderID, err)
+		return
+	}
+	defer resp.Body.Close()
+	fmt.Printf("TELEGRAM_DEBUG: Printer notified for order %d. Status: %s\n", orderID, resp.Status)
 }
 
 func (b *Bot) showOrderHistory(chatID int64) {

@@ -372,3 +372,15 @@ func parseRating(text string) int {
 func parsePrice(text string) float64 {
 	var price float64; fmt.Sscanf(strings.ReplaceAll(text, " ", ""), "%f", &price); return price
 }
+
+func (b *Bot) notifyBackend(orderID int) {
+	// Directly notify the local API for printer bridge trigger
+	url := fmt.Sprintf("http://localhost:8080/api/notify-order/%d?key=KAFE_PRINTER_SECRET_2026", orderID)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("TELEGRAM_DEBUG: Failed to notify backend for order %d: %v\n", orderID, err)
+		return
+	}
+	defer resp.Body.Close()
+	fmt.Printf("TELEGRAM_DEBUG: Notified backend for order %d. Status: %s\n", orderID, resp.Status)
+}
