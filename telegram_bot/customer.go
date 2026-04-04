@@ -64,10 +64,17 @@ func (b *Bot) showProductDetail(chatID int64, data string) {
 	)
 	if prod.ImageURL != "" {
 		imgURL := prod.ImageURL
-		if !strings.HasPrefix(imgURL, "http") { imgURL = b.apiBaseURL + imgURL }
+		if !strings.HasPrefix(imgURL, "http") {
+			baseURL := strings.TrimSuffix(b.apiBaseURL, "/")
+			path := strings.TrimPrefix(imgURL, "/")
+			imgURL = fmt.Sprintf("%s/%s", baseURL, path)
+		}
 		photo := tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(imgURL))
 		photo.Caption = text; photo.ReplyMarkup = keyboard
-		if _, err := b.api.Send(photo); err == nil { return }
+		photo.ParseMode = "HTML"
+		if _, err := b.api.Send(photo); err == nil { return } else {
+			fmt.Printf("TELEGRAM_DEBUG: Failed to send photo for product %d: %v\nURL: %s\n", prod.ID, err, imgURL)
+		}
 	}
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }
@@ -192,17 +199,18 @@ func (b *Bot) submitRating(chatID int64) {
 	if o != nil {
 		if o.CookID != nil { b.repo.AddStaffRating(&models.StaffRating{OrderID: s.RatingOrderID, StaffID: *o.CookID, StaffRole: "cook", Rating: s.RatingCookScore}) }
 		if o.CourierID != nil { b.repo.AddStaffRating(&models.StaffRating{OrderID: s.RatingOrderID, StaffID: *o.CourierID, StaffRole: "courier", Rating: s.RatingCourierScore}) }
+		
+		// Notify Courier
+		cid := int64(0)
+		if o.CourierTelegramID != nil { cid = *o.CourierTelegramID }
+		if cid == 0 {
+			b.ordersMu.RLock(); cid = b.ordersToCouriers[s.RatingOrderID]; b.ordersMu.RUnlock()
+		}
+		if cid != 0 {
+			b.sendMessage(cid, fmt.Sprintf("🌟 <b>Buyurtma #%d uchun yangi baho!</b>\n\nMijoz sizga <b>%d ⭐</b> baho berdi.", s.RatingOrderID, s.RatingCourierScore))
+		}
 	}
 	b.sendMessage(chatID, "🌟 Rahmat! Sizning bahoingiz qabul qilindi.")
-
-	// Notify Courier
-	b.ordersMu.RLock()
-	courierID, ok := b.ordersToCouriers[s.RatingOrderID]
-	b.ordersMu.RUnlock()
-	if ok {
-		b.sendMessage(courierID, fmt.Sprintf("🌟 Buyurtma #%d uchun mijozdan baho olindi: %d ⭐", s.RatingOrderID, s.RatingCourierScore))
-	}
-
 	s.RatingOrderID = 0; b.showMainMenu(chatID)
 }
 

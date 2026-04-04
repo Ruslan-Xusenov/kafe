@@ -203,3 +203,17 @@ func (r *BotRepository) RemoveStaff(telegramID int64) error {
 	_, err := r.db.Exec(query, telegramID)
 	return err
 }
+
+func (r *BotRepository) EnsureCourierColumn() error {
+	// Add courier_telegram_id column to orders if it doesn't exist
+	query := `ALTER TABLE orders ADD COLUMN IF NOT EXISTS courier_telegram_id BIGINT`
+	_, err := r.db.Exec(query)
+	return err
+}
+
+func (r *BotRepository) AssignCourierByTelegramID(orderID int, telegramID int64) error {
+	_ = r.EnsureCourierColumn() // Ensure column exists
+	query := `UPDATE orders SET courier_telegram_id = $1, status = $2, updated_at = NOW() WHERE id = $3`
+	_, err := r.db.Exec(query, telegramID, models.StatusOnWay, orderID)
+	return err
+}

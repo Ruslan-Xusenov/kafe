@@ -29,9 +29,7 @@ func (b *Bot) showCourierActiveOrders(chatID int64) {
 	for _, o := range orders {
 		if o.Status == models.StatusReady {
 			available = append(available, o)
-		} else if o.Status == models.StatusOnWay && o.CourierID != nil {
-			// In a real system we would check if o.CourierID matches this chatID's linked user
-			// For now, let's show all on-way orders to all couriers or just the ones we want.
+		} else if o.Status == models.StatusOnWay && o.CourierTelegramID != nil && *o.CourierTelegramID == chatID {
 			myOrders = append(myOrders, o)
 		}
 	}
@@ -48,7 +46,7 @@ func (b *Bot) showCourierActiveOrders(chatID int64) {
 	}
 
 	if len(myOrders) > 0 {
-		text += "\n🚴 <b>Yo'ldagi buyurtmalar:</b>\n"
+		text += "🚴 <b>Mening buyurtmalarim (Yo'lda):</b>\n"
 		for _, o := range myOrders {
 			text += fmt.Sprintf("<b>#%d</b> | 📞 %s\n📍 %s\n\n", o.ID, o.Phone, o.Address)
 			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("✅ Topshirildi #%d", o.ID), fmt.Sprintf("courier_delivered_%d", o.ID))))
@@ -65,11 +63,17 @@ func (b *Bot) showCourierActiveOrders(chatID int64) {
 
 func (b *Bot) courierAcceptOrder(chatID int64, data string) {
 	id, _ := strconv.Atoi(strings.TrimPrefix(data, "courier_accept_"))
-	b.ordersMu.Lock(); b.ordersToCouriers[id] = chatID; b.ordersMu.Unlock()
-	if err := b.repo.UpdateStatus(id, models.StatusOnWay, nil); err != nil {
-		b.sendMessage(chatID, "❌ Xato")
+	
+	// Bazada kuryerni biriktirish
+	if err := b.repo.AssignCourierByTelegramID(id, chatID); err != nil {
+		b.sendMessage(chatID, "❌ Xato: Buyurtmani qabul qilib bo'lmadi")
 		return
 	}
+	
+	b.ordersMu.Lock()
+	b.ordersToCouriers[id] = chatID
+	b.ordersMu.Unlock()
+	
 	b.sendMessage(chatID, fmt.Sprintf("🚚 Buyurtma #%d qabul qilindi. Yo'lga tushdingiz!", id))
 	b.showCourierActiveOrders(chatID)
 }

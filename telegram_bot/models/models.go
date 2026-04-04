@@ -62,10 +62,11 @@ type Order struct {
 	Lat         *float64    `json:"lat" db:"lat"`
 	Lng         *float64    `json:"lng" db:"lng"`
 	CourierID   *int        `json:"courier_id" db:"courier_id"`
-	CookID      *int        `json:"cook_id" db:"cook_id"`
-	CourierName *string     `json:"courier_name" db:"courier_name"`
-	CookName    *string     `json:"cook_name" db:"cook_name"`
-	Comment     *string     `json:"comment" db:"comment"`
+	CookID            *int        `json:"cook_id" db:"cook_id"`
+	CourierTelegramID *int64      `json:"courier_telegram_id" db:"courier_telegram_id"`
+	CourierName       *string     `json:"courier_name" db:"courier_name"`
+	CookName          *string     `json:"cook_name" db:"cook_name"`
+	Comment           *string     `json:"comment" db:"comment"`
 	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt   *time.Time  `json:"updated_at" db:"updated_at"`
 	Items       []OrderItem `json:"items,omitempty" db:"-"`
