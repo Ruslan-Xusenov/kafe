@@ -35,7 +35,7 @@ var (
 )
 
 func main() {
-	log.Println("🚀 Kafe Printer Bridge Artistic Pro (v4.0) ishga tushdi...")
+	log.Println("🚀 Kafe Printer Bridge Master v8.5 (Ultra Latin) ishga tushdi...")
 	log.Printf("📍 Server: %s\n", serverAddr)
 	log.Printf("📍 Printer: %s\n\n", printerDevice)
 
@@ -90,7 +90,7 @@ func handleMessages(c *websocket.Conn) {
 			orderData, _ := m["order"].(map[string]interface{})
 			id := int(orderData["id"].(float64))
 
-			// Deduplication Logic: Aggressive 30-second filter for v7.0 Final
+			// Deduplication Logic: Aggressive 30-second filter for v8.5 Final
 			now := time.Now()
 			if id == lastOrderID && now.Sub(lastPrintTime) < 30*time.Second {
 				log.Printf("🚫 DUB_RAD: Buyurtma #%d allaqachon chiqarilgan (Rad etildi).\n", id)
@@ -100,7 +100,7 @@ func handleMessages(c *websocket.Conn) {
 			lastOrderID = id
 			lastPrintTime = now
 
-			log.Printf("🔔 MASTER v7.0: Yangi buyurtma #%d qabul qilindi!\n", id)
+			log.Printf("🔔 MASTER v8.5: Yangi buyurtma #%d qabul qilindi!\n", id)
 			
 			printOrder(orderData)
 		}
@@ -131,17 +131,16 @@ func printOrder(order map[string]interface{}) {
 	// Details
 	f.Write(ALIGN_LEFT)
 	f.Write([]byte(fmt.Sprintf("Check No / Chek raqami: %d\n", id)))
-	f.Write([]byte(fmt.Sprintf("Tur / Tip: Dostavka / Доставка %d\n", id)))
-	f.Write([]byte("Stol / Стол: onlayn\n"))
-	f.Write([]byte("Xizmat / Сервис: YETUK KAFE onlayn\n"))
+	f.Write([]byte(fmt.Sprintf("Tur / Tip: Dostavka / Dostavka %d\n", id)))
+	f.Write([]byte("Stol / Stol: onlayn\n"))
+	f.Write([]byte("Xizmat / Servis: YETUK KAFE onlayn\n"))
 	
-	f.Write([]byte(fmt.Sprintf("Ochilish vaqti / Время: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
-	f.Write([]byte("Yopilish vaqti / Закрытие: -\n"))
+	f.Write([]byte(fmt.Sprintf("Ochilish vaqti / Vremya: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
+	f.Write([]byte("Yopilish vaqti / Zakritie: -\n"))
 	f.Write([]byte("------------------------------------------------\n"))
 
 	// Items Table
 	f.Write([]byte("Mahsulot nomi          Soni   Narxi      Jami\n"))
-	f.Write([]byte("Наименование           Кол.   Цена       Итого\n"))
 	f.Write([]byte("------------------------------------------------\n"))
 	
 	items, _ := order["items"].([]interface{})
@@ -160,20 +159,20 @@ func printOrder(order map[string]interface{}) {
 		f.Write([]byte(line))
 		
 		if comment, ok := item["comment"].(string); ok && comment != "" {
-			f.Write([]byte(fmt.Sprintf("  * Izoh / Изречение: %s\n", transliterate(comment))))
+			f.Write([]byte(fmt.Sprintf("  * Izoh / Comment: %s\n", transliterate(comment))))
 		}
 	}
 	f.Write([]byte("------------------------------------------------\n"))
 
 	// Footer Summary
 	f.Write(ALIGN_RIGHT)
-	f.Write([]byte(fmt.Sprintf("Podditog / Подитог: %.0f\n", order["total_price"].(float64))))
-	f.Write([]byte("Xizmat / Сервис (0.0%%): 0\n"))
-	f.Write([]byte("Chegirma / Скидка (0%%): 0\n"))
+	f.Write([]byte(fmt.Sprintf("Podditog / Poditog: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte("Xizmat / Servis (0.0%%): 0\n"))
+	f.Write([]byte("Chegirma / Skidka (0%%): 0\n"))
 	f.Write([]byte("\n"))
 	
 	f.Write(FONT_DOUBLE_W)
-	f.Write([]byte(fmt.Sprintf("  JAMI / ИТОГО: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte(fmt.Sprintf("  JAMI / ITOGO: %.0f\n", order["total_price"].(float64))))
 	f.Write(FONT_NORMAL)
 	f.Write([]byte("\n\n\n\n"))
 
@@ -192,11 +191,9 @@ func printOrder(order map[string]interface{}) {
 
 func transliterate(text string) string {
 	r := strings.NewReplacer(
-		"ў", "o'", "Ў", "O'",
-		"қ", "q", "Қ", "Q",
-		"ғ", "g'", "Ғ", "G'",
-		"ҳ", "h", "Ҳ", "H",
-		"‘", "'", "’", "'",
+		"ў", "o'", "Ў", "O'", "қ", "q", "Қ", "Q", "ғ", "g'", "Ғ", "G'", "ҳ", "h", "Ҳ", "H",
+		"А", "A", "Б", "B", "В", "V", "Г", "G", "Д", "D", "Е", "E", "Ё", "Yo", "Ж", "Zh", "З", "Z", "И", "I", "Й", "Y", "К", "K", "Л", "L", "М", "M", "Н", "N", "О", "O", "П", "P", "Р", "R", "С", "S", "Т", "T", "У", "U", "Ф", "F", "Х", "H", "Ц", "Ts", "Ч", "Ch", "Ш", "Sh", "Щ", "Sch", "Ъ", "", "Ы", "Y", "Ь", "", "Э", "E", "Ю", "Yu", "Я", "Ya",
+		"а", "a", "б", "b", "в", "v", "г", "g", "д", "d", "е", "e", "ë", "yo", "ж", "zh", "з", "z", "и", "i", "й", "y", "к", "k", "л", "l", "м", "m", "н", "n", "о", "o", "п", "p", "р", "r", "с", "s", "т", "t", "у", "u", "ф", "f", "х", "h", "ц", "ts", "ч", "ch", "ш", "sh", "щ", "sch", "ъ", "", "ы", "y", "ь", "", "э", "e", "ю", "yu", "я", "ya",
 	)
 	return r.Replace(text)
 }
