@@ -102,57 +102,55 @@ func sendToPrinter(o OrderPrint, ip string) {
 	p = append(p, CHAR_CYR...)
 	p = append(p, BEEP...)
 
-	// Header - ПРЕДВАРИТЕЛЬНЫЙ СЧЁТ
+	// Header - ONLAYN BUYURTMA
 	p = append(p, ALIGN_CTR...)
-	p = append(p, []byte("--------------------------------\n")...)
+	p = append(p, []byte("------------------------------------------------\n")...)
 	p = append(p, TXT_DOUBLE_H...)
-	p = append(p, []byte("ПРЕДВАРИТЕЛЬНЫЙ СЧЁТ\n")...)
+	p = append(p, []byte("ONLAYN BUYURTMA\n")...)
 	p = append(p, TXT_NORMAL...)
-	p = append(p, []byte("--------------------------------\n")...)
+	p = append(p, []byte("------------------------------------------------\n")...)
 
 	// Info section
 	p = append(p, ALIGN_LFT...)
-	p = append(p, []byte(fmt.Sprintf("Чек №: %d\n", o.ID))...)
-	p = append(p, []byte("Зал: Доставка\n")...) // Default as the system focuses on delivery
-	p = append(p, []byte(fmt.Sprintf("Тел: %s\n", o.Phone))...)
-	p = append(p, []byte("Обслужил: Administrator\n")...)
-	p = append(p, []byte(fmt.Sprintf("Время открытия: %s\n", time.Now().Format("02.01.2006 15:04:05")))...)
-	p = append(p, []byte("Время закрытия: -\n")...)
+	p = append(p, []byte(fmt.Sprintf("Chek №: %d\n", o.ID))...)
+	p = append(p, []byte("Xizmat: Yetkazib berish\n")...) 
+	p = append(p, []byte(fmt.Sprintf("Tel: %s\n", o.Phone))...)
+	p = append(p, []byte("Admin: Administrator\n")...)
+	p = append(p, []byte(fmt.Sprintf("Vaqti: %s\n", time.Now().Format("02.01.2006 15:04:05")))...)
 	p = append(p, []byte("\n")...)
 
-	// Table Header
-	p = append(p, []byte("Наименование |Кол-во| Цена | Сумма\n")...)
-	p = append(p, []byte("--------------------------------\n")...)
+	// Table Header (Total 48 chars)
+	p = append(p, []byte("Mahsulot               |Soni|  Narx   |  Jami   \n")...)
+	p = append(p, []byte("------------------------------------------------\n")...)
 	
 	// Items
 	for _, item := range o.Items {
 		name := strings.ToLower(item.ProductName)
-		if len(name) > 13 { name = name[:10] + "..." }
+		if len(name) > 22 { name = name[:19] + "..." }
 		
-		line := fmt.Sprintf("%-13s| %-4d |%-6.0f| %-6.0f\n", 
+		line := fmt.Sprintf("%-23s| %-2d | %-8.0f| %-8.0f\n", 
 			name, item.Quantity, item.Price, item.Price*float64(item.Quantity))
 		p = append(p, []byte(line)...)
 	}
 	
-	p = append(p, []byte("--------------------------------\n")...)
+	p = append(p, []byte("------------------------------------------------\n")...)
 
 	// Note / Comment
 	if o.Comment != "" {
-		p = append(p, []byte("Примечание:\n")...)
+		p = append(p, []byte("Izoh (Kuryer uchun):\n")...)
 		p = append(p, TXT_DOUBLE_W...)
 		p = append(p, []byte(fmt.Sprintf("%s\n", strings.ToUpper(o.Comment)))...)
 		p = append(p, TXT_NORMAL...)
 	}
 
 	// Totals
-	p = append(p, []byte(fmt.Sprintf("\nПодитог: %.0f\n", o.TotalPrice))...)
-	p = append(p, []byte("Обслуживание(0.0%): 0\n")...)
-	p = append(p, []byte("Скидка(0%): 0\n")...)
+	p = append(p, []byte(fmt.Sprintf("\nJami: %.0f\n", o.TotalPrice))...)
+	p = append(p, []byte("Xizmat ko'rsatish(0%): 0\n")...)
 	p = append(p, []byte("\n")...)
 
 	// Final Total
 	p = append(p, TXT_BIG...)
-	p = append(p, []byte(fmt.Sprintf("Итого: %.0f\n", o.TotalPrice))...)
+	p = append(p, []byte(fmt.Sprintf("YAKUNIY: %.0f\n", o.TotalPrice))...)
 	p = append(p, TXT_NORMAL...)
 	
 	p = append(p, []byte("\n\n\n\n\n")...)
