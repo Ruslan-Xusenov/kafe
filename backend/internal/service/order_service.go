@@ -97,6 +97,31 @@ func (s *OrderService) GetOrderByID(id int, userID int, role string) (*models.Or
 	return order, nil
 }
 
+func (s *OrderService) GetOrderWithItems(id int) (*models.Order, error) {
+	order, err := s.orderRepo.GetByID(id)
+	if err != nil || order == nil {
+		return nil, err
+	}
+
+	for i := range order.Items {
+		prod, _ := s.productRepo.GetByID(order.Items[i].ProductID)
+		if prod != nil {
+			order.Items[i].ProductName = prod.Name
+		}
+	}
+
+	return order, nil
+}
+
+func (s *OrderService) GetOrderItems(orderID int) ([]models.OrderItem, error) {
+	// The repo GetByID already fetches items usually, but if not:
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil {
+		return nil, err
+	}
+	return order.Items, nil
+}
+
 func (s *OrderService) GetCustomerOrders(customerID int) ([]models.Order, error) {
 	return s.orderRepo.GetByCustomerID(customerID)
 }

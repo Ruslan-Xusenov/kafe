@@ -184,7 +184,7 @@ func main() {
 			}
 
 			id, _ := strconv.Atoi(c.Param("id"))
-			order, err := orderHandler.Service().GetOrderByID(id, 0, "admin")
+			order, err := orderHandler.Service().GetOrderWithItems(id)
 			if err != nil || order == nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
 				return
