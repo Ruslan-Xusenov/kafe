@@ -120,8 +120,9 @@ func (b *Bot) showAdminManagement(chatID int64) {
 	b.couriersMu.RLock(); for id := range b.couriers { t += fmt.Sprintf("• %d\n", id) }; b.couriersMu.RUnlock()
 	kb := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("+Admin", "admin_add_admin"), tgbotapi.NewInlineKeyboardButtonData("-Admin", "admin_remove_admin")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("+Oshpaz", "admin_add_cook"), tgbotapi.NewInlineKeyboardButtonData("+Kuryer", "admin_add_courier")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙", "admin_panel")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("+Oshpaz", "admin_add_cook"), tgbotapi.NewInlineKeyboardButtonData("-Oshpaz", "admin_remove_cook")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("+Kuryer", "admin_add_courier"), tgbotapi.NewInlineKeyboardButtonData("-Kuryer", "admin_remove_courier")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Admin Panel", "admin_panel")),
 	)
 	b.sendMessageWithKeyboard(chatID, t, kb)
 }
@@ -130,6 +131,8 @@ func (b *Bot) startAddAdmin(chatID int64) { s := b.getSession(chatID); s.AdminAc
 func (b *Bot) startRemoveAdmin(chatID int64) { s := b.getSession(chatID); s.AdminAction = "remove_admin"; s.State = "awaiting_admin_id"; b.sendMessage(chatID, "O'chirish uchun ID ni yuboring:") }
 func (b *Bot) startAddCook(chatID int64) { s := b.getSession(chatID); s.AdminAction = "add_cook"; s.State = "awaiting_admin_id"; b.sendMessage(chatID, "Oshpaz Telegram ID ni yuboring:") }
 func (b *Bot) startAddCourier(chatID int64) { s := b.getSession(chatID); s.AdminAction = "add_courier"; s.State = "awaiting_admin_id"; b.sendMessage(chatID, "Kuryer Telegram ID ni yuboring:") }
+func (b *Bot) startRemoveCook(chatID int64) { s := b.getSession(chatID); s.AdminAction = "remove_cook"; s.State = "awaiting_admin_id"; b.sendMessage(chatID, "O'chirish uchun Oshpaz ID ni yuboring:") }
+func (b *Bot) startRemoveCourier(chatID int64) { s := b.getSession(chatID); s.AdminAction = "remove_courier"; s.State = "awaiting_admin_id"; b.sendMessage(chatID, "O'chirish uchun Kuryer ID ni yuboring:") }
 
 func (b *Bot) processAdminAction(chatID int64, input string) {
 	s := b.getSession(chatID); id, _ := strconv.ParseInt(strings.TrimPrefix(strings.TrimSpace(input), "@"), 10, 64)
@@ -138,7 +141,9 @@ func (b *Bot) processAdminAction(chatID int64, input string) {
 	case "add_admin": b.AddAdmin(id); b.sendMessage(id, "👑 Siz admin etib tayinlandingiz!")
 	case "remove_admin": if id != b.superAdminID { b.RemoveAdmin(id); b.sendMessage(id, "⚠️ Admin huquqlari olib tashlandi") }
 	case "add_cook": b.AddCook(id); b.sendMessage(id, "👨‍🍳 Siz oshpaz etib tayinlandingiz!")
+	case "remove_cook": b.RemoveCook(id); b.sendMessage(id, "⚠️ Oshpaz huquqlari olib tashlandi")
 	case "add_courier": b.AddCourier(id); b.sendMessage(id, "🚚 Siz kuryer etib tayinlandingiz!")
+	case "remove_courier": b.RemoveCourier(id); b.sendMessage(id, "⚠️ Kuryer huquqlari olib tashlandi")
 	}
 	s.AdminAction = ""; s.State = ""; b.showAdminManagement(chatID)
 }
