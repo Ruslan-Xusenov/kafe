@@ -90,17 +90,17 @@ func handleMessages(c *websocket.Conn) {
 			orderData, _ := m["order"].(map[string]interface{})
 			id := int(orderData["id"].(float64))
 
-			// Deduplication Logic: Ignore if same ID received within 10 seconds
+			// Deduplication Logic: Aggressive 30-second filter for v7.0 Final
 			now := time.Now()
-			if id == lastOrderID && now.Sub(lastPrintTime) < 10*time.Second {
-				log.Printf("⚠️  Dublikat buyurtma #%d rad etildi.\n", id)
+			if id == lastOrderID && now.Sub(lastPrintTime) < 30*time.Second {
+				log.Printf("🚫 DUB_RAD: Buyurtma #%d allaqachon chiqarilgan (Rad etildi).\n", id)
 				continue
 			}
 
 			lastOrderID = id
 			lastPrintTime = now
 
-			log.Printf("🔔 Yangi buyurtma #%d (Master v6.0) qabul qilindi!\n", id)
+			log.Printf("🔔 MASTER v7.0: Yangi buyurtma #%d qabul qilindi!\n", id)
 			
 			printOrder(orderData)
 		}

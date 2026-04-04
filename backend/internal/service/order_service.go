@@ -125,13 +125,9 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 	s.botService.SendNewOrderNotification(order, &firstImageUrl)
 	
-	// Real-time: Notify Cooks, Admin and Printer
+	// Real-time: Notify Cooks and Admin (Printer is notified separately via notifyAPI to avoid double printing)
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
-	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
-
-	// Direct Print
-	go s.printerService.PrintOrder(order)
 
 	return nil
 }
