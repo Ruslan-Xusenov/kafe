@@ -9,6 +9,7 @@ import (
 	"telegram_bot/models"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 func (b *Bot) handleStart(chatID int64) {
@@ -64,17 +65,30 @@ func (b *Bot) showProductDetail(chatID int64, data string) {
 	)
 	if prod.ImageURL != "" {
 		imgURL := prod.ImageURL
+		localPath := ""
+		if !strings.HasPrefix(imgURL, "http") {
+			// Try to find local path
+			path := strings.TrimPrefix(imgURL, "/")
+			localPath = filepath.Join("../backend", path)
+		}
+
+		if localPath != "" {
+			if _, err := os.Stat(localPath); err == nil {
+				photo := tgbotapi.NewPhoto(chatID, tgbotapi.FilePath(localPath))
+				photo.Caption = text; photo.ReplyMarkup = keyboard; photo.ParseMode = "HTML"
+				if _, err := b.api.Send(photo); err == nil { return }
+			}
+		}
+
+		// Fallback to URL if local failed
 		if !strings.HasPrefix(imgURL, "http") {
 			baseURL := strings.TrimSuffix(b.apiBaseURL, "/")
 			path := strings.TrimPrefix(imgURL, "/")
 			imgURL = fmt.Sprintf("%s/%s", baseURL, path)
 		}
 		photo := tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(imgURL))
-		photo.Caption = text; photo.ReplyMarkup = keyboard
-		photo.ParseMode = "HTML"
-		if _, err := b.api.Send(photo); err == nil { return } else {
-			fmt.Printf("TELEGRAM_DEBUG: Failed to send photo for product %d: %v\nURL: %s\n", prod.ID, err, imgURL)
-		}
+		photo.Caption = text; photo.ReplyMarkup = keyboard; photo.ParseMode = "HTML"
+		if _, err := b.api.Send(photo); err == nil { return }
 	}
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }

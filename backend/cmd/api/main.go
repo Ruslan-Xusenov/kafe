@@ -69,6 +69,7 @@ func main() {
 	})
 
 	// Static File Serving for Uploads
+	// Ensure uploads directory is served correctly regardless of working directory
 	r.Static("/uploads", "./uploads")
 
 	// Routes
