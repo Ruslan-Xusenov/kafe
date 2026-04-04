@@ -204,6 +204,12 @@ func main() {
 				"status": "up",
 			})
 		})
+
+		// WebSocket Connectivity Test
+		api.GET("/ws-test", func(c *gin.Context) {
+			log.Printf("✅ TEST: Bridge reached /api/ws-test from %s", c.ClientIP())
+			c.String(http.StatusOK, "WS_TEST_OK")
+		})
 	}
 
 	log.Printf("Server starting on port %s", port)

@@ -160,7 +160,7 @@ func (b *Bot) placeOrder(chatID int64) {
 	order.TotalPrice = total
 	if err := b.repo.CreateOrder(order); err != nil { b.sendMessage(chatID, "❌ Buyurtmada xatolik"); return }
 	
-	// Notify Backend for Printer and Real-time UI
+	// Notify Central API for Printer and Real-time UI (Identical to Site)
 	go b.notifyAPI(order.ID)
 	
 	b.notifyCooks(order)

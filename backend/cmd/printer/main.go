@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -40,6 +41,17 @@ func main() {
 	if printerIP == "" { printerIP = "\\\\localhost\\XP-80C" }
 
 	for {
+		log.Printf("🔍 Checking server reachability: http://%s/api/ws-test...", serverHost)
+		testURL := fmt.Sprintf("http://%s/api/ws-test", serverHost)
+		resp, err := http.Get(testURL)
+		if err != nil {
+			log.Printf("❌ Server unreachable: %v. Retrying in 5s...", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		resp.Body.Close()
+		log.Printf("✅ Server reached! HTTP Status: %s. Handshaking...", resp.Status)
+
 		log.Printf("Connecting to Server: ws://%s/api/ws?printer_key=KAFE_PRINTER_SECRET_2026...", serverHost)
 		
 		u := url.URL{
