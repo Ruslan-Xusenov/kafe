@@ -82,9 +82,12 @@ func NewBot(token string) (*Bot, error) {
 	var superAdminID int64
 	fmt.Sscanf(os.Getenv("SUPER_ADMIN_ID"), "%d", &superAdminID)
 
+	repo := repository.NewBotRepository(db.DB)
+	_ = repo.EnsureStaffTable()
+
 	bot := &Bot{
 		api:            api,
-		repo:           repository.NewBotRepository(db.DB),
+		repo:           repo,
 		printerService: service.NewPrinterService(),
 		sessions:       make(map[int64]*UserSession),
 		admins:         make(map[int64]bool),
@@ -93,6 +96,17 @@ func NewBot(token string) (*Bot, error) {
 		ordersToCouriers: make(map[int]int64),
 		apiBaseURL:     apiURL,
 		superAdminID:   superAdminID,
+	}
+
+	// Load staff from DB
+	if ids, err := repo.GetStaffByRole("admin"); err == nil {
+		for _, id := range ids { bot.admins[id] = true }
+	}
+	if ids, err := repo.GetStaffByRole("cook"); err == nil {
+		for _, id := range ids { bot.cooks[id] = true }
+	}
+	if ids, err := repo.GetStaffByRole("courier"); err == nil {
+		for _, id := range ids { bot.couriers[id] = true }
 	}
 
 	return bot, nil
@@ -129,24 +143,28 @@ func (b *Bot) AddAdmin(chatID int64) {
 	b.adminsMu.Lock()
 	defer b.adminsMu.Unlock()
 	b.admins[chatID] = true
+	_ = b.repo.AddStaff(chatID, "admin")
 }
 
 func (b *Bot) RemoveAdmin(chatID int64) {
 	b.adminsMu.Lock()
 	defer b.adminsMu.Unlock()
 	delete(b.admins, chatID)
+	_ = b.repo.RemoveStaff(chatID)
 }
 
 func (b *Bot) AddCook(chatID int64) {
 	b.cooksMu.Lock()
 	defer b.cooksMu.Unlock()
 	b.cooks[chatID] = true
+	_ = b.repo.AddStaff(chatID, "cook")
 }
 
 func (b *Bot) RemoveCook(chatID int64) {
 	b.cooksMu.Lock()
 	defer b.cooksMu.Unlock()
 	delete(b.cooks, chatID)
+	_ = b.repo.RemoveStaff(chatID)
 }
 
 func (b *Bot) IsCourier(chatID int64) bool {
@@ -159,12 +177,14 @@ func (b *Bot) AddCourier(chatID int64) {
 	b.couriersMu.Lock()
 	defer b.couriersMu.Unlock()
 	b.couriers[chatID] = true
+	_ = b.repo.AddStaff(chatID, "courier")
 }
 
 func (b *Bot) RemoveCourier(chatID int64) {
 	b.couriersMu.Lock()
 	defer b.couriersMu.Unlock()
 	delete(b.couriers, chatID)
+	_ = b.repo.RemoveStaff(chatID)
 }
 
 func (b *Bot) Start() {

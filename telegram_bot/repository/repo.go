@@ -173,3 +173,33 @@ func (r *BotRepository) AddStaffRating(rating *models.StaffRating) error {
 	_, err := r.db.Exec(query, rating.OrderID, rating.StaffID, rating.StaffRole, rating.Rating, rating.Comment)
 	return err
 }
+
+// Bot Staff Management (Persistence)
+func (r *BotRepository) EnsureStaffTable() error {
+	query := `CREATE TABLE IF NOT EXISTS bot_staff (
+		telegram_id BIGINT PRIMARY KEY,
+		role VARCHAR(20) NOT NULL,
+		created_at TIMESTAMP DEFAULT NOW()
+	)`
+	_, err := r.db.Exec(query)
+	return err
+}
+
+func (r *BotRepository) GetStaffByRole(role string) ([]int64, error) {
+	var ids []int64
+	query := `SELECT telegram_id FROM bot_staff WHERE role = $1`
+	err := r.db.Select(&ids, query, role)
+	return ids, err
+}
+
+func (r *BotRepository) AddStaff(telegramID int64, role string) error {
+	query := `INSERT INTO bot_staff (telegram_id, role) VALUES ($1, $2) ON CONFLICT (telegram_id) DO UPDATE SET role = EXCLUDED.role`
+	_, err := r.db.Exec(query, telegramID, role)
+	return err
+}
+
+func (r *BotRepository) RemoveStaff(telegramID int64) error {
+	query := `DELETE FROM bot_staff WHERE telegram_id = $1`
+	_, err := r.db.Exec(query, telegramID)
+	return err
+}
