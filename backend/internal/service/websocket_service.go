@@ -48,13 +48,14 @@ func (s *WebsocketService) HandleConnection(w http.ResponseWriter, r *http.Reque
 	s.clients[client] = true
 	s.mu.Unlock()
 
-	log.Printf("New WS Client connected: UserID %d, Role %s", userID, role)
+	log.Printf("📡 [WS] New client: ID=%d, Role=%s, RemoteAddr=%s", userID, role, conn.RemoteAddr())
 
 	// Keep connection alive/read messages if needed
 	defer func() {
 		s.mu.Lock()
 		delete(s.clients, client)
 		s.mu.Unlock()
+		log.Printf("📉 [WS] Client disconnected: ID=%d, Role=%s", userID, role)
 		conn.Close()
 	}()
 
@@ -69,16 +70,20 @@ func (s *WebsocketService) BroadcastToRole(role string, message interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	count := 0
 	for client := range s.clients {
 		if client.Role == role || role == "all" {
 			err := client.Conn.WriteJSON(message)
 			if err != nil {
-				log.Printf("WS Write Error to %d: %v", client.ID, err)
+				log.Printf("❌ [WS] Write Error to %d (%s): %v", client.ID, client.Role, err)
 				client.Conn.Close()
 				delete(s.clients, client)
+			} else {
+				count++
 			}
 		}
 	}
+	log.Printf("📢 [WS] Broadcast to Role='%s': Sent to %d clients", role, count)
 }
 
 func (s *WebsocketService) BroadcastToUser(userID int, message interface{}) {
