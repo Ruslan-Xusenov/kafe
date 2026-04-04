@@ -170,8 +170,9 @@ func (b *Bot) placeOrder(chatID int64) {
 }
 
 func (b *Bot) notifyAPI(orderID int) {
-	key := "KAFE_PRINTER_SECRET_2026" // Standard key as per backend config
-	url := fmt.Sprintf("http://localhost:8080/api/notify-order/%d?key=%s", orderID, key)
+	key := "KAFE_PRINTER_SECRET_2026"
+	// Prefer internal localhost for speed, but fallback to public IP if needed
+	url := fmt.Sprintf("http://46.224.133.140:8080/api/notify-order/%d?key=%s", orderID, key)
 	
 	resp, err := http.Get(url)
 	if err != nil {
