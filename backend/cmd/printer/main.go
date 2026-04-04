@@ -159,7 +159,7 @@ func sendToPrinter(o OrderPrint, ip string) {
 	// Execute Print
 	if strings.HasPrefix(ip, "\\\\") {
 		_ = os.WriteFile(ip, p, 0666)
-		log.Printf("✅ Order #%d printed (Style: Preliminary Bill)", o.ID)
+		log.Printf("✅ Order #%d printed (Style: Onlayn Buyurtma)", o.ID)
 	} else {
 		conn, err := net.DialTimeout("tcp", ip+":9100", 5*time.Second)
 		if err == nil {
