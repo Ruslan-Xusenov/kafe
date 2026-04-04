@@ -1,136 +1,64 @@
 #!/bin/bash
 
-# Configuration
-PROJECT_DIR="$(pwd)"
-LOG_FILE="${PROJECT_DIR}/deploy.log"
-TOKEN_FILE="${PROJECT_DIR}/.github_token"
+# --- Kafe Smart Deployment Script ---
+# IP: 46.224.133.140
+# --- ---------------------------- ---
 
-# Function to log messages
-log_info() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - [INFO] - $1" >> "$LOG_FILE"
-    echo "💡 [INFO]: $1"
-}
+echo "🚀 Tizim tekshirilmoqda..."
 
-log_error() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - [ERROR] - $1" >> "$LOG_FILE"
-    echo "❌ [ERROR]: $1"
-}
+# 1. GitHubdan borini tortish va o'zgarishlarni aniqlash
+PREV_COMMIT=$(git rev-parse HEAD)
+git pull origin main
+NEW_COMMIT=$(git rev-parse HEAD)
 
-# 🛠️ Docker va Compose'ni avtomatik o'rnatish funksiyasi
-install_docker_if_missing() {
-    if ! command -v docker &> /dev/null; then
-        log_info "Docker topilmadi. O'rnatish boshlanmoqda..."
-        sudo apt-get update -y >> "$LOG_FILE" 2>&1
-        sudo apt-get install -y ca-certificates curl gnupg >> "$LOG_FILE" 2>&1
-        sudo install -m 0755 -d /etc/apt/keyrings >> "$LOG_FILE" 2>&1
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg >> "$LOG_FILE" 2>&1
-        sudo chmod a+r /etc/apt/keyrings/docker.gpg >> "$LOG_FILE" 2>&1
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt-get update -y >> "$LOG_FILE" 2>&1
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >> "$LOG_FILE" 2>&1
-        log_info "Docker muvaffaqiyatli o'rnatildi."
-    else
-        log_info "Docker allaqachon o'rnatilgan."
-    fi
-}
+if [ "$PREV_COMMIT" == "$NEW_COMMIT" ]; then
+    echo "✅ Hammasi yangi holatda, o'zgarish yo'q."
+    # Agar birinchi marta ishga tushirayotgan bo'lsangiz ham, davom etaveradi
+fi
 
-# 1. GitHub Tokenni tekshirish
-if [ -f "$TOKEN_FILE" ]; then
-    GITHUB_TOKEN=$(cat "$TOKEN_FILE" | tr -d '\r\n ')
+# O'zgargan fayllar ro'yxati
+CHANGED_FILES=$(git diff --name-only $PREV_COMMIT $NEW_COMMIT)
+
+# --- 🛰 1. BACKEND API TEKSHIRUVI ---
+if echo "$CHANGED_FILES" | grep -q "^backend/"; then
+    echo "🔄 Backend o'zgardi! API qayta ishga tushirilmoqda..."
+    # Backend jarayonini to'xtatish
+    pkill -f "go run ./cmd/api/main.go" || true
+    # Orqa fonda boshlash
+    cd backend && nohup go run ./cmd/api/main.go > backend.log 2>&1 &
+    cd ..
+    echo "✅ Backend yangilandi."
 else
-    log_error "'.github_token' fayli topilmadi! Iltimos, serverda tokenni yarating."
-    echo "Buyruq: echo 'ghp_sizning_tokeningiz' > .github_token"
-    exit 1
+    echo "⏺ Backendda o'zgarish yo'q."
 fi
 
-REPO_URL="https://Ruslan-Xusenov:${GITHUB_TOKEN}@github.com/Ruslan-Xusenov/kafe.git"
-
-# Start Deployment
-echo "------------------------------------------------"
-log_info "Deployment jarayoni boshlandi..."
-
-# Docker o'rnatishni tekshirish
-install_docker_if_missing
-
-# Docker Compose buyrug'ini aniqlash (v2 yoki v1)
-if docker compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE="docker compose"
-elif docker-compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE="docker-compose"
+# --- 🤖 2. TELEGRAM BOT TEKSHIRUVI ---
+if echo "$CHANGED_FILES" | grep -q "^telegram_bot/"; then
+    echo "🔄 Telegram Bot o'zgardi! Bot qayta ishga tushirilmoqda..."
+    # Bot jarayonini to'xtatish
+    pkill -f "go run telegram_bot" || true # Agar papka nomi bilan run qilsak
+    # Yoki aniq 'telegram_bot/main.go' bo'lsa:
+    pkill -f "go run ./main.go" || true
+    
+    cd telegram_bot && nohup go run . > bot.log 2>&1 &
+    cd ..
+    echo "✅ Bot yangilandi."
 else
-    log_info "Docker Compose topilmadi. O'rnatishga harakat qilinmoqda..."
-    sudo apt-get update -y >> "$LOG_FILE" 2>&1
-    sudo apt-get install -y docker-compose-plugin >> "$LOG_FILE" 2>&1
-    DOCKER_COMPOSE="docker compose"
+    echo "⏺ Botda o'zgarish yo'q."
 fi
 
-# Navigate to project directory
-cd "$PROJECT_DIR" || { log_error "Papka topilmadi: $PROJECT_DIR"; exit 1; }
-
-# 🔄 Smart Update: Mahalliy o'zgarishlarni vaqtinchalik saqlab turish
-log_info "Mahalliy o'zgarishlarni tekshirish va stash qilish..."
-HAS_CHANGES=$(git status --porcelain)
-if [ -n "$HAS_CHANGES" ]; then
-    log_info "Mahalliy o'zgarishlar topildi. Stash qilinmoqda..."
-    git stash push -m "Auto-stash before deploy $(date)" >> "$LOG_FILE" 2>&1
-    STASHED=true
+# --- 🌐 3. FRONTEND TEKSHIRUVI ---
+if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+    echo "🔄 Frontend o'zgardi! Sayt qayta ishga tushirilmoqda..."
+    # Vite/Frontend jarayonini to'xtatish
+    pkill -f "vite" || true
+    
+    cd frontend && nohup npm run dev -- --host > frontend.log 2>&1 &
+    cd ..
+    echo "✅ Frontend yangilandi."
 else
-    log_info "Mahalliy o'zgarishlar yo'q."
-    STASHED=false
+    echo "⏺ Frontendda o'zgarish yo'q."
 fi
 
-# Update from GitHub
-log_info "Github bilan sinxronizatsiya qilinmoqda..."
-git remote set-url origin "$REPO_URL" >> "$LOG_FILE" 2>&1
-if git pull origin main >> "$LOG_FILE" 2>&1; then
-    log_info "Github'dan yangilanishlar muvaffaqiyatli olindi."
-else
-    log_error "Github bilan bog'liq xatolik yuz berdi! Stash tiklanishi mumkin."
-    [ "$STASHED" = true ] && git stash pop >> "$LOG_FILE" 2>&1
-    tail -n 10 "$LOG_FILE"
-    exit 1
-fi
-
-# 🔄 Smart Update: O'zgarishlarni qayta tiklash
-if [ "$STASHED" = true ]; then
-    log_info "Mahalliy o'zgarishlar qayta tiklanmoqda (git stash pop)..."
-    if git stash pop >> "$LOG_FILE" 2>&1; then
-        log_info "O'zgarishlar muvaffaqiyatli saqlandi."
-    else
-        log_error "Stash pop paytida to'qnashuv (conflict) yuz berdi! Iltimos, qo'lda tekshiring."
-    fi
-fi
-
-# Environment va Storage fayllarini tekshirish
-if [ ! -f "backend/.env" ]; then
-    log_info "backend/.env topilmadi. .env.example'dan nusxa olinmoqda..."
-    cp backend/.env.example backend/.env
-    log_info "backend/.env fayli yaratildi."
-fi
-
-# Rasmlar papkasini yaratish va ruxsat berish
-if [ ! -d "backend/uploads" ]; then
-    mkdir -p backend/uploads
-    chmod 777 backend/uploads
-    log_info "backend/uploads papkasi yaratildi."
-fi
-
-# Build and Restart Containers
-log_info "Docker konteynerlari qayta yig'ilmoqda ($DOCKER_COMPOSE Build & Up)..."
-if $DOCKER_COMPOSE up -d --build >> "$LOG_FILE" 2>&1; then
-    log_info "Docker muvaffaqiyatli yangilandi."
-else
-    log_error "Docker bilan bog'liq xatolik yuz berdi!"
-    echo "------------------------------------------------"
-    echo "↓↓↓ Xatolik tafsilotlari (Logdan) ↓↓↓"
-    tail -n 25 "$LOG_FILE"
-    echo "------------------------------------------------"
-    exit 1
-fi
-
-# Cleanup
-log_info "Keraksiz Docker tasvirlari tozalanmoqda..."
-docker image prune -f >> "$LOG_FILE" 2>&1
-
-log_info "Deployment muvaffaqiyatli yakunlandi! 🚀"
-echo "------------------------------------------------"
+echo "✨ Jarayon yakunlandi! Tizim sog'lom ishlamoqda."
+echo "📜 Loglar: backend.log, bot.log, frontend.log"
