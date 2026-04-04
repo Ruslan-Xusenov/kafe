@@ -114,17 +114,18 @@ func printOrder(order map[string]interface{}) {
 	
 	// Details
 	f.Write(ALIGN_LEFT)
-	f.Write([]byte(fmt.Sprintf("Check No: %d\n", id)))
-	f.Write([]byte(fmt.Sprintf("Tur: Dostavka No%d\n", id)))
-	f.Write([]byte("Stol: onlayn\n"))
-	f.Write([]byte("Xizmat: YETUK KAFE onlayn\n"))
+	f.Write([]byte(fmt.Sprintf("Check No / Chek raqami: %d\n", id)))
+	f.Write([]byte(fmt.Sprintf("Tur / Tip: Dostavka / Доставка %d\n", id)))
+	f.Write([]byte("Stol / Стол: onlayn\n"))
+	f.Write([]byte("Xizmat / Сервис: YETUK KAFE onlayn\n"))
 	
-	f.Write([]byte(fmt.Sprintf("Ochilish vaqti: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
-	f.Write([]byte("Yopilish vaqti: -\n"))
+	f.Write([]byte(fmt.Sprintf("Ochilish vaqti / Время: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
+	f.Write([]byte("Yopilish vaqti / Закрытие: -\n"))
 	f.Write([]byte("------------------------------------------------\n"))
 
 	// Items Table
 	f.Write([]byte("Mahsulot nomi          Soni   Narxi      Jami\n"))
+	f.Write([]byte("Наименование           Кол.   Цена       Итого\n"))
 	f.Write([]byte("------------------------------------------------\n"))
 	
 	items, _ := order["items"].([]interface{})
@@ -143,20 +144,20 @@ func printOrder(order map[string]interface{}) {
 		f.Write([]byte(line))
 		
 		if comment, ok := item["comment"].(string); ok && comment != "" {
-			f.Write([]byte(fmt.Sprintf("  * Izoh: %s\n", transliterate(comment))))
+			f.Write([]byte(fmt.Sprintf("  * Izoh / Изречение: %s\n", transliterate(comment))))
 		}
 	}
 	f.Write([]byte("------------------------------------------------\n"))
 
 	// Footer Summary
 	f.Write(ALIGN_RIGHT)
-	f.Write([]byte(fmt.Sprintf("Podditog: %.0f\n", order["total_price"].(float64))))
-	f.Write([]byte("Xizmat haqi(0.0%): 0\n"))
-	f.Write([]byte("Chegirma(0%): 0\n"))
+	f.Write([]byte(fmt.Sprintf("Podditog / Подитог: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte("Xizmat / Сервис (0.0%%): 0\n"))
+	f.Write([]byte("Chegirma / Скидка (0%%): 0\n"))
 	f.Write([]byte("\n"))
 	
 	f.Write(FONT_DOUBLE_W)
-	f.Write([]byte(fmt.Sprintf("  JAMI: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte(fmt.Sprintf("  JAMI / ИТОГО: %.0f\n", order["total_price"].(float64))))
 	f.Write(FONT_NORMAL)
 	f.Write([]byte("\n\n\n\n"))
 
