@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -86,40 +87,81 @@ func handleMessages(c *websocket.Conn) {
 func printOrder(order map[string]interface{}) {
 	id := int(order["id"].(float64))
 	
-	f, err := os.CreateTemp("", fmt.Sprintf("order_%d_*.txt", id))
+	f, err := os.CreateTemp("", fmt.Sprintf("order_%d_*.bin", id))
 	if err != nil {
 		log.Println("❌ Fayl yaratishda xato:", err)
 		return
 	}
 	defer os.Remove(f.Name())
 
-	// Format Order Text
-	text := "--- KAFE BUYURTMA ---\n"
-	text += fmt.Sprintf("ID: #%d\n", id)
-	text += fmt.Sprintf("Vaqt: %s\n", time.Now().Format("15:04:05"))
-	text += "----------------------\n"
+	// --- ESC/POS Commands ---
+	const (
+		initialize     = "\x1b\x40"
+		center         = "\x1b\x61\x01"
+		left           = "\x1b\x61\x00"
+		boldOn         = "\x1b\x45\x01"
+		boldOff        = "\x1b\x45\x00"
+		doubleSize     = "\x1d\x21\x11" // Double height and width
+		regularSize    = "\x1d\x21\x00"
+		cut            = "\x1d\x56\x42\x00" // Feed paper and cut
+	)
+
+	// Build the Binary Raw Data
+	var b strings.Builder
+	b.WriteString(initialize)
 	
+	// Header: Cafe Name
+	b.WriteString(center + doubleSize + boldOn + "YETUK KAFE\n" + regularSize + boldOff)
+	b.WriteString("--------------------------------\n")
+	
+	// Order ID
+	b.WriteString(doubleSize + boldOn + fmt.Sprintf("BUYURTMA #%d\n", id) + regularSize + boldOff)
+	b.WriteString(center + fmt.Sprintf("Vaqt: %s\n", time.Now().Format("15:04:05 02.01.2006")))
+	b.WriteString(left + "--------------------------------\n")
+	
+	// Items Table
+	b.WriteString(boldOn + fmt.Sprintf("%-18s %-4s %-8s\n", "Mahsulot", "Soni", "Narxi") + boldOff)
 	items, _ := order["items"].([]interface{})
 	for _, it := range items {
 		item := it.(map[string]interface{})
 		name := item["product_name"].(string)
 		qty := int(item["quantity"].(float64))
 		price := item["price"].(float64)
-		text += fmt.Sprintf("%-15s x%d  %.0f\n", name, qty, price)
+		
+		// If name too long, truncate
+		shortName := name
+		if len(shortName) > 17 { shortName = shortName[:17] }
+		
+		b.WriteString(fmt.Sprintf("%-18s x%-3d %-8.0f\n", shortName, qty, price))
 	}
 	
-	text += "----------------------\n"
-	text += fmt.Sprintf("JAMI: %.0f so'm\n", order["total_price"].(float64))
-	text += "\n\n\n\n\n"
+	b.WriteString("--------------------------------\n")
+	b.WriteString(doubleSize + boldOn + fmt.Sprintf("JAMI: %.0f so'm\n", order["total_price"].(float64)) + regularSize + boldOff)
+	b.WriteString("--------------------------------\n")
+	
+	// Customer Details
+	if addr, ok := order["address"].(string); ok && addr != "" {
+		b.WriteString(boldOn + "Manzil: " + boldOff + addr + "\n")
+	}
+	if phone, ok := order["phone"].(string); ok && phone != "" {
+		b.WriteString(boldOn + "Tel: " + boldOff + phone + "\n")
+	}
+	if comment, ok := order["comment"].(string); ok && comment != "" {
+		b.WriteString(boldOn + "Izoh: " + boldOff + comment + "\n")
+	}
+	
+	b.WriteString("\n" + center + "Xaridingiz uchun rahmat!\n")
+	b.WriteString("\n\n\n\n\n") // Feed paper
+	b.WriteString(cut) // Auto-cut!
 
-	f.WriteString(text)
+	f.WriteString(b.String())
 	f.Close()
 
-	// Windows print command
+	// Windows print command (Direct binary copy)
 	cmd := exec.Command("cmd", "/c", "copy", "/b", f.Name(), printerDevice)
 	if err := cmd.Run(); err != nil {
 		log.Printf("❌ Chiqarishda xatolik (#%d): %v\n", id, err)
 	} else {
-		log.Printf("✅ Buyurtma #%d printerdan chiqarildi.\n", id)
+		log.Printf("✅ Professional chek #%d qirqildi.\n", id)
 	}
 }
