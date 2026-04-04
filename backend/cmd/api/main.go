@@ -161,7 +161,7 @@ func main() {
 		api.GET("/ws", func(c *gin.Context) {
 			pk := c.Query("printer_key")
 			if pk == "KAFE_PRINTER_SECRET_2026" {
-				wsService.HandleConnection(c.Writer, c.Request, 0, "admin")
+				wsService.HandleConnection(c.Writer, c.Request, 0, "printer")
 				return
 			}
 
