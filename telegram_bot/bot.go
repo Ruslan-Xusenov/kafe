@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"telegram_bot/db"
@@ -247,11 +251,60 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 			if price <= 0 { b.sendMessage(chatID, "❌ Noto'g'ri narx. Faqat raqam kiriting:"); return }
 			session.AdminProductEdit.Price = price; session.AdminProductEdit.Step = "image"; session.State = "admin_product_image"
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⏩ O'tkazib yuborish", "skip_product_image")))
-			reply := tgbotapi.NewMessage(chatID, "🖼 Mahsulot rasmining URL manzilini kiriting:"); reply.ReplyMarkup = keyboard; b.api.Send(reply)
+			reply := tgbotapi.NewMessage(chatID, "🖼 Mahsulot rasmining URL manzilini kiriting yoki <b>rasmni fayl ko'rinishida yuboring:</b>")
+			reply.ParseMode = "HTML"
+			reply.ReplyMarkup = keyboard
+			b.api.Send(reply)
 		}
 	case "admin_product_image":
-		if session.AdminProductEdit != nil { session.AdminProductEdit.ImageURL = msg.Text; session.State = ""; b.saveProduct(chatID) }
+		if session.AdminProductEdit != nil {
+			if len(msg.Photo) > 0 {
+				// Get the largest photo
+				photo := msg.Photo[len(msg.Photo)-1]
+				filePath, err := b.downloadAndSavePhoto(photo.FileID)
+				if err != nil {
+					b.sendMessage(chatID, fmt.Sprintf("❌ Rasm yuklashda xatolik: %v", err))
+					return
+				}
+				session.AdminProductEdit.ImageURL = filePath
+			} else {
+				session.AdminProductEdit.ImageURL = msg.Text
+			}
+			session.State = ""
+			b.saveProduct(chatID)
+		}
 	}
+}
+
+func (b *Bot) downloadAndSavePhoto(fileID string) (string, error) {
+	file, err := b.api.GetFile(tgbotapi.FileConfig{FileID: fileID})
+	if err != nil { return "", err }
+
+	url := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.api.Token, file.FilePath)
+	resp, err := http.Get(url)
+	if err != nil { return "", err }
+	defer resp.Body.Close()
+
+	// Ensure uploads directory exists
+	uploadDir := "../backend/uploads"
+	_ = os.MkdirAll(uploadDir, 0755)
+
+	ext := ".jpg"
+	if strings.Contains(file.FilePath, ".") {
+		ext = filepath.Ext(file.FilePath)
+	}
+	
+	fileName := fmt.Sprintf("%d_%d%s", time.Now().Unix(), file.FileSize, ext)
+	outPath := filepath.Join(uploadDir, fileName)
+
+	out, err := os.Create(outPath)
+	if err != nil { return "", err }
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil { return "", err }
+
+	return "/uploads/" + fileName, nil
 }
 
 func (b *Bot) handleCallback(cb *tgbotapi.CallbackQuery) {
