@@ -37,8 +37,7 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 			return fmt.Errorf("product %d not found", item.ProductID)
 		}
 		item.Price = prod.Price
-		name := prod.Name
-		item.ProductName = &name
+		item.ProductName = prod.Name
 		total += item.Price * float64(item.Quantity)
 	}
 	order.TotalPrice = total
@@ -52,8 +51,7 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	for i := range order.Items {
 		prod, _ := s.productRepo.GetByID(order.Items[i].ProductID)
 		if prod != nil {
-			name := prod.Name
-			order.Items[i].ProductName = &name
+			order.Items[i].ProductName = prod.Name
 		}
 	}
 
@@ -203,18 +201,18 @@ func (s *OrderService) GetRatingsByOrderID(orderID int) ([]models.StaffRating, e
 }
 
 func (s *OrderService) TestPrinter() error {
-		s1 := "TEST TAOM 1"
-		s2 := "TEST TAOM 2"
-		testOrder := &models.Order{
-			ID: 9999,
-			TotalPrice: 50000,
-			Address: "TEST MANZIL",
-			Phone: "998901234567",
-			Items: []models.OrderItem{
-				{ProductName: &s1, Quantity: 1, Price: 25000},
-				{ProductName: &s2, Quantity: 1, Price: 25000},
-			},
-		}// Broadcast to roles
+	testOrder := &models.Order{
+		ID:         9999,
+		TotalPrice: 50000,
+		Address:    "TEST MANZIL",
+		Phone:      "998901234567",
+		Items: []models.OrderItem{
+			{ProductName: "TEST TAOM 1", Quantity: 1, Price: 25000},
+			{ProductName: "TEST TAOM 2", Quantity: 1, Price: 25000},
+		},
+	}
+	
+	// Broadcast to roles
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": testOrder})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": testOrder})
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": testOrder})

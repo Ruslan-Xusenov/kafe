@@ -55,9 +55,11 @@ func (r *OrderRepository) Create(order *models.Order) error {
 func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	var order models.Order
 	query := `
-		SELECT o.*, 
-			   u1.full_name as courier_name, 
-			   u2.full_name as cook_name
+		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, COALESCE(o.comment, '') as comment, 
+			   o.created_at, o.updated_at,
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -74,7 +76,9 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	// Get Items
 	var items []models.OrderItem
 	itemQuery := `
-		SELECT oi.*, p.name as product_name 
+		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, 
+			   COALESCE(oi.comment, '') as comment, oi.created_at,
+			   COALESCE(p.name, 'Noma''lum') as product_name 
 		FROM order_items oi
 		LEFT JOIN products p ON oi.product_id = p.id
 		WHERE oi.order_id = $1
@@ -165,9 +169,11 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order, error) {
 	var orders []models.Order
 	query := `
-		SELECT o.*, 
-			   u1.full_name as courier_name, 
-			   u2.full_name as cook_name
+		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, COALESCE(o.comment, '') as comment, 
+			   o.created_at, o.updated_at,
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -182,7 +188,9 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.*, p.name as product_name 
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, 
+				   COALESCE(oi.comment, '') as comment, oi.created_at,
+				   COALESCE(p.name, 'Noma''lum') as product_name 
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
 			WHERE oi.order_id = $1
