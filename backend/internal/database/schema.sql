@@ -48,6 +48,7 @@ CREATE TABLE orders (
     lat DECIMAL(9, 6),
     lng DECIMAL(9, 6),
     courier_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cook_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     comment TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

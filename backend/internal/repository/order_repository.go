@@ -17,6 +17,10 @@ func NewOrderRepository(db *sqlx.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
+func (r *OrderRepository) GetDB() *sqlx.DB {
+	return r.db
+}
+
 func (r *OrderRepository) Create(order *models.Order) error {
 	tx, err := r.db.Beginx()
 	if err != nil {

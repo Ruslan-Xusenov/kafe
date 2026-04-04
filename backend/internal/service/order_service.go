@@ -37,6 +37,8 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 			return fmt.Errorf("product %d not found", item.ProductID)
 		}
 		item.Price = prod.Price
+		name := prod.Name
+		item.ProductName = &name
 		total += item.Price * float64(item.Quantity)
 	}
 	order.TotalPrice = total
@@ -50,7 +52,8 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	for i := range order.Items {
 		prod, _ := s.productRepo.GetByID(order.Items[i].ProductID)
 		if prod != nil {
-			order.Items[i].ProductName = prod.Name
+			name := prod.Name
+			order.Items[i].ProductName = &name
 		}
 	}
 
@@ -85,7 +88,11 @@ func (s *OrderService) GetOrderByID(id int, userID int, role string) (*models.Or
 	}
 
 	// Permisson check: Admin/Staff or the Customer who placed the order
-	if role != "admin" && role != "cook" && role != "courier" && order.CustomerID != userID {
+	isOwner := false
+	if order.CustomerID != nil && *order.CustomerID == userID {
+		isOwner = true
+	}
+	if role != "admin" && role != "cook" && role != "courier" && !isOwner {
 		return nil, fmt.Errorf("unauthorized access to order")
 	}
 
@@ -127,7 +134,9 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 		order, _ := s.orderRepo.GetByID(orderID)
 		if order != nil {
 			// Notify Customer
-			s.wsService.BroadcastToUser(order.CustomerID, map[string]interface{}{"type": "status_update", "status": status, "order_id": orderID})
+			if order.CustomerID != nil {
+				s.wsService.BroadcastToUser(*order.CustomerID, map[string]interface{}{"type": "status_update", "status": status, "order_id": orderID})
+			}
 
 			// Notify Roles
 			updatePayload := map[string]interface{}{"type": "status_update", "status": status, "order_id": orderID}
@@ -151,7 +160,9 @@ func (s *OrderService) AssignCourier(orderID int, courierID int) error {
 	if err == nil {
 		order, _ := s.orderRepo.GetByID(orderID)
 		if order != nil {
-			s.wsService.BroadcastToUser(order.CustomerID, map[string]interface{}{"type": "status_update", "status": models.StatusOnWay, "order_id": orderID})
+			if order.CustomerID != nil {
+				s.wsService.BroadcastToUser(*order.CustomerID, map[string]interface{}{"type": "status_update", "status": models.StatusOnWay, "order_id": orderID})
+			}
 
 			// Notify Roles
 			updatePayload := map[string]interface{}{"type": "status_update", "status": models.StatusOnWay, "order_id": orderID}
@@ -192,18 +203,18 @@ func (s *OrderService) GetRatingsByOrderID(orderID int) ([]models.StaffRating, e
 }
 
 func (s *OrderService) TestPrinter() error {
-	testOrder := &models.Order{
-		ID:         0,
-		Phone:      "+998990000000",
-		Address:    "TEST MANZIL",
-		TotalPrice: 50000,
-	}
-	testOrder.Items = []models.OrderItem{
-		{ProductName: "TEST TAOM 1", Quantity: 1, Price: 25000},
-		{ProductName: "TEST TAOM 2", Quantity: 1, Price: 25000},
-	}
-
-	// Broadcast to roles
+		s1 := "TEST TAOM 1"
+		s2 := "TEST TAOM 2"
+		testOrder := &models.Order{
+			ID: 9999,
+			TotalPrice: 50000,
+			Address: "TEST MANZIL",
+			Phone: "998901234567",
+			Items: []models.OrderItem{
+				{ProductName: &s1, Quantity: 1, Price: 25000},
+				{ProductName: &s2, Quantity: 1, Price: 25000},
+			},
+		}// Broadcast to roles
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": testOrder})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": testOrder})
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": testOrder})

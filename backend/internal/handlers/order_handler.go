@@ -18,6 +18,10 @@ func NewOrderHandler(s *service.OrderService) *OrderHandler {
 	return &OrderHandler{service: s}
 }
 
+func (h *OrderHandler) Service() *service.OrderService {
+	return h.service
+}
+
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	var order models.Order
 	if err := c.ShouldBindJSON(&order); err != nil {
@@ -26,7 +30,8 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	order.CustomerID = userID.(int)
+	id := userID.(int)
+	order.CustomerID = &id
 
 	if err := h.service.CreateOrder(&order); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -16,18 +16,23 @@ import (
 
 // ESC/POS Commands
 var (
-	ESC_INIT   = []byte{0x1B, 0x40}
-	PAPER_CUT  = []byte{0x1D, 0x56, 0x42, 0x00}
-	BEEP       = []byte{0x1B, 0x42, 0x02, 0x02}
-	ALIGN_CTR  = []byte{0x1B, 0x61, 0x01}
-	ALIGN_LFT  = []byte{0x1B, 0x61, 0x00}
-	CHAR_CYR   = []byte{0x1B, 0x74, 0x11} // CP866 (Russian)
+	ESC_INIT      = []byte{0x1B, 0x40}
+	PAPER_CUT     = []byte{0x1D, 0x56, 0x42, 0x00}
+	BEEP          = []byte{0x1B, 0x42, 0x02, 0x02}
+	ALIGN_CTR     = []byte{0x1B, 0x61, 0x01}
+	ALIGN_LFT     = []byte{0x1B, 0x61, 0x00}
+	CHAR_CYR      = []byte{0x1B, 0x74, 0x11} // CP866 (Russian)
+	TXT_NORMAL    = []byte{0x1D, 0x21, 0x00}
+	TXT_DOUBLE_H  = []byte{0x1D, 0x21, 0x01}
+	TXT_DOUBLE_W  = []byte{0x1D, 0x21, 0x10}
+	TXT_BIG       = []byte{0x1D, 0x21, 0x11}
 )
 
 type OrderPrint struct {
 	ID         int      `json:"id"`
 	Phone      string   `json:"phone"`
 	Address    string   `json:"address"`
+	Comment    string   `json:"comment"`
 	Items      []Item   `json:"items"`
 	TotalPrice float64  `json:"total_price"`
 }
@@ -94,37 +99,75 @@ func handleMessages(c *websocket.Conn, printerIP string) error {
 func sendToPrinter(o OrderPrint, ip string) {
 	var p []byte // Payload
 	p = append(p, ESC_INIT...)
-	p = append(p, CHAR_CYR...) // Kirill alifbosi rejimini yoqish
+	p = append(p, CHAR_CYR...)
 	p = append(p, BEEP...)
+
+	// Header - ПРЕДВАРИТЕЛЬНЫЙ СЧЁТ
 	p = append(p, ALIGN_CTR...)
-	p = append(p, []byte(fmt.Sprintf("\n*** yangi buyurtma #%d ***\n\n", o.ID))...)
+	p = append(p, []byte("--------------------------------\n")...)
+	p = append(p, TXT_DOUBLE_H...)
+	p = append(p, []byte("ПРЕДВАРИТЕЛЬНЫЙ СЧЁТ\n")...)
+	p = append(p, TXT_NORMAL...)
+	p = append(p, []byte("--------------------------------\n")...)
+
+	// Info section
 	p = append(p, ALIGN_LFT...)
-	p = append(p, []byte(strings.ToLower(fmt.Sprintf("mijoz:  %s\n", o.Phone)))...)
-	p = append(p, []byte(strings.ToLower(fmt.Sprintf("vaqt:   %s\n", time.Now().Format("15:04 02.01.2006"))))...)
-	p = append(p, []byte(strings.ToLower(fmt.Sprintf("manzil: %s\n", o.Address)))...)
+	p = append(p, []byte(fmt.Sprintf("Чек №: %d\n", o.ID))...)
+	p = append(p, []byte("Зал: Доставка\n")...) // Default as the system focuses on delivery
+	p = append(p, []byte(fmt.Sprintf("Тел: %s\n", o.Phone))...)
+	p = append(p, []byte("Обслужил: Administrator\n")...)
+	p = append(p, []byte(fmt.Sprintf("Время открытия: %s\n", time.Now().Format("02.01.2006 15:04:05")))...)
+	p = append(p, []byte("Время закрытия: -\n")...)
+	p = append(p, []byte("\n")...)
+
+	// Table Header
+	p = append(p, []byte("Наименование |Кол-во| Цена | Сумма\n")...)
 	p = append(p, []byte("--------------------------------\n")...)
 	
+	// Items
 	for _, item := range o.Items {
-		name := strings.ToLower(item.ProductName) // Hammasi kichik harfda!
-		if len(name) > 20 { name = name[:17] + "..." }
-		p = append(p, []byte(fmt.Sprintf("%-20s x%-4d\n", name, item.Quantity))...)
+		name := strings.ToLower(item.ProductName)
+		if len(name) > 13 { name = name[:10] + "..." }
+		
+		line := fmt.Sprintf("%-13s| %-4d |%-6.0f| %-6.0f\n", 
+			name, item.Quantity, item.Price, item.Price*float64(item.Quantity))
+		p = append(p, []byte(line)...)
 	}
 	
 	p = append(p, []byte("--------------------------------\n")...)
-	p = append(p, []byte(strings.ToLower(fmt.Sprintf("jami:   %.0f so'm\n\n", o.TotalPrice)))...)
+
+	// Note / Comment
+	if o.Comment != "" {
+		p = append(p, []byte("Примечание:\n")...)
+		p = append(p, TXT_DOUBLE_W...)
+		p = append(p, []byte(fmt.Sprintf("%s\n", strings.ToUpper(o.Comment)))...)
+		p = append(p, TXT_NORMAL...)
+	}
+
+	// Totals
+	p = append(p, []byte(fmt.Sprintf("\nПодитог: %.0f\n", o.TotalPrice))...)
+	p = append(p, []byte("Обслуживание(0.0%): 0\n")...)
+	p = append(p, []byte("Скидка(0%): 0\n")...)
+	p = append(p, []byte("\n")...)
+
+	// Final Total
+	p = append(p, TXT_BIG...)
+	p = append(p, []byte(fmt.Sprintf("Итого: %.0f\n", o.TotalPrice))...)
+	p = append(p, TXT_NORMAL...)
+	
 	p = append(p, []byte("\n\n\n\n\n")...)
 	p = append(p, PAPER_CUT...)
 
-	// Windows USB yoki LAN orqali chiqarish
+	// Execute Print
 	if strings.HasPrefix(ip, "\\\\") {
 		_ = os.WriteFile(ip, p, 0666)
-		log.Printf("✅ Order #%d printed (USB)", o.ID)
+		log.Printf("✅ Order #%d printed (Style: Preliminary Bill)", o.ID)
 	} else {
 		conn, err := net.DialTimeout("tcp", ip+":9100", 5*time.Second)
 		if err == nil {
 			_, _ = conn.Write(p)
 			conn.Close()
-			log.Printf("✅ Order #%d printed (LAN)", o.ID)
+			log.Printf("✅ Order #%d printed", o.ID)
 		}
 	}
 }

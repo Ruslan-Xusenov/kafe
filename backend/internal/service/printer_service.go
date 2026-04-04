@@ -92,7 +92,10 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 	// 22 + 1 + 5 + 1 + 9 + 1 + 9 = 48
 	conn.Write([]byte("Mahsulot               Soni   Narxi      Jami\n"))
 	for _, item := range order.Items {
-		name := s.transliterate(item.ProductName)
+		name := ""
+		if item.ProductName != nil {
+			name = s.transliterate(*item.ProductName)
+		}
 		if len(name) > 22 {
 			name = name[:19] + "..."
 		}
@@ -101,8 +104,8 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 			name, item.Quantity, item.Price, item.Price*float64(item.Quantity))
 		conn.Write([]byte(line))
 		
-		if item.Comment != "" {
-			conn.Write([]byte(fmt.Sprintf("  * %s\n", s.transliterate(item.Comment))))
+		if item.Comment != nil && *item.Comment != "" {
+			conn.Write([]byte(fmt.Sprintf("  * Izoh: %s\n", s.transliterate(*item.Comment))))
 		}
 	}
 	conn.Write([]byte("------------------------------------------------\n"))

@@ -56,7 +56,7 @@ const (
 
 type Order struct {
 	ID         int         `json:"id" db:"id"`
-	CustomerID int         `json:"customer_id" db:"customer_id"`
+	CustomerID *int        `json:"customer_id" db:"customer_id"`
 	TotalPrice float64     `json:"total_price" db:"total_price"`
 	Status     OrderStatus `json:"status" db:"status"`
 	Address    string      `json:"address" db:"address"`
@@ -65,8 +65,8 @@ type Order struct {
 	Lng        *float64    `json:"lng" db:"lng"`
 	CourierID   *int        `json:"courier_id" db:"courier_id"`
 	CookID      *int        `json:"cook_id" db:"cook_id"`
-	CourierName string     `json:"courier_name" db:"courier_name"` // Joined field
-	CookName    string     `json:"cook_name" db:"cook_name"`       // Joined field
+	CourierName *string     `json:"courier_name" db:"courier_name"` // Joined field
+	CookName    *string     `json:"cook_name" db:"cook_name"`       // Joined field
 	Comment    string     `json:"comment" db:"comment"`
 	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt  *time.Time `json:"updated_at" db:"updated_at"`
@@ -77,10 +77,10 @@ type OrderItem struct {
 	ID          int       `json:"id" db:"id"`
 	OrderID     int       `json:"order_id" db:"order_id"`
 	ProductID   int       `json:"product_id" db:"product_id"`
-	ProductName string    `json:"product_name" db:"product_name"` // Joined field
+	ProductName *string   `json:"product_name" db:"product_name"` // Joined field
 	Quantity    int       `json:"quantity" db:"quantity"`
 	Price       float64   `json:"price" db:"price"`
-	Comment     string    `json:"comment" db:"comment"`
+	Comment     *string   `json:"comment" db:"comment"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/username/kafe-backend/internal/database"
 	"github.com/username/kafe-backend/internal/handlers"
@@ -142,14 +143,12 @@ func main() {
 
 		// WebSocket
 		api.GET("/ws", func(c *gin.Context) {
-			// Printer bridge kabi maxsus ulanishlarni tekshiramiz
 			pk := c.Query("printer_key")
 			if pk == "KAFE_PRINTER_SECRET_2026" {
 				wsService.HandleConnection(c.Writer, c.Request, 0, "admin")
 				return
 			}
 
-			// Oddiy foydalanuvchilar (Oshpaz, Kuryer va h.k.) uchun auth kerak
 			middleware.AuthMiddleware()(c)
 			if c.IsAborted() {
 				return
@@ -158,6 +157,29 @@ func main() {
 			uID, _ := c.Get("user_id")
 			rol, _ := c.Get("role")
 			wsService.HandleConnection(c.Writer, c.Request, uID.(int), rol.(string))
+		})
+
+		// Internal Notify (For Telegram Bot)
+		api.GET("/notify-order/:id", func(c *gin.Context) {
+			pk := c.Query("key")
+			if pk != "KAFE_PRINTER_SECRET_2026" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid key"})
+				return
+			}
+
+			id, _ := strconv.Atoi(c.Param("id"))
+			order, err := orderHandler.Service().GetOrderByID(id, 0, "admin")
+			if err != nil || order == nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
+				return
+			}
+
+			// Broadcast to all roles including printer
+			wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
+			wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
+			wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
+
+			c.JSON(http.StatusOK, gin.H{"status": "notified"})
 		})
 
 		// Health Check
