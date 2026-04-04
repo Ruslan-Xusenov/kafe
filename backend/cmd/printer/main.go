@@ -3,136 +3,125 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-type OrderItem struct {
-	ProductName string  `json:"product_name"`
-	Quantity    int     `json:"quantity"`
-	Price       float64 `json:"price"`
-}
-
-type Order struct {
-	ID         int         `json:"id"`
-	TotalPrice float64     `json:"total_price"`
-	Address    string      `json:"address"`
-	Phone      string      `json:"phone"`
-	Comment    string      `json:"comment"`
-	Items      []OrderItem `json:"items"`
-}
-
-type WSEvent struct {
-	Type  string `json:"type"`
-	Order Order  `json:"order"`
-}
+const (
+	serverAddr = "46.224.133.140:8080"
+	printerKey = "KAFE_PRINTER_SECRET_2026"
+	printerDevice = "\\\\localhost\\XP-80C"
+)
 
 func main() {
-	serverHost := os.Getenv("API_HOST")
-	if serverHost == "" { serverHost = "46.224.133.140:8080" }
-	
-	printerIP := os.Getenv("PRINTER_IP")
-	if printerIP == "" { printerIP = "\\\\localhost\\XP-80C" }
+	log.Println("🚀 Kafe Printer Bridge Final Pro (v3.5) ishga tushdi...")
+	log.Printf("📍 Server: %s\n", serverAddr)
+	log.Printf("📍 Printer: %s\n\n", printerDevice)
 
 	for {
-		log.Printf("🔍 Checking server reachability: http://%s/api/ws-test...", serverHost)
-		testURL := fmt.Sprintf("http://%s/api/ws-test", serverHost)
+		// 1. Health Check (ws-test)
+		testURL := fmt.Sprintf("http://%s/api/ws-test", serverAddr)
 		resp, err := http.Get(testURL)
 		if err != nil {
-			log.Printf("❌ Server unreachable: %v. Retrying in 5s...", err)
-			time.Sleep(5 * time.Second)
+			log.Printf("❌ Server topilmadi: %v. Qayta urinish (10s)...\n", err)
+			time.Sleep(10 * time.Sleep)
 			continue
 		}
 		resp.Body.Close()
-		log.Printf("✅ Server reached! HTTP Status: %s. Handshaking...", resp.Status)
 
-		log.Printf("Connecting to Server: ws://%s/api/ws?printer_key=KAFE_PRINTER_SECRET_2026...", serverHost)
-		
-		u := url.URL{
-			Scheme: "ws", 
-			Host: serverHost, 
-			Path: "/api/ws",
-			RawQuery: "printer_key=KAFE_PRINTER_SECRET_2026",
+		if resp.StatusCode == 404 {
+			log.Println("⚠️  OGOHLANTIRISH: Serverda eski kod turibdi (404 on ws-test)! Iltimos 'git pull' qiling.")
+		} else {
+			log.Println("✅ Server ulanishga tayyor (200 OK).")
 		}
 
+		// 2. WebSocket Handshake
+		u := url.URL{Scheme: "ws", Host: serverAddr, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
 		c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
-			log.Printf("❌ Connection failed: %v. Retrying in 5s...", err)
+			log.Printf("❌ Ulanishda xatolik: %v. Qayta urinish (5s)...\n", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
-
-		log.Println("✅ Connected! Waiting for orders...")
 		
-		err = handleMessages(c, printerIP)
-		if err != nil {
-			log.Printf("📉 Connection lost: %v. Reconnecting in 5s...", err)
-			c.Close()
-			time.Sleep(5 * time.Second)
-			continue
-		}
+		log.Println("✅ Connected! Buyurtmalar kutilmoqda...")
+		
+		handleMessages(c)
+		c.Close()
+		log.Println("⚠️  Ulanish uzildi. Qayta tiklanmoqda...")
+		time.Sleep(2 * time.Second)
 	}
 }
 
-func handleMessages(c *websocket.Conn, printerIP string) error {
-	defer c.Close()
+func handleMessages(c *websocket.Conn) {
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			return err
+			log.Println("❌ Read error:", err)
+			return
 		}
 
-		var event WSEvent
-		if err := json.Unmarshal(message, &event); err == nil && event.Type == "new_order" {
-			log.Printf("📦 New order #%d received", event.Order.ID)
-			printReceipt(event.Order, printerIP)
+		var m map[string]interface{}
+		if err := json.Unmarshal(message, &m); err != nil {
+			continue
+		}
+
+		if m["type"] == "new_order" {
+			orderData, _ := m["order"].(map[string]interface{})
+			id := int(orderData["id"].(float64))
+			log.Printf("🔔 Yangi buyurtma #%d qabul qilindi!\n", id)
+			
+			// Auto-print
+			printOrder(orderData)
 		}
 	}
 }
 
-func printReceipt(order Order, printerIP string) {
-	var b strings.Builder
-
-	// ESC/POS Commands
-	b.Write([]byte{0x1B, 0x40}) // Initialize
-	b.Write([]byte{0x1B, 0x61, 0x01}) // Center
-	b.Write([]byte{0x1D, 0x21, 0x11}) // Double size
-	b.WriteString("ONLAYN BUYURTMA\n")
-	b.Write([]byte{0x1D, 0x21, 0x00}) // Normal size
-	b.WriteString(fmt.Sprintf("Buyurtma #%d\n", order.ID))
-	b.WriteString(time.Now().Format("02.01.2006 15:04:35") + "\n")
-	b.WriteString("--------------------------------\n")
-	b.Write([]byte{0x1B, 0x61, 0x00}) // Left align
-
-	for _, item := range order.Items {
-		name := item.ProductName
-		if len(name) > 20 { name = name[:17] + "..." }
-		b.WriteString(fmt.Sprintf("%-20s %2dx %6.0f\n", name, item.Quantity, item.Price))
-	}
-
-	b.WriteString("--------------------------------\n")
-	b.Write([]byte{0x1B, 0x61, 0x02}) // Right align
-	b.WriteString(fmt.Sprintf("JAMI: %.0f so'm\n", order.TotalPrice))
-	b.Write([]byte{0x1B, 0x61, 0x00}) // Left align
-	b.WriteString("--------------------------------\n")
-	b.WriteString(fmt.Sprintf("Manzil: %s\n", order.Address))
-	b.WriteString(fmt.Sprintf("Tel: %s\n", order.Phone))
-	if order.Comment != "" {
-		b.WriteString(fmt.Sprintf("Izoh: %s\n", order.Comment))
-	}
-	b.WriteString("\n\n\n\n\n")
-	b.Write([]byte{0x1D, 0x56, 0x41, 0x03}) // Cut
-
-	err := os.WriteFile(printerIP, []byte(b.String()), 0666)
+func printOrder(order map[string]interface{}) {
+	id := int(order["id"].(float64))
+	
+	f, err := os.CreateTemp("", fmt.Sprintf("order_%d_*.txt", id))
 	if err != nil {
-		log.Printf("❌ Print Error: %v", err)
+		log.Println("❌ Fayl yaratishda xato:", err)
+		return
+	}
+	defer os.Remove(f.Name())
+
+	// Format Order Text
+	text := "--- KAFE BUYURTMA ---\n"
+	text += fmt.Sprintf("ID: #%d\n", id)
+	text += fmt.Sprintf("Vaqt: %s\n", time.Now().Format("15:04:05"))
+	text += "----------------------\n"
+	
+	items, _ := order["items"].([]interface{})
+	for _, it := range items {
+		item := it.(map[string]interface{})
+		name := item["product_name"].(string)
+		qty := int(item["quantity"].(float64))
+		price := item["price"].(float64)
+		text += fmt.Sprintf("%-15s x%d  %.0f\n", name, qty, price)
+	}
+	
+	text += "----------------------\n"
+	text += fmt.Sprintf("JAMI: %.0f so'm\n", order["total_price"].(float64))
+	text += "\n\n\n\n\n"
+
+	f.WriteString(text)
+	f.Close()
+
+	// Windows print command
+	cmd := exec.Command("cmd", "/c", "copy", "/b", f.Name(), printerDevice)
+	if err := cmd.Run(); err != nil {
+		log.Printf("❌ Chiqarishda xatolik (#%d): %v\n", id, err)
 	} else {
-		log.Printf("✅ Order #%d printed (Style: Onlayn Buyurtma)", order.ID)
+		log.Printf("✅ Buyurtma #%d printerdan chiqarildi.\n", id)
 	}
 }

@@ -1,54 +1,52 @@
 #!/bin/bash
 
-# --- Kafe Production Deployment Script (Final) ---
-# IP: 46.224.133.140
-# --- --------------------------------------- ---
+# 🚀 Kafe & Bot Universal Production Deployer (Master v4.0)
+# Bu skript Sayt, API, Bot va Printerni yagona logikaga birlashtiradi.
 
-echo "🚀 Kafe Production Deployment boshlandi..."
-
-# ROOT papkani aniqlash
 ROOT_DIR=$(pwd)
+BACKEND_DIR="$ROOT_DIR/backend"
+BOT_DIR="$ROOT_DIR/telegram_bot"
+FRONTEND_DIR="$ROOT_DIR/frontend"
 
-# 1. GitHubdan borini tortish va o'zgarishlarni aniqlash
-git fetch origin
-PREV_COMMIT=$(git rev-parse HEAD)
+echo "🧹 1. Serverni 'Ghost' (zombi) jarayonlardan tozalash..."
+killall -9 main 2>/dev/null || true
+pkill -9 -f "go run" 2>/dev/null || true
+fuser -k 8080/tcp 2>/dev/null || true
+sleep 2
+
+echo "📥 2. Eng so'nggi kodlarni yuklash (Hard Force)..."
+git fetch origin main
 git reset --hard origin/main
-NEW_COMMIT=$(git rev-parse HEAD)
+git pull origin main
 
-CHANGED_FILES=$(git diff --name-only $PREV_COMMIT $NEW_COMMIT)
-
-# --- 🛰 1. BACKEND API TEKSHIRUVI ---
-if [ "$PREV_COMMIT" == "$NEW_COMMIT" ] || echo "$CHANGED_FILES" | grep -q "^backend/" || echo "$CHANGED_FILES" | grep -q "^frontend/"; then
-    echo "🔄 Backend yoki Frontend o'zgardi! Yangilash boshlanmoqda..."
-    
-    # Port 8080 ni tozalash
-    pkill -f "go run ./cmd/api/main.go" || true
-
-    # Agar frontend o'zgargan bo'lsa - Build qilamiz
-    if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
-        echo "🌐 Frontend build qilinmoqda..."
-        cd "$ROOT_DIR/frontend" && npm install && npm run build
-    fi
-
-    echo "🚀 Backend (Sayt + API) yoqilmoqda..."
-    cd "$ROOT_DIR/backend" && nohup go run ./cmd/api/main.go > backend.log 2>&1 &
-    echo "✅ Backend yangilandi."
-else
-    echo "⏺ Backend va Frontendda o'zgarish yo'q."
+echo "📦 3. Frontendni build qilish (Production Mode)..."
+if [ -d "$FRONTEND_DIR" ]; then
+    cd "$FRONTEND_DIR"
+    npm install --silent
+    npm run build
 fi
 
-# --- 🤖 2. TELEGRAM BOT TEKSHIRUVI ---
-if [ "$PREV_COMMIT" == "$NEW_COMMIT" ] || echo "$CHANGED_FILES" | grep -q "^telegram_bot/"; then
-    echo "🔄 Telegram Bot yangilanmoqda..."
-    # Bot jarayonini to'xtatish
-    pkill -f "go run .$" || true
-    pkill -f "go run telegram_bot" || true
-    
-    cd "$ROOT_DIR/telegram_bot" && nohup go run . > bot.log 2>&1 &
-    echo "✅ Bot yangilandi."
-else
-    echo "⏺ Botda o'zgarish yo'q."
-fi
+echo "🚀 4. Backend (Site + API) ishga tushirilmoqda..."
+cd "$BACKEND_DIR"
+# .env dagi DB_HOST ni localhost ekanligini ta'minlash
+sed -i 's/DB_HOST=db/DB_HOST=localhost/g' .env 2>/dev/null || true
 
-echo "✨ PRODUCTION rejimi faol! Barcha tizimlar (Sayt, API, Bot) ishlamoqda."
-echo "📜 Loglar: $ROOT_DIR/backend/backend.log, $ROOT_DIR/telegram_bot/bot.log"
+# Papkalarni tekshirish
+mkdir -p uploads
+
+# Backendni qat'iy (nohup) yoqish
+nohup go run ./cmd/api/main.go > backend.log 2>&1 &
+echo "✅ Backend (Port 8080) yoqildi."
+
+echo "🤖 5. Telegram Bot ishga tushirilmoqda..."
+cd "$BOT_DIR"
+nohup go run . > bot.log 2>&1 &
+echo "✅ Bot yoqildi."
+
+echo "✨ FINAL: Tizim Production rejimida!"
+echo "📍 Sayt: kafe.ruslandev.uz"
+echo "📍 Loglar: backend/backend.log, telegram_bot/bot.log"
+
+# Diagnostic Check
+sleep 3
+netstat -tpln | grep 8080
