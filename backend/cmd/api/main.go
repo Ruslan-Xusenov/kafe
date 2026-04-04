@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 
+	"strings"
+
 	"github.com/username/kafe-backend/internal/database"
 	"github.com/username/kafe-backend/internal/handlers"
 	"github.com/username/kafe-backend/internal/middleware"
@@ -69,8 +71,21 @@ func main() {
 	})
 
 	// Static File Serving for Uploads
-	// Ensure uploads directory is served correctly regardless of working directory
 	r.Static("/uploads", "./uploads")
+
+	// 🌐 Serving Frontend in Production Mode
+	// Serve the static files from the frontend build (dist folder)
+	r.StaticFile("/", "../../frontend/dist/index.html")
+	r.Static("/assets", "../../frontend/dist/assets")
+	
+	// Fallback for SPA routing: All other unknown routes go to index.html
+	r.NoRoute(func(c *gin.Context) {
+		if !strings.HasPrefix(c.Request.URL.Path, "/api") && !strings.HasPrefix(c.Request.URL.Path, "/uploads") {
+			c.File("../../frontend/dist/index.html")
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+	})
 
 	// Routes
 	api := r.Group("/api")
