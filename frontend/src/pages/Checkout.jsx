@@ -38,6 +38,7 @@ const Checkout = () => {
         items: items.map(i => ({
           product_id: i.id,
           quantity: i.quantity,
+          unit: i.unit || 'dona',
           comment: ''
         })),
         address,
@@ -130,7 +131,7 @@ const Checkout = () => {
             {items.map(item => (
               <div key={item.id} className="summary-item">
                 <span>{item.name} x {item.quantity}</span>
-                <span>{(item.price * item.quantity).toLocaleString()} so'm</span>
+                <span>{((item.price || 0) * (item.quantity || 0)).toLocaleString()} so'm</span>
               </div>
             ))}
           </div>

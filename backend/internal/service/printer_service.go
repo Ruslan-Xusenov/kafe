@@ -59,46 +59,41 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 	conn.Write(ESC_INIT)
 	conn.Write(BEEP)
 
-	// Header
+	// Header - YETUK ONLAYN ZAKAZ (Centered and Big)
 	conn.Write(ALIGN_CENTER)
 	conn.Write(FONT_BIG)
-	conn.Write([]byte("KAFE\n")) // General name, can be customized later
+	conn.Write([]byte("YETUK ONLAYN ZAKAZ\n"))
 	conn.Write(FONT_NORMAL)
 	conn.Write([]byte("------------------------------------------------\n"))
 	
-	conn.Write(FONT_DOUBLE_H)
-	conn.Write([]byte(fmt.Sprintf("BUYURTMA #%d\n", order.ID)))
-	conn.Write(FONT_NORMAL)
+	// Details
+	conn.Write(ALIGN_LEFT)
+	conn.Write([]byte(fmt.Sprintf("Чек №: %d\n", order.ID)))
+	conn.Write([]byte(fmt.Sprintf("Зал: Доставка №%d\n", order.ID)))
+	conn.Write([]byte("Стол: onlayn\n"))
+	conn.Write([]byte("Обслужил: YETUK KAFE onlayn\n"))
 	
 	createdAt := order.CreatedAt
 	if createdAt.IsZero() {
 		createdAt = time.Now()
 	}
-	conn.Write([]byte(fmt.Sprintf("Sana: %s\n", createdAt.Format("02.01.2006 15:04"))))
+	conn.Write([]byte(fmt.Sprintf("Время открытия: %s\n", createdAt.Format("02.01.2006 15:04:05"))))
+	conn.Write([]byte("Время закрытия: -\n"))
 	conn.Write([]byte("------------------------------------------------\n"))
 
-	// Customer Info
-	conn.Write(ALIGN_LEFT)
-	conn.Write([]byte(fmt.Sprintf("Mijoz: %s\n", order.Phone)))
-	conn.Write([]byte(fmt.Sprintf("Manzil: %s\n", s.transliterate(order.Address))))
-	if order.Comment != "" {
-		conn.Write([]byte(fmt.Sprintf("Izoh: %s\n", s.transliterate(order.Comment))))
-	}
+	// Items Table
+	// Name: 22, Qty: 6, Price: 10, Total: 10
+	conn.Write([]byte("Наименование           Soni   Narxi      Jami\n"))
 	conn.Write([]byte("------------------------------------------------\n"))
-
-	// Items Header
-	// Total 48 chars
-	// Name: 22, Qty: 5, Price: 10, Total: 10
-	// 22 + 1 + 5 + 1 + 9 + 1 + 9 = 48
-	conn.Write([]byte("Mahsulot               Soni   Narxi      Jami\n"))
+	
 	for _, item := range order.Items {
 		name := s.transliterate(item.ProductName)
 		if len(name) > 22 {
 			name = name[:19] + "..."
 		}
 		
-		line := fmt.Sprintf("%-22s %-6d %-10.0f %-10.0f\n", 
-			name, item.Quantity, item.Price, item.Price*float64(item.Quantity))
+		line := fmt.Sprintf("%-22s %-6.1f %-10.0f %-10.0f\n", 
+			name, item.Quantity, item.Price, item.Price*item.Quantity)
 		conn.Write([]byte(line))
 		
 		if item.Comment != "" {
@@ -107,17 +102,17 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 	}
 	conn.Write([]byte("------------------------------------------------\n"))
 
-	// Total
+	// Footer Summary
 	conn.Write(ALIGN_RIGHT)
+	conn.Write([]byte(fmt.Sprintf("Подитог: %.0f\n", order.TotalPrice)))
+	conn.Write([]byte("Обслуживание(0.0%): 0\n"))
+	conn.Write([]byte("Скидка(0%): 0\n"))
+	conn.Write([]byte("\n"))
+	
 	conn.Write(FONT_DOUBLE_W)
-	conn.Write([]byte(fmt.Sprintf("JAMI: %.0f so'm\n", order.TotalPrice)))
+	conn.Write([]byte(fmt.Sprintf("Итого: %.0f\n", order.TotalPrice)))
 	conn.Write(FONT_NORMAL)
-	conn.Write([]byte("\n\n"))
-
-	// Footer
-	conn.Write(ALIGN_CENTER)
-	conn.Write([]byte("Xaridingiz uchun rahmat!\n"))
-	conn.Write([]byte("\n\n\n\n\n"))
+	conn.Write([]byte("\n\n\n\n"))
 
 	// Cut
 	conn.Write(PAPER_CUT)

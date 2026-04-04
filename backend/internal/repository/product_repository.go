@@ -17,9 +17,9 @@ func NewProductRepository(db *sqlx.DB) *ProductRepository {
 }
 
 func (r *ProductRepository) Create(product *models.Product) error {
-	query := `INSERT INTO products (category_id, name, description, price, image_url, is_active) 
-              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at, updated_at`
-	return r.db.QueryRow(query, product.CategoryID, product.Name, product.Description, product.Price, product.ImageURL, product.IsActive).
+	query := `INSERT INTO products (category_id, name, description, price, image_url, is_active, unit, min_quantity, quantity_step, has_mandatory_container) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`
+	return r.db.QueryRow(query, product.CategoryID, product.Name, product.Description, product.Price, product.ImageURL, product.IsActive, product.Unit, product.MinQuantity, product.QuantityStep, product.HasMandatoryContainer).
 		Scan(&product.ID, &product.CreatedAt, &product.UpdatedAt)
 }
 
@@ -51,9 +51,11 @@ func (r *ProductRepository) GetByID(id int) (*models.Product, error) {
 }
 
 func (r *ProductRepository) Update(product *models.Product) error {
-	query := `UPDATE products SET category_id = $1, name = $2, description = $3, price = $4, image_url = $5, is_active = $6, updated_at = NOW() 
-              WHERE id = $7 RETURNING updated_at`
-	return r.db.QueryRow(query, product.CategoryID, product.Name, product.Description, product.Price, product.ImageURL, product.IsActive, product.ID).
+	query := `UPDATE products SET category_id = $1, name = $2, description = $3, price = $4, image_url = $5, is_active = $6, 
+              unit = $7, min_quantity = $8, quantity_step = $9, has_mandatory_container = $10, updated_at = NOW() 
+              WHERE id = $11 RETURNING updated_at`
+	return r.db.QueryRow(query, product.CategoryID, product.Name, product.Description, product.Price, product.ImageURL, product.IsActive, 
+		product.Unit, product.MinQuantity, product.QuantityStep, product.HasMandatoryContainer, product.ID).
 		Scan(&product.UpdatedAt)
 }
 

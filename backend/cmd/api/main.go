@@ -121,14 +121,13 @@ func main() {
 				// Staff Management
 				admin.POST("/staff", authHandler.Register)
 				admin.GET("/staff", authHandler.GetStaff)
+				admin.DELETE("/staff/:id", authHandler.DeleteStaff)
 				admin.GET("/performance", orderHandler.GetStaffPerformance)
 
 				// Image Upload
 				admin.POST("/upload", handlers.UploadImage)
 			}
 		}
-
-		// Orders
 		orders := api.Group("/orders")
 		orders.Use(middleware.AuthMiddleware())
 		{

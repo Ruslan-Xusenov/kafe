@@ -451,4 +451,58 @@ input:focus, textarea:focus, select:focus {
   .ss-grid { grid-template-columns: repeat(2, 1fr) !important; }
   .btn-primary { padding: 0.7rem 1.2rem; font-size: 0.9rem; }
 }
+/* ─────────────────── UNIT SELECTOR ─────────────────── */
+.unit-selector-mini {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  width: fit-content;
+}
 
+.unit-selector-mini button {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  background: none;
+  color: var(--text-secondary);
+  border-radius: 0;
+  transition: var(--transition);
+}
+
+.unit-selector-mini button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.portion-info {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.pd-unit-selector .unit-selector-btn-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.pd-unit-selector .unit-selector-btn-group button {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  transition: var(--transition);
+}
+
+.pd-unit-selector .unit-selector-btn-group button.active {
+  border-color: var(--primary);
+  background: rgba(249, 115, 22, 0.1);
+  color: var(--primary);
+}
+
+.pd-unit-selector .unit-selector-btn-group button:hover:not(.active) {
+  border-color: var(--text-muted);
+}

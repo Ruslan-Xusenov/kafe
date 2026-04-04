@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/username/kafe-backend/internal/models"
 	"github.com/username/kafe-backend/internal/repository"
@@ -26,6 +27,51 @@ func NewOrderService(orderRepo *repository.OrderRepository, productRepo *reposit
 }
 
 func (s *OrderService) CreateOrder(order *models.Order) error {
+	// Check for existing order from the same phone in the last 30 minutes
+	lastOrder, err := s.orderRepo.GetLastOrderByPhone(order.Phone)
+	if err == nil && lastOrder != nil {
+		if time.Since(lastOrder.CreatedAt) < 30*time.Minute {
+			return fmt.Errorf("siz oxirgi 30 daqiqa ichida buyurtma bergansiz. Iltimos kuting.")
+		}
+	}
+
+	// Business logic for mandatory containers
+	// Check if any product needs a container
+	var itemsToAdd []models.OrderItem
+	for _, item := range order.Items {
+		prod, err := s.productRepo.GetByID(item.ProductID)
+		if err != nil {
+			return fmt.Errorf("failed to get product %d: %w", item.ProductID, err)
+		}
+		if prod == nil {
+			return fmt.Errorf("product %d not found", item.ProductID)
+		}
+
+		if prod.HasMandatoryContainer {
+			// For every portion (pors), add a container
+			containerQty := item.Quantity
+			itemsToAdd = append(itemsToAdd, models.OrderItem{
+				ProductID: 7, // Bir martalik idish
+				Quantity:  containerQty,
+			})
+		}
+	}
+
+	// Add containers to the order items if not already present
+	for _, newItem := range itemsToAdd {
+		found := false
+		for i, existingItem := range order.Items {
+			if existingItem.ProductID == newItem.ProductID {
+				order.Items[i].Quantity += newItem.Quantity
+				found = true
+				break
+			}
+		}
+		if !found {
+			order.Items = append(order.Items, newItem)
+		}
+	}
+
 	var total float64
 	for i := range order.Items {
 		item := &order.Items[i]
@@ -36,12 +82,26 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		if prod == nil {
 			return fmt.Errorf("product %d not found", item.ProductID)
 		}
-		item.Price = prod.Price
+
+		// Unit conversion logic: if product is "pors" but item is ordered as "dona"
+		itemPrice := prod.Price
+		if item.Unit == "dona" && prod.Unit == "pors" {
+			itemPrice = prod.Price / 4.0
+		}
+		
+		item.Price = itemPrice
 		item.ProductName = prod.Name
-		total += item.Price * float64(item.Quantity)
+		total += item.Price * item.Quantity
 	}
+	
+	// Check minimum order value (40,000 UZS)
+	if total < 40000 {
+		return fmt.Errorf("minimum buyurtma qiymati 40.000 so'm bo'lishi kerak")
+	}
+
 	order.TotalPrice = total
 	order.Status = models.StatusNew
+	order.CreatedAt = time.Now()
 
 	if err := s.orderRepo.Create(order); err != nil {
 		return err
@@ -130,7 +190,6 @@ func (s *OrderService) GetAllOrders() ([]models.Order, error) {
 }
 
 func (s *OrderService) GetActiveOrders() ([]models.Order, error) {
-	// Active orders for Kitchen/Admin (status not delivered or cancelled)
 	var activeOrders []models.Order
 	all, err := s.orderRepo.GetAll()
 	if err != nil {

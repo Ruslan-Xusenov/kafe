@@ -24,23 +24,28 @@ type User struct {
 }
 
 type Category struct {
-	ID        int       `json:"id" db:"id"`
-	Name      string    `json:"name" db:"name"`
-	ImageURL  *string   `json:"image_url" db:"image_url"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID               int       `json:"id" db:"id"`
+	Name             string    `json:"name" db:"name"`
+	ImageURL         *string   `json:"image_url" db:"image_url"`
+	IsUserControlled bool      `json:"is_user_controlled" db:"is_user_controlled"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Product struct {
-	ID          int       `json:"id" db:"id"`
-	CategoryID  int       `json:"category_id" db:"category_id"`
-	Name        string    `json:"name" db:"name"`
-	Description string    `json:"description" db:"description"`
-	Price       float64   `json:"price" db:"price"`
-	ImageURL    string    `json:"image_url" db:"image_url"`
-	IsActive    bool      `json:"is_active" db:"is_active"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	ID                    int       `json:"id" db:"id"`
+	CategoryID            int       `json:"category_id" db:"category_id"`
+	Name                  string    `json:"name" db:"name"`
+	Description           string    `json:"description" db:"description"`
+	Price                 float64   `json:"price" db:"price"`
+	ImageURL              string    `json:"image_url" db:"image_url"`
+	IsActive              bool      `json:"is_active" db:"is_active"`
+	Unit                  string    `json:"unit" db:"unit"`
+	MinQuantity           float64   `json:"min_quantity" db:"min_quantity"`
+	QuantityStep          float64   `json:"quantity_step" db:"quantity_step"`
+	HasMandatoryContainer bool      `json:"has_mandatory_container" db:"has_mandatory_container"`
+	CreatedAt             time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type OrderStatus string
@@ -78,8 +83,9 @@ type OrderItem struct {
 	OrderID     int       `json:"order_id" db:"order_id"`
 	ProductID   int       `json:"product_id" db:"product_id"`
 	ProductName string    `json:"product_name" db:"product_name"` // Joined field
-	Quantity    int       `json:"quantity" db:"quantity"`
+	Quantity    float64   `json:"quantity" db:"quantity"`
 	Price       float64   `json:"price" db:"price"`
+	Unit        string    `json:"unit" db:"unit"`
 	Comment     string    `json:"comment" db:"comment"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }

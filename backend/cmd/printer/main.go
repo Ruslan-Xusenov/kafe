@@ -15,18 +15,32 @@ import (
 )
 
 const (
-	serverAddr = "46.224.133.140:8080"
-	printerKey = "KAFE_PRINTER_SECRET_2026"
+	serverAddr    = "46.224.133.140:8080"
+	printerKey    = "KAFE_PRINTER_SECRET_2026"
 	printerDevice = "\\\\localhost\\XP-80C"
 )
 
+// ESC/POS Commands
+var (
+	ESC_INIT      = []byte{0x1B, 0x40}           // ESC @
+	ALIGN_LEFT    = []byte{0x1B, 0x61, 0x00}      // ESC a 0
+	ALIGN_CENTER  = []byte{0x1B, 0x61, 0x01}      // ESC a 1
+	ALIGN_RIGHT   = []byte{0x1B, 0x61, 0x02}      // ESC a 2
+	FONT_NORMAL   = []byte{0x1D, 0x21, 0x00}      // GS ! 0
+	FONT_DOUBLE_H = []byte{0x1D, 0x21, 0x01}      // GS ! 1
+	FONT_DOUBLE_W = []byte{0x1D, 0x21, 0x10}      // GS ! 16
+	FONT_BIG      = []byte{0x1D, 0x21, 0x11}      // GS ! 17 (Double width + height)
+	PAPER_CUT     = []byte{0x1D, 0x56, 0x42, 0x00} // GS V B 0
+	BEEP          = []byte{0x1B, 0x42, 0x02, 0x02} // ESC B n t (Beep 2 times)
+)
+
 func main() {
-	log.Println("🚀 Kafe Printer Bridge Final Pro (v3.5) ishga tushdi...")
+	log.Println("🚀 Kafe Printer Bridge Artistic Pro (v4.0) ishga tushdi...")
 	log.Printf("📍 Server: %s\n", serverAddr)
 	log.Printf("📍 Printer: %s\n\n", printerDevice)
 
 	for {
-		// 1. Health Check (ws-test)
+		// 1. Health Check
 		testURL := fmt.Sprintf("http://%s/api/ws-test", serverAddr)
 		resp, err := http.Get(testURL)
 		if err != nil {
@@ -35,12 +49,6 @@ func main() {
 			continue
 		}
 		resp.Body.Close()
-
-		if resp.StatusCode == 404 {
-			log.Println("⚠️  OGOHLANTIRISH: Serverda eski kod turibdi (404 on ws-test)! Iltimos 'git pull' qiling.")
-		} else {
-			log.Println("✅ Server ulanishga tayyor (200 OK).")
-		}
 
 		// 2. WebSocket Handshake
 		u := url.URL{Scheme: "ws", Host: serverAddr, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
@@ -51,7 +59,7 @@ func main() {
 			continue
 		}
 		
-		log.Println("✅ Connected! Buyurtmalar kutilmoqda...")
+		log.Println("✅ Connected! Professional zakazlar kutilmoqda...")
 		
 		handleMessages(c)
 		c.Close()
@@ -76,9 +84,8 @@ func handleMessages(c *websocket.Conn) {
 		if m["type"] == "new_order" {
 			orderData, _ := m["order"].(map[string]interface{})
 			id := int(orderData["id"].(float64))
-			log.Printf("🔔 Yangi buyurtma #%d qabul qilindi!\n", id)
+			log.Printf("🔔 Yangi buyurtma #%d (Artistic Pro) qabul qilindi!\n", id)
 			
-			// Auto-print
 			printOrder(orderData)
 		}
 	}
@@ -94,67 +101,67 @@ func printOrder(order map[string]interface{}) {
 	}
 	defer os.Remove(f.Name())
 
-	// --- ESC/POS Commands ---
-	const (
-		initialize     = "\x1b\x40"
-		center         = "\x1b\x61\x01"
-		left           = "\x1b\x61\x00"
-		boldOn         = "\x1b\x45\x01"
-		boldOff        = "\x1b\x45\x00"
-		doubleSize     = "\x1d\x21\x11" // Double height and width
-		regularSize    = "\x1d\x21\x00"
-		cut            = "\x1d\x56\x42\x00" // Feed paper and cut
-	)
+	// Build Binary Sequence
+	f.Write(ESC_INIT)
+	f.Write(BEEP)
 
-	// Build the Binary Raw Data
-	var b strings.Builder
-	b.WriteString(initialize)
+	// Header - YETUK ONLAYN ZAKAZ
+	f.Write(ALIGN_CENTER)
+	f.Write(FONT_BIG)
+	f.Write([]byte("YETUK ONLAYN ZAKAZ\n"))
+	f.Write(FONT_NORMAL)
+	f.Write([]byte("------------------------------------------------\n"))
 	
-	// Header: Cafe Name
-	b.WriteString(center + doubleSize + boldOn + "YETUK KAFE\n" + regularSize + boldOff)
-	b.WriteString("--------------------------------\n")
+	// Details
+	f.Write(ALIGN_LEFT)
+	f.Write([]byte(fmt.Sprintf("Чек №: %d\n", id)))
+	f.Write([]byte(fmt.Sprintf("Зал: Доставка №%d\n", id)))
+	f.Write([]byte("Стол: onlayn\n"))
+	f.Write([]byte("Обслужил: YETUK KAFE onlayn\n"))
 	
-	// Order ID
-	b.WriteString(doubleSize + boldOn + fmt.Sprintf("BUYURTMA #%d\n", id) + regularSize + boldOff)
-	b.WriteString(center + fmt.Sprintf("Vaqt: %s\n", time.Now().Format("15:04:05 02.01.2006")))
-	b.WriteString(left + "--------------------------------\n")
-	
+	f.Write([]byte(fmt.Sprintf("Время открытия: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
+	f.Write([]byte("Время закрытия: -\n"))
+	f.Write([]byte("------------------------------------------------\n"))
+
 	// Items Table
-	b.WriteString(boldOn + fmt.Sprintf("%-18s %-4s %-8s\n", "Mahsulot", "Soni", "Narxi") + boldOff)
+	f.Write([]byte("Наименование           Soni   Narxi      Jami\n"))
+	f.Write([]byte("------------------------------------------------\n"))
+	
 	items, _ := order["items"].([]interface{})
 	for _, it := range items {
 		item := it.(map[string]interface{})
-		name := item["product_name"].(string)
-		qty := int(item["quantity"].(float64))
+		name := transliterate(item["product_name"].(string))
+		qty := item["quantity"].(float64)
 		price := item["price"].(float64)
 		
-		// If name too long, truncate
-		shortName := name
-		if len(shortName) > 17 { shortName = shortName[:17] }
+		if len(name) > 22 {
+			name = name[:19] + "..."
+		}
 		
-		b.WriteString(fmt.Sprintf("%-18s x%-3d %-8.0f\n", shortName, qty, price))
+		line := fmt.Sprintf("%-22s %-6.1f %-10.0f %-10.0f\n", 
+			name, qty, price, price*qty)
+		f.Write([]byte(line))
+		
+		if comment, ok := item["comment"].(string); ok && comment != "" {
+			f.Write([]byte(fmt.Sprintf("  * Izoh: %s\n", transliterate(comment))))
+		}
 	}
-	
-	b.WriteString("--------------------------------\n")
-	b.WriteString(doubleSize + boldOn + fmt.Sprintf("JAMI: %.0f so'm\n", order["total_price"].(float64)) + regularSize + boldOff)
-	b.WriteString("--------------------------------\n")
-	
-	// Customer Details
-	if addr, ok := order["address"].(string); ok && addr != "" {
-		b.WriteString(boldOn + "Manzil: " + boldOff + addr + "\n")
-	}
-	if phone, ok := order["phone"].(string); ok && phone != "" {
-		b.WriteString(boldOn + "Tel: " + boldOff + phone + "\n")
-	}
-	if comment, ok := order["comment"].(string); ok && comment != "" {
-		b.WriteString(boldOn + "Izoh: " + boldOff + comment + "\n")
-	}
-	
-	b.WriteString("\n" + center + "Xaridingiz uchun rahmat!\n")
-	b.WriteString("\n\n\n\n\n") // Feed paper
-	b.WriteString(cut) // Auto-cut!
+	f.Write([]byte("------------------------------------------------\n"))
 
-	f.WriteString(b.String())
+	// Footer Summary
+	f.Write(ALIGN_RIGHT)
+	f.Write([]byte(fmt.Sprintf("Подитог: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte("Обслуживание(0.0%): 0\n"))
+	f.Write([]byte("Скидка(0%): 0\n"))
+	f.Write([]byte("\n"))
+	
+	f.Write(FONT_DOUBLE_W)
+	f.Write([]byte(fmt.Sprintf("Итого: %.0f\n", order["total_price"].(float64))))
+	f.Write(FONT_NORMAL)
+	f.Write([]byte("\n\n\n\n"))
+
+	// Cut
+	f.Write(PAPER_CUT)
 	f.Close()
 
 	// Windows print command (Direct binary copy)
@@ -164,4 +171,15 @@ func printOrder(order map[string]interface{}) {
 	} else {
 		log.Printf("✅ Professional chek #%d qirqildi.\n", id)
 	}
+}
+
+func transliterate(text string) string {
+	r := strings.NewReplacer(
+		"ў", "o'", "Ў", "O'",
+		"қ", "q", "Қ", "Q",
+		"ғ", "g'", "Ғ", "G'",
+		"ҳ", "h", "Ҳ", "H",
+		"‘", "'", "’", "'",
+	)
+	return r.Replace(text)
 }

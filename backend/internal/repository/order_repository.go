@@ -38,11 +38,11 @@ func (r *OrderRepository) Create(order *models.Order) error {
 	}
 
 	// Insert Order Items
-	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, comment) 
-                  VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`
+	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, unit, comment) 
+                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`
 	for i := range order.Items {
 		item := &order.Items[i]
-		err = tx.QueryRow(itemQuery, order.ID, item.ProductID, item.Quantity, item.Price, item.Comment).
+		err = tx.QueryRow(itemQuery, order.ID, item.ProductID, item.Quantity, item.Price, item.Unit, item.Comment).
 			Scan(&item.ID, &item.CreatedAt)
 		if err != nil {
 			return fmt.Errorf("failed to insert order item: %w", err)
@@ -76,7 +76,7 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	// Get Items
 	var items []models.OrderItem
 	itemQuery := `
-		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, 
+		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 			   COALESCE(oi.comment, '') as comment, oi.created_at,
 			   COALESCE(p.name, 'Noma''lum') as product_name 
 		FROM order_items oi
@@ -114,7 +114,7 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, 
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name 
 			FROM order_items oi
@@ -152,7 +152,7 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, 
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name 
 			FROM order_items oi
@@ -306,4 +306,17 @@ func (r *OrderRepository) GetRatingsByOrderID(orderID int) ([]models.StaffRating
 	query := `SELECT * FROM staff_ratings WHERE order_id = $1`
 	err := r.db.Select(&ratings, query, orderID)
 	return ratings, err
+}
+
+func (r *OrderRepository) GetLastOrderByPhone(phone string) (*models.Order, error) {
+	var order models.Order
+	query := `SELECT * FROM orders WHERE phone = $1 ORDER BY created_at DESC LIMIT 1`
+	err := r.db.Get(&order, query, phone)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &order, nil
 }

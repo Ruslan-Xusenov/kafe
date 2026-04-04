@@ -17,20 +17,20 @@ func NewCategoryRepository(db *sqlx.DB) *CategoryRepository {
 }
 
 func (r *CategoryRepository) Create(category *models.Category) error {
-	query := `INSERT INTO categories (name, image_url) VALUES ($1, $2) RETURNING id, created_at, updated_at`
-	return r.db.QueryRow(query, category.Name, category.ImageURL).Scan(&category.ID, &category.CreatedAt, &category.UpdatedAt)
+	query := `INSERT INTO categories (name, image_url, is_user_controlled) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`
+	return r.db.QueryRow(query, category.Name, category.ImageURL, category.IsUserControlled).Scan(&category.ID, &category.CreatedAt, &category.UpdatedAt)
 }
 
 func (r *CategoryRepository) GetAll() ([]models.Category, error) {
 	var categories []models.Category
-	query := `SELECT * FROM categories ORDER BY id ASC`
+	query := `SELECT id, name, image_url, is_user_controlled, created_at, updated_at FROM categories ORDER BY id ASC`
 	err := r.db.Select(&categories, query)
 	return categories, err
 }
 
 func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 	var category models.Category
-	query := `SELECT * FROM categories WHERE id = $1`
+	query := `SELECT id, name, image_url, is_user_controlled, created_at, updated_at FROM categories WHERE id = $1`
 	err := r.db.Get(&category, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -42,8 +42,8 @@ func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 }
 
 func (r *CategoryRepository) Update(category *models.Category) error {
-	query := `UPDATE categories SET name = $1, image_url = $2, updated_at = NOW() WHERE id = $3 RETURNING updated_at`
-	return r.db.QueryRow(query, category.Name, category.ImageURL, category.ID).Scan(&category.UpdatedAt)
+	query := `UPDATE categories SET name = $1, image_url = $2, is_user_controlled = $3, updated_at = NOW() WHERE id = $4 RETURNING updated_at`
+	return r.db.QueryRow(query, category.Name, category.ImageURL, category.IsUserControlled, category.ID).Scan(&category.UpdatedAt)
 }
 
 func (r *CategoryRepository) Delete(id int) error {

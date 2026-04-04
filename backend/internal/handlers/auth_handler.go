@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -127,4 +128,13 @@ func (h *AuthHandler) GetStaff(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
+}
+
+func (h *AuthHandler) DeleteStaff(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if err := h.userRepo.Delete(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Xodim o'chirildi"})
 }

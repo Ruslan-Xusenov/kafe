@@ -33,6 +33,10 @@ CREATE TABLE products (
     price DECIMAL(12, 2) NOT NULL,
     image_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    unit VARCHAR(20) DEFAULT 'dona',
+    min_quantity DECIMAL(12, 3) DEFAULT 1.0,
+    quantity_step DECIMAL(12, 3) DEFAULT 1.0,
+    has_mandatory_container BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -59,7 +63,7 @@ CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
     product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
+    quantity DECIMAL(12, 3) NOT NULL DEFAULT 1.000,
     price DECIMAL(12, 2) NOT NULL, -- Individual product price at times of purchase
     comment TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

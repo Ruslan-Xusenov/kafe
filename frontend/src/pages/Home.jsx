@@ -8,18 +8,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Home = () => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState(null);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const addItem = useCartStore(state => state.addItem);
-  const user = useAuthStore(state => state.user);
-
-  useEffect(() => { fetchData(); }, []);
+  const [selectedUnits, setSelectedUnits] = useState({}); // { productId: 'dona' | 'pors' }
 
   const getImageUrl = (url) => {
     if (!url) return null;
+    if (url.startsWith('/')) return url;
     return url;
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -29,11 +31,25 @@ const Home = () => {
       ]);
       setCategories(Array.isArray(catRes.data) ? catRes.data : []);
       setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
+      
+      // Initialize default units
+      const initialUnits = {};
+      (prodRes.data || []).forEach(p => {
+        initialUnits[p.id] = p.unit || 'dona';
+      });
+      setSelectedUnits(initialUnits);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleUnit = (productId) => {
+    setSelectedUnits(prev => ({
+      ...prev,
+      [productId]: prev[productId] === 'pors' ? 'dona' : 'pors'
+    }));
   };
 
   const filteredProducts = products.filter(p => {
@@ -48,6 +64,14 @@ const Home = () => {
       <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Yuklanmoqda...</p>
     </div>
   );
+
+  const getProductPrice = (prod) => {
+    const unit = selectedUnits[prod.id] || prod.unit;
+    if (unit === 'dona' && prod.unit === 'pors') {
+      return prod.price / 4;
+    }
+    return prod.price;
+  };
 
   return (
     <div className="home-page">
@@ -105,67 +129,107 @@ const Home = () => {
       <section className="product-grid">
         <AnimatePresence mode="popLayout">
           {filteredProducts.length > 0 ? (
-            filteredProducts.map((prod, i) => (
-              <motion.div
-                key={prod.id}
-                layout
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.35, delay: i * 0.04 }}
-                className="prod-card"
-              >
-                <Link to={`/product/${prod.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  {/* Image */}
-                  <div className="prod-img-wrap">
-                    {getImageUrl(prod.image_url) ? (
-                      <img
-                        src={getImageUrl(prod.image_url)}
-                        alt={prod.name}
-                        className="prod-img"
-                        onError={e => {
-                          e.target.onerror = null;
-                          e.target.parentElement.innerHTML = '<div class="prod-img-placeholder">🍽</div>';
-                        }}
-                      />
-                    ) : (
-                      <div className="prod-img-placeholder">🍽</div>
-                    )}
-                    <div className="prod-img-overlay">
-                      <div className="view-details">
-                        <Eye size={18} />
-                        <span>Batafsil</span>
+            filteredProducts.map((prod, i) => {
+              const cat = categories.find(c => c.id === prod.category_id);
+              const isUserControlled = cat?.is_user_controlled;
+              const currentUnit = selectedUnits[prod.id] || prod.unit;
+              const currentPrice = getProductPrice(prod);
+
+              return (
+                <motion.div
+                  key={prod.id}
+                  layout
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.35, delay: i * 0.04 }}
+                  className="prod-card"
+                >
+                  <Link to={`/product/${prod.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {/* Image */}
+                    <div className="prod-img-wrap">
+                      {getImageUrl(prod.image_url) ? (
+                        <img
+                          src={getImageUrl(prod.image_url)}
+                          alt={prod.name}
+                          className="prod-img"
+                          onError={e => {
+                            e.target.onerror = null;
+                            e.target.parentElement.innerHTML = '<div class="prod-img-placeholder">🍽</div>';
+                          }}
+                        />
+                      ) : (
+                        <div className="prod-img-placeholder">🍽</div>
+                      )}
+                      <div className="prod-img-overlay">
+                        <div className="view-details">
+                          <Eye size={18} />
+                          <span>Batafsil</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Info */}
-                  <div className="prod-body">
-                    <p className="prod-cat-tag">
-                      {categories.find(c => c.id === prod.category_id)?.name || ''}
-                    </p>
-                    <h3 className="prod-name">{prod.name}</h3>
-                    {prod.description && (
-                      <p className="prod-desc">{prod.description}</p>
-                    )}
-                    <div className="prod-footer">
-                      <span className="prod-price">{prod.price.toLocaleString()} so'm</span>
-                      <button
-                        className="add-btn"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          addItem(prod);
-                        }}
-                        title="Savatga qo'shish"
-                      >
-                        <Plus size={20} />
-                      </button>
+                    {/* Info */}
+                    <div className="prod-body">
+                      <p className="prod-cat-tag">
+                        {cat?.name || ''}
+                      </p>
+                      <h3 className="prod-name">{prod.name}</h3>
+                      {prod.description && (
+                        <p className="prod-desc">{prod.description}</p>
+                      )}
+
+                      {/* Unit Selector if User Controlled */}
+                      {isUserControlled && prod.unit === 'pors' && (
+                        <div className="unit-selector-mini" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                          <button 
+                            className={currentUnit === 'pors' ? 'active' : ''} 
+                            onClick={() => setSelectedUnits(prev => ({...prev, [prod.id]: 'pors'}))}
+                          >
+                            Pors
+                          </button>
+                          <button 
+                            className={currentUnit === 'dona' ? 'active' : ''} 
+                            onClick={() => setSelectedUnits(prev => ({...prev, [prod.id]: 'dona'}))}
+                          >
+                            Dona
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="prod-footer">
+                        <span className="prod-price">
+                          {currentPrice.toLocaleString()} so'm 
+                          <span className="prod-unit"> / {currentUnit}</span>
+                        </span>
+                        
+                        {currentUnit === 'pors' && (
+                          <div className="portion-info">
+                            (1 pors = 4 dona)
+                          </div>
+                        )}
+                        
+                        <button
+                          className="add-btn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            addItem({
+                              ...prod,
+                              price: currentPrice,
+                              unit: currentUnit
+                            });
+                          }}
+                          title="Savatga qo'shish"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))
+                  </Link>
+                </motion.div>
+              );
+            })
           ) : (
             <div className="empty-products">
               <div className="empty-emoji">🍳</div>
@@ -416,10 +480,15 @@ const Home = () => {
         .prod-price {
           font-size: 1.1rem;
           font-weight: 800;
-          background: var(--grad-brand);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: var(--primary);
+        }
+
+        .prod-unit {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          font-weight: 600;
+          margin-left: 2px;
+          -webkit-text-fill-color: var(--text-secondary);
         }
 
         .add-btn {

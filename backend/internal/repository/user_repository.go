@@ -71,6 +71,12 @@ func (r *UserRepository) GetStaff() ([]models.User, error) {
 	return users, err
 }
 
+func (r *UserRepository) Delete(id int) error {
+	query := `DELETE FROM users WHERE id = $1`
+	_, err := r.db.Exec(query, id)
+	return err
+}
+
 func (r *UserRepository) Count() (int, error) {
 	var count int
 	query := `SELECT COUNT(*) FROM users`

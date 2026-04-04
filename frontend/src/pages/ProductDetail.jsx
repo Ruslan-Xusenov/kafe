@@ -17,6 +17,8 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
+  const [selectedUnit, setSelectedUnit] = useState('pors');
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProduct();
@@ -26,7 +28,7 @@ const ProductDetail = () => {
     setLoading(true);
     try {
       const [prodRes, allProdsRes, catRes] = await Promise.all([
-        api.get(`/catalog/products`), // Backend doesn't have direct GetProductByID? Let's check.
+        api.get(`/catalog/products`),
         api.get('/catalog/products'),
         api.get('/catalog/categories')
       ]);
@@ -40,7 +42,9 @@ const ProductDetail = () => {
       }
 
       setProduct(foundProduct);
-      setCategories(catRes.data || []);
+      setSelectedUnit(foundProduct.unit || 'dona');
+      const cats = catRes.data || [];
+      setCategories(cats);
       
       // Filter related (same category, different ID)
       const related = allProds
@@ -56,10 +60,23 @@ const ProductDetail = () => {
     }
   };
 
+  const getPrice = () => {
+    if (!product) return 0;
+    if (selectedUnit === 'dona' && product.unit === 'pors') {
+      return product.price / 4;
+    }
+    return product.price;
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
+    const currentPrice = getPrice();
     for (let i = 0; i < quantity; i++) {
-      addItem(product);
+      addItem({
+        ...product,
+        price: currentPrice,
+        unit: selectedUnit
+      });
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -77,7 +94,9 @@ const ProductDetail = () => {
     </div>
   );
 
-  const categoryName = categories.find(c => c.id === product?.category_id)?.name || 'Kategoriya';
+  const catObj = categories.find(c => c.id === product?.category_id);
+  const categoryName = catObj?.name || 'Kategoriya';
+  const isUserControlled = catObj?.is_user_controlled;
 
   return (
     <div className="pd-page animate-fade">
@@ -119,13 +138,40 @@ const ProductDetail = () => {
           </div>
 
           <div className="pd-price-row">
-            <span className="pd-price">{(product.price).toLocaleString()} so'm</span>
+            <div>
+              <span className="pd-price">{getPrice().toLocaleString()} so'm</span>
+              <span className="pd-unit-sub"> / {selectedUnit}</span>
+              {selectedUnit === 'pors' && (
+                <div className="pd-conversion">(1 pors = 4 dona)</div>
+              )}
+            </div>
             <div className="qty-control">
               <button disabled={quantity <= 1} onClick={() => setQuantity(q => q - 1)}><Minus size={18} /></button>
               <span>{quantity}</span>
               <button onClick={() => setQuantity(q => q + 1)}><Plus size={18} /></button>
             </div>
           </div>
+
+          {/* Unit Selector if User Controlled */}
+          {isUserControlled && product.unit === 'pors' && (
+            <div className="pd-unit-selector mb-4">
+              <p className="font-700 mb-2" style={{ fontSize: '0.9rem' }}>O'lchov birligini tanlang:</p>
+              <div className="unit-selector-btn-group">
+                <button 
+                  className={selectedUnit === 'pors' ? 'active' : ''} 
+                  onClick={() => setSelectedUnit('pors')}
+                >
+                  Porsiya (Pors)
+                </button>
+                <button 
+                  className={selectedUnit === 'dona' ? 'active' : ''} 
+                  onClick={() => setSelectedUnit('dona')}
+                >
+                  Dona (1/4 pors)
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="pd-description">
             <h3>Tavsif</h3>
@@ -240,6 +286,8 @@ const ProductDetail = () => {
           border: 1px solid var(--border); margin: 1rem 0;
         }
         .pd-price { font-size: 2rem; font-weight: 800; color: var(--primary-light); }
+        .pd-unit-sub { font-size: 1rem; color: var(--text-dim); font-weight: 600; margin-left: 2px; }
+        .pd-conversion { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
 
         .qty-control {
           display: flex; align-items: center; gap: 1.25rem;

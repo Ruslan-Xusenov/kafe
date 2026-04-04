@@ -19,9 +19,12 @@ const Admin = () => {
 
   // States for Modals/Forms
   const [showCatModal, setShowCatModal] = useState(false);
-  const [newCat, setNewCat] = useState({ name: '', image_url: '' });
+  const [newCat, setNewCat] = useState({ name: '', image_url: '', is_user_controlled: false });
   const [showProdModal, setShowProdModal] = useState(false);
-  const [newProd, setNewProd] = useState({ name: '', description: '', price: '', category_id: '', image_url: '' });
+  const [newProd, setNewProd] = useState({ 
+    name: '', description: '', price: '', category_id: '', image_url: '',
+    unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false 
+  });
   const [editProdId, setEditProdId] = useState(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [newStaff, setNewStaff] = useState({ full_name: '', phone: '', password: '', role: 'cook' });
@@ -69,7 +72,7 @@ const Admin = () => {
     try {
       await api.post('/catalog/categories', newCat);
       setShowCatModal(false);
-      setNewCat({ name: '', image_url: '' });
+      setNewCat({ name: '', image_url: '', is_user_controlled: false });
       setErrors({});
       fetchData();
     } catch (err) { alert('Xatolik'); }
@@ -88,13 +91,23 @@ const Admin = () => {
     }
 
     try {
+      const prodData = { 
+        ...newProd, 
+        price: parseFloat(newProd.price), 
+        category_id: parseInt(newProd.category_id),
+        min_quantity: parseFloat(newProd.min_quantity),
+        quantity_step: parseFloat(newProd.quantity_step)
+      };
       if (editProdId) {
-        await api.put(`/catalog/products/${editProdId}`, { ...newProd, price: parseFloat(newProd.price), category_id: parseInt(newProd.category_id) });
+        await api.put(`/catalog/products/${editProdId}`, prodData);
       } else {
-        await api.post('/catalog/products', { ...newProd, price: parseFloat(newProd.price), category_id: parseInt(newProd.category_id) });
+        await api.post('/catalog/products', prodData);
       }
       setShowProdModal(false);
-      setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '' });
+      setNewProd({ 
+        name: '', description: '', price: '', category_id: '', image_url: '',
+        unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false 
+      });
       setEditProdId(null);
       setErrors({});
       fetchData();
@@ -108,7 +121,11 @@ const Admin = () => {
       description: p.description || '',
       price: p.price,
       category_id: p.category_id,
-      image_url: p.image_url || ''
+      image_url: p.image_url || '',
+      unit: p.unit || 'dona',
+      min_quantity: p.min_quantity || 1,
+      quantity_step: p.quantity_step || 1,
+      has_mandatory_container: p.has_mandatory_container || false
     });
     setShowProdModal(true);
   };
@@ -151,6 +168,26 @@ const Admin = () => {
       alert('Rasm yuklashda xatolik');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteStaff = async (id) => {
+    if (!window.confirm('Haqiqatan ham bu xodimni o\'chirmoqchimisiz?')) return;
+    try {
+      await api.delete(`/catalog/staff/${id}`);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Xodimni o\'chirishda xatolik');
+    }
+  };
+
+  const deleteCat = async (id) => {
+    if (!window.confirm('Haqiqatan ham bu kategoriyani o\'chirmoqchimisiz? Ichidagi mahsulotlar ham o\'chishi mumkin!')) return;
+    try {
+      await api.delete(`/catalog/categories/${id}`);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Kategoriyani o\'chirishda xatolik. Avval undagi mahsulotlarni o\'chirib ko\'ring.');
     }
   };
 
@@ -281,8 +318,8 @@ const Admin = () => {
             <div className="flex-header">
               <h2>Menyu Boshqaruvi</h2>
               <div className="actions">
-                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '' }); setShowCatModal(true); }}><Plus size={18} /> Kategoriya</button>
-                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '' }); setShowProdModal(true); }}><Plus size={18} /> Mahsulot</button>
+                <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '' }); setShowCatModal(true); }}><Plus size={18} /> Kategoriya</button>
+                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false }); setShowProdModal(true); }}><Plus size={18} /> Mahsulot</button>
               </div>
             </div>
 
@@ -293,7 +330,7 @@ const Admin = () => {
                   {categories.map(c => (
                     <div key={c.id} className="premium-card cat-card-admin">
                       <span>{c.name}</span>
-                      <button className="delete-btn-ico"><Trash2 size={16} /></button>
+                      <button className="delete-btn-ico" onClick={() => deleteCat(c.id)}><Trash2 size={16} /></button>
                     </div>
                   ))}
                 </div>
@@ -360,7 +397,7 @@ const Admin = () => {
                       <td>{s.phone}</td>
                       <td><span className={`status-badge ${s.role}`}>{s.role}</span></td>
                       <td>
-                        <button className="delete-btn"><Trash2 size={16} /></button>
+                        <button className="delete-btn" onClick={() => deleteStaff(s.id)}><Trash2 size={16} /></button>
                       </td>
                     </tr>
                   ))}
@@ -467,6 +504,17 @@ const Admin = () => {
                   </div>
                 )}
               </div>
+              
+              <div className="input-group flex-row gap-2 mt-2 mb-4">
+                <input 
+                  type="checkbox" 
+                  id="cat_user_controlled"
+                  checked={newCat.is_user_controlled} 
+                  onChange={e => setNewCat({...newCat, is_user_controlled: e.target.checked})} 
+                />
+                <label htmlFor="cat_user_controlled" style={{ cursor: 'pointer' }}>Foydalanuvchi boshqaruvi (Pors/Dona tanlash)</label>
+              </div>
+
               <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
             </form>
           </motion.div>
@@ -542,6 +590,38 @@ const Admin = () => {
                 </select>
                 {errors.prod?.category && <span className="field-error">{errors.prod.category}</span>}
               </div>
+
+              <div className="admin-form-row">
+                <div className="input-group">
+                  <label>O'lchov birligi</label>
+                  <select value={newProd.unit} onChange={e => setNewProd({...newProd, unit: e.target.value})}>
+                    <option value="dona">dona</option>
+                    <option value="pors">pors</option>
+                    <option value="kg">kg</option>
+                    <option value="gr">gr</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label>Minimum miqdor</label>
+                  <input type="number" step="0.1" value={newProd.min_quantity} onChange={e => setNewProd({...newProd, min_quantity: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="admin-form-row">
+                <div className="input-group">
+                  <label>Qadam (Step)</label>
+                  <input type="number" step="0.1" value={newProd.quantity_step} onChange={e => setNewProd({...newProd, quantity_step: e.target.value})} />
+                </div>
+                <div className="input-group flex-row gap-2 mt-4">
+                  <input 
+                    type="checkbox" 
+                    id="mandatory_container"
+                    checked={newProd.has_mandatory_container} 
+                    onChange={e => setNewProd({...newProd, has_mandatory_container: e.target.checked})} 
+                  />
+                  <label htmlFor="mandatory_container" style={{ cursor: 'pointer' }}>Majburiy idish qo'shish</label>
+                </div>
+              </div>
               <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
             </form>
           </motion.div>
@@ -600,7 +680,22 @@ const Admin = () => {
 
         .admin-main {
           padding-top: 0.5rem;
+          flex: 1;
         }
+        
+        .admin-form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+        
+        .flex-row {
+          display: flex;
+          align-items: center;
+        }
+
+        .gap-2 { gap: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
 
         .flex-header {
           display: flex;

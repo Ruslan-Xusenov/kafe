@@ -49,7 +49,7 @@ func (s *BotService) SendNewOrderNotification(order *models.Order, imageUrl *str
 	msgText += "*Mahsulotlar:*\n"
 	
 	for _, item := range order.Items {
-		msgText += fmt.Sprintf("- %dx %s\n", item.Quantity, item.ProductName)
+		msgText += fmt.Sprintf("- %.1fx %s\n", item.Quantity, item.ProductName)
 	}
 	
 	msgText += fmt.Sprintf("\n💰 *Jami: %s so'm*", fmt.Sprintf("%.0f", order.TotalPrice))

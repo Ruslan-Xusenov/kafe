@@ -16,6 +16,7 @@ import Admin from './pages/Admin';
 import Printer from './pages/Printer';
 import MyOrders from './pages/MyOrders';
 import ProductDetail from './pages/ProductDetail';
+import PrivacyConsent from './components/PrivacyConsent';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
@@ -37,6 +38,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <PrivacyConsent />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -48,7 +50,6 @@ function App() {
           <Route path="my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
           <Route path="product/:id" element={<ProductDetail />} />
           
-          {/* Protected Routes */}
           <Route path="admin" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <Admin />

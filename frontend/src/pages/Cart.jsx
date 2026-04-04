@@ -213,7 +213,7 @@ const Cart = () => {
           <AnimatePresence mode="popLayout">
             {items.map((item, i) => (
               <motion.div
-                key={item.id}
+                key={`${item.id}-${item.unit}`}
                 layout
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0, transition: { delay: i * 0.05 } }}
@@ -239,16 +239,18 @@ const Cart = () => {
                 {/* Info */}
                 <div className="cart-item-info">
                   <h3>{item.name}</h3>
-                  <span className="cart-unit-price">{item.price.toLocaleString()} so'm / dona</span>
+                  <span className="cart-unit-price">
+                    {(item.price || 0).toLocaleString()} so'm / {item.unit || 'dona'}
+                  </span>
                 </div>
 
                 {/* Qty controls */}
                 <div className="qty-ctrl">
-                  <button className="qty-btn" onClick={() => updateQuantity(item.id, -1)}>
+                  <button className="qty-btn" onClick={() => updateQuantity(item.id, item.unit, -1)}>
                     <Minus size={14} />
                   </button>
                   <span className="qty-num">{item.quantity}</span>
-                  <button className="qty-btn plus" onClick={() => updateQuantity(item.id, 1)}>
+                  <button className="qty-btn plus" onClick={() => updateQuantity(item.id, item.unit, 1)}>
                     <Plus size={14} />
                   </button>
                 </div>
@@ -259,7 +261,7 @@ const Cart = () => {
                 </div>
 
                 {/* Remove */}
-                <button className="remove-btn" onClick={() => removeItem(item.id)} title="O'chirish">
+                <button className="remove-btn" onClick={() => removeItem(item.id, item.unit)} title="O'chirish">
                   <Trash2 size={16} />
                 </button>
               </motion.div>
@@ -273,6 +275,20 @@ const Cart = () => {
             <h2 className="summary-title">Buyurtma xulosasi</h2>
             
             <div className="divider" />
+
+            {getTotal() < 40000 && (
+              <div className="min-order-warning">
+                <span className="warning-icon">⚠️</span>
+                <span>Minimum buyurtma qiymati 40,000 so'm. <br/> Yana {(40000 - getTotal()).toLocaleString()} so'm qo'shing.</span>
+              </div>
+            )}
+
+            {!localStorage.getItem('privacy-consent') && (
+              <div className="min-order-warning consent">
+                <span className="warning-icon">🛡️</span>
+                <span>Davom etish uchun sayt shartlariga rozilik bildiring.</span>
+              </div>
+            )}
 
             <div className="summary-rows">
               <div className="summary-row">
@@ -294,6 +310,7 @@ const Cart = () => {
 
             <button
               className="btn-primary checkout-btn"
+              disabled={getTotal() < 40000 || !localStorage.getItem('privacy-consent')}
               onClick={() => navigate('/checkout')}
             >
               Buyurtma berish <ArrowRight size={18} />
@@ -486,6 +503,33 @@ const Cart = () => {
           font-size: 1.15rem;
           margin-bottom: 1rem;
           color: var(--text-primary);
+        }
+
+        .min-order-warning {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 12px;
+          padding: 0.85rem;
+          display: flex;
+          gap: 0.75rem;
+          font-size: 0.85rem;
+          color: #ef4444;
+          margin-bottom: 1rem;
+          line-height: 1.4;
+        }
+
+        .min-order-warning.consent {
+          background: rgba(249, 115, 22, 0.1);
+          border-color: rgba(249, 115, 22, 0.2);
+          color: var(--primary);
+        }
+
+        .warning-icon { font-size: 1.25rem; flex-shrink: 0; }
+
+        .checkout-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          filter: grayscale(1);
         }
 
         .summary-rows { display: flex; flex-direction: column; gap: 0.85rem; margin: 1rem 0; }
