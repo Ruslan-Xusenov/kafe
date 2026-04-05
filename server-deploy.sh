@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'dona';
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_user_controlled BOOLEAN DEFAULT FALSE;
 ALTER TABLE products DROP CONSTRAINT IF EXISTS products_category_id_fkey;
 ALTER TABLE products ADD CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE;
 INSERT INTO settings (key, value) VALUES ('container_price', '1000') ON CONFLICT (key) DO NOTHING;
