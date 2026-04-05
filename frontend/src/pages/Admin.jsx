@@ -404,6 +404,7 @@ const Admin = () => {
                   <table className="admin-table">
                     <thead>
                       <tr>
+                        <th>ID</th>
                         <th>Nomi</th>
                         <th>Kategoriya</th>
                         <th>Narxi</th>
@@ -414,6 +415,7 @@ const Admin = () => {
                     <tbody>
                       {products.map(p => (
                         <tr key={p.id}>
+                          <td>{p.id}</td>
                           <td>{p.name}</td>
                           <td>{categories.find(c => c.id === p.category_id)?.name || 'Kategoriya topilmadi'}</td>
                           <td>{p.price.toLocaleString()} so'm</td>
