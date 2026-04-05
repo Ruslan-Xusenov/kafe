@@ -9,10 +9,13 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load("../backend/.env"); err != nil {
-		log.Printf("Warning: ../backend/.env file not found, trying .env")
-		if err := godotenv.Load(); err != nil {
-			log.Printf("Warning: .env file not found")
+	// Docker containerda env vars Docker Compose orqali uzatiladi.
+	// Lokal ishlatganda .env fayldan o'qiladi.
+	if os.Getenv("DB_HOST") == "" {
+		if err := godotenv.Load("../backend/.env"); err != nil {
+			if err := godotenv.Load(); err != nil {
+				log.Printf("Warning: .env file not found, using system environment variables")
+			}
 		}
 	}
 

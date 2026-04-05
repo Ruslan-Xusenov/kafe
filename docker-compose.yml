@@ -6,13 +6,18 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kafe2026}
       POSTGRES_DB: ${DB_NAME:-kafe_db}
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/internal/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - kafe-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-kafe_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: 
@@ -20,15 +25,19 @@ services:
     container_name: kafe-api-prod
     restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - ./backend/.env
     ports:
-      - "${PORT:-8080}:8080"
+      - "8080:8080"
     volumes:
       - ./backend/uploads:/app/uploads
     environment:
       DB_HOST: db
+      DB_PORT: 5432
+    networks:
+      - kafe-network
 
   frontend:
     build:
@@ -39,6 +48,28 @@ services:
       - "3001:80"
     depends_on:
       - backend
+    networks:
+      - kafe-network
+
+  telegram-bot:
+    build:
+      context: ./telegram_bot
+    container_name: kafe-bot-prod
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - kafe-network
+
+networks:
+  kafe-network:
+    driver: bridge
 
 volumes:
   postgres_data:

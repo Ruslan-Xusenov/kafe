@@ -1,6 +1,16 @@
 # Environment Files
 .env
 *.env.local
+.env.production
+backend/.env
+
+# Compiled binaries
+backend/main
+backend/kafe-api
+backend/kafe-bot
+backend/bot
+telegram_bot/kafe-bot
+
 
 # Binaries and executables
 *.exe
