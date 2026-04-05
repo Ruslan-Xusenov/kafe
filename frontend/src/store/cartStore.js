@@ -10,27 +10,34 @@ export const useCartStore = create((set, get) => ({
   
   fetchSettings: async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://kafe.ruslandev.uz'}/api/catalog/settings`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://kafe.ruslandev.uz';
+      const response = await fetch(`${apiUrl}/api/catalog/settings`);
       const data = await response.json();
+      
+      let price = 1000;
+      let newId = 7;
+
       if (data.container_price) {
-        set({ containerPrice: parseInt(data.container_price) });
+        price = parseInt(data.container_price);
+        set({ containerPrice: price });
       }
       if (data.container_product_id) {
-        const newId = parseInt(data.container_product_id);
+        newId = parseInt(data.container_product_id);
         set({ containerId: newId });
-        CONTAINER_PRODUCT_ID = newId; // Update local variable for easier access
+        CONTAINER_PRODUCT_ID = newId; 
       }
       
-      // Sync cart items with new settings
-      const items = get().items;
-      if (items.length > 0) {
-          const newItems = items.map(i => {
-              if (i.id === CONTAINER_PRODUCT_ID || i.name === 'Bir martalik idish') {
-                  return { ...i, id: get().containerId, price: get().containerPrice };
+      // Update existing items in cart to match new settings (Price and ID)
+      const currentItems = get().items;
+      if (currentItems.length > 0) {
+          const updatedItems = currentItems.map(i => {
+              // Match by current known ID, the new ID, or name
+              if (i.id === 7 || i.id === newId || i.name === 'Bir martalik idish') {
+                  return { ...i, id: newId, price: price };
               }
               return i;
           });
-          set({ items: newItems });
+          set({ items: updatedItems });
       }
     } catch (err) { console.error("Failed to fetch settings", err); }
   },
