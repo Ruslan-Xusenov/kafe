@@ -421,7 +421,13 @@ const Admin = () => {
                           <td>
                             <div className="flex gap-2">
                               <button className="edit-btn" onClick={() => openEditProd(p)}><Edit2 size={16} /></button>
-                              <button className="delete-btn" onClick={() => deleteProd(p.id)}><Trash2 size={16} /></button>
+                              {parseInt(p.id) !== parseInt(containerId) ? (
+                                <button className="delete-btn" onClick={() => deleteProd(p.id)}>
+                                  <Trash2 size={16} />
+                                </button>
+                              ) : (
+                                <span className="locked-badge" title="Tizim mahsuloti, o'chirib bo'lmaydi">🔒</span>
+                              )}
                             </div>
                           </td>
                         </tr>
