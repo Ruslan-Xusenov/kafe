@@ -17,6 +17,7 @@ const Admin = () => {
   const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [containerPrice, setContainerPrice] = useState('1000');
+  const [containerId, setContainerId] = useState('7');
 
   // States for Modals/Forms
   const [showCatModal, setShowCatModal] = useState(false);
@@ -61,6 +62,7 @@ const Admin = () => {
       } else if (activeTab === 'settings') {
         const res = await api.get('/catalog/settings');
         setContainerPrice(res.data.container_price || '1000');
+        setContainerId(res.data.container_product_id || '7');
       }
     } catch (err) {
       console.error(err);
@@ -211,7 +213,10 @@ const Admin = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      await api.put('/catalog/settings', { container_price: containerPrice });
+      await api.put('/catalog/settings', { 
+        container_price: containerPrice,
+        container_product_id: containerId
+      });
       alert('Sozlamalar saqlandi');
     } catch (err) {
       alert('Hatolik: ' + (err.response?.data?.error || 'Saqlab bo\'lmadi'));
@@ -263,8 +268,16 @@ const Admin = () => {
                     value={containerPrice} 
                     onChange={e => setContainerPrice(e.target.value)} 
                   />
+                </div>
+                <div className="input-group mt-4">
+                  <label>Bir martalik idish mahsulot ID (ma'lumot uchun)</label>
+                  <input 
+                    type="number" 
+                    value={containerId} 
+                    onChange={e => setContainerId(e.target.value)} 
+                  />
                   <p className="hint-text" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '5px' }}>
-                    * Shashlik porsiya bilan tanlanganda yoki 4 dona bo'lganda avtomatik qo'shiladi.
+                    * Agar bazada idish uchun yangi mahsulot yaratsangiz, uning ID sini shu yerga yozing.
                   </p>
                 </div>
                 <button type="submit" className="btn-primary w-full mt-4">

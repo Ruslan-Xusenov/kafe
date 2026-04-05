@@ -20,14 +20,21 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 		containerPrice = "1000" // Fallback
 	}
 	
+	containerID, err := h.repo.Get("container_product_id")
+	if err != nil {
+		containerID = "7" // Fallback
+	}
+	
 	c.JSON(http.StatusOK, gin.H{
-		"container_price": containerPrice,
+		"container_price":      containerPrice,
+		"container_product_id": containerID,
 	})
 }
 
 func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 	var body struct {
-		ContainerPrice string `json:"container_price"`
+		ContainerPrice     string `json:"container_price"`
+		ContainerProductID string `json:"container_product_id"`
 	}
 	
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -37,7 +44,14 @@ func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 	
 	if body.ContainerPrice != "" {
 		if err := h.repo.Set("container_price", body.ContainerPrice); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update price"})
+			return
+		}
+	}
+	
+	if body.ContainerProductID != "" {
+		if err := h.repo.Set("container_product_id", body.ContainerProductID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update ID"})
 			return
 		}
 	}

@@ -79,6 +79,7 @@ CREATE TABLE settings (
 
 -- Initial Settings
 INSERT INTO settings (key, value) VALUES ('container_price', '1000') ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('container_product_id', '7') ON CONFLICT (key) DO NOTHING;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

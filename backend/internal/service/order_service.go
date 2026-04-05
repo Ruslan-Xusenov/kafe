@@ -29,11 +29,17 @@ func NewOrderService(orderRepo *repository.OrderRepository, productRepo *reposit
 }
 
 func (s *OrderService) CreateOrder(order *models.Order) error {
-	// 1. Get container price from settings
-	containerPriceStr, err := s.settingsRepo.Get("container_price")
+	// 1. Get container price and ID from settings
+	containerPriceStr, _ := s.settingsRepo.Get("container_price")
 	containerPrice := 1000.0 // Default
-	if err == nil {
+	if containerPriceStr != "" {
 		fmt.Sscanf(containerPriceStr, "%f", &containerPrice)
+	}
+
+	containerIDStr, _ := s.settingsRepo.Get("container_product_id")
+	containerID := 7 // Default
+	if containerIDStr != "" {
+		fmt.Sscanf(containerIDStr, "%d", &containerID)
 	}
 
 	// Check for existing order from the same phone in the last 30 minutes
@@ -60,13 +66,10 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 			}
 
 			if totalPortions > 0 {
-				// Round up or use exact portions for container count
-				// If 4 dona = 1 container. If 5 dona = 1 container + 1 extra? 
-				// User said: "4 dona tanlasa 1 pors qilinsin va 1 idish qo'shilsin"
-				numContainers := totalPortions // e.g., 4 dona = 1.0 container, 8 dona = 2.0 containers
+				numContainers := totalPortions 
 				
 				itemsToAdd = append(itemsToAdd, models.OrderItem{
-					ProductID: 7, // Bir martalik idish
+					ProductID: containerID, // Use dynamic ID
 					Quantity:  numContainers,
 					Price:     containerPrice,
 				})
