@@ -23,7 +23,8 @@ const Admin = () => {
   const [showProdModal, setShowProdModal] = useState(false);
   const [newProd, setNewProd] = useState({ 
     name: '', description: '', price: '', category_id: '', image_url: '',
-    unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false 
+    unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
+    is_active: true
   });
   const [editProdId, setEditProdId] = useState(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -75,7 +76,7 @@ const Admin = () => {
       setNewCat({ name: '', image_url: '', is_user_controlled: false });
       setErrors({});
       fetchData();
-    } catch (err) { alert('Xatolik'); }
+    } catch (err) { alert(err.response?.data?.error || 'Kategoriya qo\'shishda xatolik'); }
   };
 
   const handleCreateProd = async (e) => {
@@ -106,12 +107,13 @@ const Admin = () => {
       setShowProdModal(false);
       setNewProd({ 
         name: '', description: '', price: '', category_id: '', image_url: '',
-        unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false 
+        unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
+        is_active: true
       });
       setEditProdId(null);
       setErrors({});
       fetchData();
-    } catch (err) { alert('Xatolik'); }
+    } catch (err) { alert(err.response?.data?.error || 'Mahsulot saqlashda xatolik'); }
   };
 
   const openEditProd = (p) => {
@@ -125,7 +127,8 @@ const Admin = () => {
       unit: p.unit || 'dona',
       min_quantity: p.min_quantity || 1,
       quantity_step: p.quantity_step || 1,
-      has_mandatory_container: p.has_mandatory_container || false
+      has_mandatory_container: p.has_mandatory_container || false,
+      is_active: p.is_active
     });
     setShowProdModal(true);
   };
@@ -153,7 +156,7 @@ const Admin = () => {
     }
   };
 
-  const handleUpload = async (e, setter, stateRef) => {
+  const handleUpload = async (e, setter) => {
     const file = e.target.files[0];
     if (!file) return;
     const formData = new FormData();
@@ -163,7 +166,7 @@ const Admin = () => {
       const res = await api.post('/catalog/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setter({ ...stateRef, image_url: res.data.url });
+      setter(prev => ({ ...prev, image_url: res.data.url }));
     } catch (err) {
       alert('Rasm yuklashda xatolik');
     } finally {
@@ -490,7 +493,7 @@ const Admin = () => {
                 <input 
                   type="file" 
                   accept="image/*" 
-                  onChange={e => handleUpload(e, setNewCat, newCat)} 
+                  onChange={e => handleUpload(e, setNewCat)} 
                   style={{ marginBottom: '10px' }}
                 />
                 <input 
@@ -500,7 +503,7 @@ const Admin = () => {
                 />
                 {newCat.image_url && (
                   <div style={{marginTop: 10}}>
-                    <img src={newCat.image_url.startsWith('/') ? `http://localhost:8080${newCat.image_url}` : newCat.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
+                    <img src={newCat.image_url.startsWith('/') ? `${api.defaults.baseURL.replace('/api', '')}${newCat.image_url}` : newCat.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
                   </div>
                 )}
               </div>
@@ -550,7 +553,7 @@ const Admin = () => {
                 <input 
                   type="file" 
                   accept="image/*" 
-                  onChange={e => handleUpload(e, setNewProd, newProd)} 
+                  onChange={e => handleUpload(e, setNewProd)} 
                   style={{ marginBottom: '10px' }}
                 />
                 <input 
@@ -560,7 +563,7 @@ const Admin = () => {
                 />
                 {newProd.image_url && (
                   <div style={{marginTop: 10}}>
-                    <img src={newProd.image_url.startsWith('/') ? `http://localhost:8080${newProd.image_url}` : newProd.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
+                    <img src={newProd.image_url.startsWith('/') ? `${api.defaults.baseURL.replace('/api', '')}${newProd.image_url}` : newProd.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
                   </div>
                 )}
               </div>
