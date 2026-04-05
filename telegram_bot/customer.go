@@ -13,10 +13,13 @@ import (
 )
 
 func (b *Bot) handleStart(chatID int64) {
-	text := "🍽 <b>Kafe Botiga Xush Kelibsiz!</b>\n\nMenyu ko'rish, savatchaga yig'ish va buyurtma berish uchun quyidagi tugmalardan foydalaning."
+	text := "🍽 <b>Kafe Botiga Xush Kelibsiz!</b>\n\nPastdagi tugmalar orqali buyurtma berishingiz yoki biz bilan bog'lanishingiz mumkin."
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍕 Menyu", "show_categories"), tgbotapi.NewInlineKeyboardButtonData("🛒 Savatcha", "show_cart")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("📦 Buyurtmalarim", "show_orders")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Onlayn buyurtma berish", tgbotapi.WebAppInfo{URL: "https://kafe.ruslandev.uz"})),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📞 Bog'lanish", "contact_info"),
+			tgbotapi.NewInlineKeyboardButtonData("📖 Ishlatish tartibi", "how_to_use"),
+		),
 	)
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }

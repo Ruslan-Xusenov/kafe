@@ -350,6 +350,10 @@ func (b *Bot) handleCallback(cb *tgbotapi.CallbackQuery) {
 	case data == "admin_remove_cook": b.startRemoveCook(chatID)
 	case data == "admin_add_courier": b.startAddCourier(chatID)
 	case data == "admin_remove_courier": b.startRemoveCourier(chatID)
+	case data == "contact_info":
+		b.sendMessage(chatID, "📞 <b>Biz bilan bog'lanish:</b>\n\n📍 Manzil: Toshkent sh., Chilonzor\n☎️ Telefon: +998 90 123 45 67\n🌐 Sayt: kafe.ruslandev.uz")
+	case data == "how_to_use":
+		b.sendMessage(chatID, "📖 <b>Ishlatish tartibi:</b>\n\n1. '🌐 Onlayn buyurtma berish' tugmasini bosing.\n2. Taomlarni tanlang va savatchaga qo'shing.\n3. Savatchaga o'ting va buyurtmani tasdiqlang.\n4. Kuryerimiz tez orada siz bilan bog'lanadi!")
 	case data == "skip_product_image": session := b.getSession(chatID); if session.AdminProductEdit != nil { session.AdminProductEdit.ImageURL = ""; session.State = ""; b.saveProduct(chatID) }
 	}
 }
