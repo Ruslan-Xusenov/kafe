@@ -1,10 +1,3 @@
-#!/bin/bash
-# ====================================================
-#  Kafe Production Server Deploy Script v3.0 (Auto-Update)
-#  Loyiha: kafe.ruslandev.uz
-#  Ishlatish: sudo bash server-deploy.sh
-# ====================================================
-
 set -e
 
 RED='\033[0;31m'
@@ -20,7 +13,6 @@ error() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
 APP_DIR="/opt/kafe"
 
-# 1. GitHub dan yangi kod olish
 info "1. GitHub-dan kod yangilanmoqda..."
 if [ -d "$APP_DIR/.git" ]; then
     cd "$APP_DIR"
@@ -33,7 +25,6 @@ else
     log "Loyiha birinchi marta clone qilindi."
 fi
 
-# 2. .env faylini tekshirish
 info "2. Konfiguratsiya tekshirilmoqda..."
 if [ ! -f "$APP_DIR/backend/.env" ]; then
     if [ -f "$APP_DIR/.env.production" ]; then
@@ -44,13 +35,11 @@ if [ ! -f "$APP_DIR/backend/.env" ]; then
     fi
 fi
 
-# 3. Docker va Nginx o'rnatilganini tekshirish (faqat kerak bo'lsa)
 if ! command -v docker &> /dev/null; then
     info "Docker o'rnatilmoqda..."
     apt-get update -qq && apt-get install -y docker.io docker-compose-v2 -qq
 fi
 
-# 4. Nginx sozlash (symlink yo'q bo'lsa)
 if [ ! -f "/etc/nginx/sites-enabled/kafe.ruslandev.uz" ]; then
     info "Nginx sozlanyapti..."
     cp "$APP_DIR/nginx.conf" /etc/nginx/sites-available/kafe.ruslandev.uz
@@ -59,24 +48,42 @@ if [ ! -f "/etc/nginx/sites-enabled/kafe.ruslandev.uz" ]; then
     nginx -t && systemctl reload nginx
 fi
 
-# 5. Docker Konteynerlarni Build va Start qilish
 info "5. Docker konteynerlar build qilinmoqda..."
 docker compose up -d --build --remove-orphans
 log "Konteynerlar muvaffaqiyatli ishga tushdi."
 
-# 6. Ma'lumotlar bazasini avtomatik migratsiyalash (Yangi ustunlarni qo'shish)
 info "6. Ma'lumotlar bazasini tekshirish (Auto Migration)..."
-# is_user_controlled ustuni borligini tekshirish va yo'q bo'lsa qo'shish
-docker exec kafe-db-prod psql -U postgres -d kafe_db -c "DO \$\$ 
+# Categories jadvali uchun
+docker exec kafe-db-prod psql -U postgres -d kafe_db -c "
+DO \$\$ 
 BEGIN 
-    BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='categories' AND column_name='is_user_controlled') THEN
         ALTER TABLE categories ADD COLUMN is_user_controlled BOOLEAN DEFAULT FALSE;
-    EXCEPTION
-        WHEN duplicate_column THEN RAISE NOTICE 'Column is_user_controlled already exists, skipping.';
-    END;
-END \$\$;" 2>/dev/null || true
+    END IF;
+END \$\$;"
 
-log "Baza migratsiyasi tekshirildi."
+# Products jadvali uchun etishmayotgan barcha ustunlarni qo'shish
+docker exec kafe-db-prod psql -U postgres -d kafe_db -c "
+DO \$\$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='unit') THEN
+        ALTER TABLE products ADD COLUMN unit VARCHAR(20) DEFAULT 'dona';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='min_quantity') THEN
+        ALTER TABLE products ADD COLUMN min_quantity DECIMAL(12, 3) DEFAULT 1.0;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='quantity_step') THEN
+        ALTER TABLE products ADD COLUMN quantity_step DECIMAL(12, 3) DEFAULT 1.0;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='has_mandatory_container') THEN
+        ALTER TABLE products ADD COLUMN has_mandatory_container BOOLEAN DEFAULT FALSE;
+    END IF;
+END \$\$;"
+
+log "Baza migratsiyasi muvaffaqiyatli yakunlandi."
 
 echo ""
 echo "🚀 Tizim muvaffaqiyatli yangilandi!"
