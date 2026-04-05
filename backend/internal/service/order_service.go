@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/username/kafe-backend/internal/models"
@@ -30,16 +31,18 @@ func NewOrderService(orderRepo *repository.OrderRepository, productRepo *reposit
 
 func (s *OrderService) CreateOrder(order *models.Order) error {
 	// 1. Get container price and ID from settings
-	containerPriceStr, _ := s.settingsRepo.Get("container_price")
-	containerPrice := 1000.0 // Default
-	if containerPriceStr != "" {
-		fmt.Sscanf(containerPriceStr, "%f", &containerPrice)
+	containerPrice := 1000.0
+	if cp, err := s.settingsRepo.Get("container_price"); err == nil && cp != "" {
+		if f, err := strconv.ParseFloat(cp, 64); err == nil {
+			containerPrice = f
+		}
 	}
 
-	containerIDStr, _ := s.settingsRepo.Get("container_product_id")
-	containerID := 7 // Default
-	if containerIDStr != "" {
-		fmt.Sscanf(containerIDStr, "%d", &containerID)
+	containerID := 7 
+	if cid, err := s.settingsRepo.Get("container_product_id"); err == nil && cid != "" {
+		if id, err := strconv.Atoi(cid); err == nil {
+			containerID = id
+		}
 	}
 
 	// Check for existing order from the same phone in the last 30 minutes
