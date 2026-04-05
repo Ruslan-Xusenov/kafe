@@ -28,7 +28,7 @@ CREATE TABLE categories (
 -- Products Table
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
-    category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(12, 2) NOT NULL,
