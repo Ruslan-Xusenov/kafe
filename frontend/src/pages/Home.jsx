@@ -6,6 +6,8 @@ import { Plus, ShoppingCart, Loader2, Search, SlidersHorizontal, Eye } from 'luc
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Home = () => {
+  const { user } = useAuthStore();
+  const { addItem } = useCartStore();
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
