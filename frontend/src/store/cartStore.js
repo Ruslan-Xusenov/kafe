@@ -5,15 +5,32 @@ const CONTAINER_PRODUCT_ID = 7;
 
 export const useCartStore = create((set, get) => ({
   items: [],
+  containerPrice: 1000,
   
+  fetchSettings: async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://kafe.ruslandev.uz'}/api/catalog/settings`);
+      const data = await response.json();
+      if (data.container_price) {
+        const price = parseInt(data.container_price);
+        set({ containerPrice: price });
+        
+        // Update existing container prices in cart
+        const items = get().items;
+        if (items.some(i => i.id === CONTAINER_PRODUCT_ID)) {
+            const newItems = items.map(i => i.id === CONTAINER_PRODUCT_ID ? { ...i, price } : i);
+            set({ items: newItems });
+        }
+      }
+    } catch (err) { console.error("Failed to fetch settings", err); }
+  },
+
   addItem: (product) => {
     const items = get().items;
     const itemUnit = product.unit || 'dona';
     const existing = items.find(i => i.id === product.id && i.unit === itemUnit);
     
-    // Determine initial quantity: use min_quantity or default to 1
     const initialQty = product.min_quantity || 1;
-    
     let newItems;
     if (existing) {
       const step = product.quantity_step || 1;
@@ -25,26 +42,31 @@ export const useCartStore = create((set, get) => ({
       newItems = [...items, { ...product, quantity: initialQty, unit: itemUnit }];
     }
     
-    // Handle mandatory container logic
+    // Handle mandatory container logic (4 dona = 1 portion)
     if (product.has_mandatory_container && product.id !== CONTAINER_PRODUCT_ID) {
       const containerItem = newItems.find(i => i.id === CONTAINER_PRODUCT_ID);
       const step = product.quantity_step || 1;
-      const qtyToAdd = existing ? step : initialQty;
+      const addedQty = existing ? step : initialQty;
+      
+      // Calculate how many container portions are added
+      let containerDelta = addedQty;
+      if (itemUnit === 'dona') {
+        containerDelta = addedQty / 4.0;
+      }
       
       if (containerItem) {
         newItems = newItems.map(i => i.id === CONTAINER_PRODUCT_ID 
-          ? { ...i, quantity: i.quantity + qtyToAdd } 
+          ? { ...i, quantity: i.quantity + containerDelta, price: get().containerPrice } 
           : i
         );
       } else {
-        const containerInfo = {
+        newItems.push({
           id: CONTAINER_PRODUCT_ID,
           name: 'Bir martalik idish',
-          price: 1000,
-          quantity: qtyToAdd,
+          price: get().containerPrice,
+          quantity: containerDelta,
           unit: 'dona'
-        };
-        newItems.push(containerInfo);
+        });
       }
     }
     
@@ -59,8 +81,11 @@ export const useCartStore = create((set, get) => ({
     if (itemToRemove && itemToRemove.has_mandatory_container && productId !== CONTAINER_PRODUCT_ID) {
         const containerItem = newItems.find(i => i.id === CONTAINER_PRODUCT_ID);
         if (containerItem) {
-            const newQty = Math.max(0, containerItem.quantity - itemToRemove.quantity);
-            if (newQty === 0) {
+            let containerSub = itemToRemove.quantity;
+            if (unit === 'dona') containerSub = itemToRemove.quantity / 4.0;
+            
+            const newQty = Math.max(0, containerItem.quantity - containerSub);
+            if (newQty <= 0.001) { // Floating point safety
                 newItems = newItems.filter(i => i.id !== CONTAINER_PRODUCT_ID);
             } else {
                 newItems = newItems.map(i => i.id === CONTAINER_PRODUCT_ID ? { ...i, quantity: newQty } : i);
@@ -81,6 +106,8 @@ export const useCartStore = create((set, get) => ({
     const newQty = Math.max(minQty, item.quantity + (delta > 0 ? step : -step));
     
     const actualDelta = newQty - item.quantity;
+    let containerDelta = actualDelta;
+    if (unit === 'dona') containerDelta = actualDelta / 4.0;
 
     let newItems = items.map(i => {
       if (i.id === productId && i.unit === unit) {
@@ -89,14 +116,13 @@ export const useCartStore = create((set, get) => ({
       return i;
     });
 
-    // Sync containers if needed
     if (item.has_mandatory_container && productId !== CONTAINER_PRODUCT_ID) {
       const containerItem = newItems.find(i => i.id === CONTAINER_PRODUCT_ID);
       if (containerItem) {
         newItems = newItems.map(i => i.id === CONTAINER_PRODUCT_ID 
-            ? { ...i, quantity: Math.max(0, i.quantity + actualDelta) } 
+            ? { ...i, quantity: Math.max(0, i.quantity + containerDelta) } 
             : i
-        ).filter(i => i.id !== CONTAINER_PRODUCT_ID || i.quantity > 0);
+        ).filter(i => i.id !== CONTAINER_PRODUCT_ID || i.quantity > 0.001);
       }
     }
     

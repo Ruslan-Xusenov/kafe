@@ -83,6 +83,15 @@ BEGIN
     END IF;
 END \$\$;"
 
+# Settings jadvali uchun
+docker exec kafe-db-prod psql -U postgres -d kafe_db -c "
+CREATE TABLE IF NOT EXISTS settings (
+    key VARCHAR(50) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+INSERT INTO settings (key, value) VALUES ('container_price', '1000') ON CONFLICT (key) DO NOTHING;"
+
 log "Baza migratsiyasi muvaffaqiyatli yakunlandi."
 
 echo ""

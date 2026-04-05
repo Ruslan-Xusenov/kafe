@@ -70,6 +70,16 @@ CREATE TABLE order_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Settings Table
+CREATE TABLE settings (
+    key VARCHAR(50) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Initial Settings
+INSERT INTO settings (key, value) VALUES ('container_price', '1000') ON CONFLICT (key) DO NOTHING;
+
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

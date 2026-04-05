@@ -5,7 +5,7 @@ import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
-  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw
+  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings
 } from 'lucide-react';
 
 const Admin = () => {
@@ -16,6 +16,7 @@ const Admin = () => {
   const [staff, setStaff] = useState([]);
   const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [containerPrice, setContainerPrice] = useState('1000');
 
   // States for Modals/Forms
   const [showCatModal, setShowCatModal] = useState(false);
@@ -57,6 +58,9 @@ const Admin = () => {
       } else if (activeTab === 'performance') {
         const res = await api.get('/catalog/performance');
         setPerformance(Array.isArray(res.data) ? res.data : []);
+      } else if (activeTab === 'settings') {
+        const res = await api.get('/catalog/settings');
+        setContainerPrice(res.data.container_price || '1000');
       }
     } catch (err) {
       console.error(err);
@@ -203,6 +207,19 @@ const Admin = () => {
     }
   };
 
+  const handleUpdateSettings = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await api.put('/catalog/settings', { container_price: containerPrice });
+      alert('Sozlamalar saqlandi');
+    } catch (err) {
+      alert('Hatolik: ' + (err.response?.data?.error || 'Saqlab bo\'lmadi'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) return <div className="flex-center h-full"><Loader2 className="animate-spin" /></div>;
 
   return (
@@ -225,10 +242,39 @@ const Admin = () => {
           <button className={activeTab === 'performance' ? 'active' : ''} onClick={() => setActiveTab('performance')}>
             <Star size={20} /> Reytinglar
           </button>
+          <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
+            <Settings size={20} /> Sozlamalar
+          </button>
         </nav>
       </aside>
 
       <main className="admin-main">
+        {activeTab === 'settings' && (
+          <div className="settings-mgmt animate-fade">
+            <div className="flex justify-between items-center mb-6">
+              <h2>Tizim Sozlamalari</h2>
+            </div>
+            <div className="premium-card" style={{ maxWidth: '400px' }}>
+              <form onSubmit={handleUpdateSettings}>
+                <div className="input-group">
+                  <label>Bir martalik idish narxi (so'm)</label>
+                  <input 
+                    type="number" 
+                    value={containerPrice} 
+                    onChange={e => setContainerPrice(e.target.value)} 
+                  />
+                  <p className="hint-text" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '5px' }}>
+                    * Shashlik porsiya bilan tanlanganda yoki 4 dona bo'lganda avtomatik qo'shiladi.
+                  </p>
+                </div>
+                <button type="submit" className="btn-primary w-full mt-4">
+                  <Save size={18} /> Sozlamalarni Saqlash
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'orders' && (
           <div className="orders-mgmt">
             <StatsSection role="admin" />

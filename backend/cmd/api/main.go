@@ -34,6 +34,7 @@ func main() {
 	catRepo := repository.NewCategoryRepository(database.DB)
 	prodRepo := repository.NewProductRepository(database.DB)
 	orderRepo := repository.NewOrderRepository(database.DB)
+	settingsRepo := repository.NewSettingsRepository(database.DB)
 
 	// Initialize Services
 	authService := service.NewAuthService(userRepo)
@@ -41,12 +42,13 @@ func main() {
 	wsService := service.NewWebsocketService()
 	botService := service.NewBotService()
 	printerService := service.NewPrinterService()
-	orderService := service.NewOrderService(orderRepo, prodRepo, wsService, botService, printerService)
+	orderService := service.NewOrderService(orderRepo, prodRepo, settingsRepo, wsService, botService, printerService)
 
 	// Initialize Handlers
 	authHandler := handlers.NewAuthHandler(authService, userRepo)
 	catalogHandler := handlers.NewCatalogHandler(catalogService)
 	orderHandler := handlers.NewOrderHandler(orderService)
+	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -126,7 +128,11 @@ func main() {
 
 				// Image Upload
 				admin.POST("/upload", handlers.UploadImage)
+
+				// Global Settings
+				admin.PUT("/settings", settingsHandler.UpdateSettings)
 			}
+			catalog.GET("/settings", settingsHandler.GetSettings)
 		}
 		orders := api.Group("/orders")
 		orders.Use(middleware.AuthMiddleware())

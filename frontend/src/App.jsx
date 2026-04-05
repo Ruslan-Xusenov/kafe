@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useCartStore } from './store/cartStore';
 
 // Layouts & Pages
 import Layout from './components/Layout';
@@ -31,9 +32,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 function App() {
   const checkAuth = useAuthStore(state => state.checkAuth);
+  const fetchSettings = useCartStore(state => state.fetchSettings);
 
   useEffect(() => {
     checkAuth();
+    fetchSettings();
   }, []);
 
   return (

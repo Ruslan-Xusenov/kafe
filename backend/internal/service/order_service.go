@@ -11,15 +11,17 @@ import (
 type OrderService struct {
 	orderRepo   *repository.OrderRepository
 	productRepo *repository.ProductRepository
+	settingsRepo *repository.SettingsRepository
 	wsService    *WebsocketService
 	botService   *BotService
 	printerService *PrinterService
 }
 
-func NewOrderService(orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, wsService *WebsocketService, botService *BotService, printerService *PrinterService) *OrderService {
+func NewOrderService(orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, settingsRepo *repository.SettingsRepository, wsService *WebsocketService, botService *BotService, printerService *PrinterService) *OrderService {
 	return &OrderService{
 		orderRepo:   orderRepo,
 		productRepo: productRepo,
+		settingsRepo: settingsRepo,
 		wsService:    wsService,
 		botService:   botService,
 		printerService: printerService,
@@ -27,6 +29,13 @@ func NewOrderService(orderRepo *repository.OrderRepository, productRepo *reposit
 }
 
 func (s *OrderService) CreateOrder(order *models.Order) error {
+	// 1. Get container price from settings
+	containerPriceStr, err := s.settingsRepo.Get("container_price")
+	containerPrice := 1000.0 // Default
+	if err == nil {
+		fmt.Sscanf(containerPriceStr, "%f", &containerPrice)
+	}
+
 	// Check for existing order from the same phone in the last 30 minutes
 	lastOrder, err := s.orderRepo.GetLastOrderByPhone(order.Phone)
 	if err == nil && lastOrder != nil {
@@ -36,24 +45,32 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 
 	// Business logic for mandatory containers
-	// Check if any product needs a container
 	var itemsToAdd []models.OrderItem
 	for _, item := range order.Items {
 		prod, err := s.productRepo.GetByID(item.ProductID)
-		if err != nil {
-			return fmt.Errorf("failed to get product %d: %w", item.ProductID, err)
-		}
-		if prod == nil {
-			return fmt.Errorf("product %d not found", item.ProductID)
-		}
+		if err != nil || prod == nil { continue }
 
 		if prod.HasMandatoryContainer {
-			// For every portion (pors), add a container
-			containerQty := item.Quantity
-			itemsToAdd = append(itemsToAdd, models.OrderItem{
-				ProductID: 7, // Bir martalik idish
-				Quantity:  containerQty,
-			})
+			// Auto-convert: if unit is "dona" and qty >= 4, it's 1+ portion
+			totalPortions := 0.0
+			if item.Unit == "dona" {
+				totalPortions = item.Quantity / 4.0
+			} else {
+				totalPortions = item.Quantity
+			}
+
+			if totalPortions > 0 {
+				// Round up or use exact portions for container count
+				// If 4 dona = 1 container. If 5 dona = 1 container + 1 extra? 
+				// User said: "4 dona tanlasa 1 pors qilinsin va 1 idish qo'shilsin"
+				numContainers := totalPortions // e.g., 4 dona = 1.0 container, 8 dona = 2.0 containers
+				
+				itemsToAdd = append(itemsToAdd, models.OrderItem{
+					ProductID: 7, // Bir martalik idish
+					Quantity:  numContainers,
+					Price:     containerPrice,
+				})
+			}
 		}
 	}
 
