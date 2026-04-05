@@ -381,7 +381,7 @@ const Admin = () => {
               <h2>Menyu Boshqaruvi</h2>
               <div className="actions">
                 <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '', is_user_controlled: false }); setShowCatModal(true); }}><Plus size={18} /> Kategoriya</button>
-                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false }); setShowProdModal(true); }}><Plus size={18} /> Mahsulot</button>
+                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true }); setShowProdModal(true); }}><Plus size={18} /> Mahsulot</button>
               </div>
             </div>
 
