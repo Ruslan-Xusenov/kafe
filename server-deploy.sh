@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'dona';
 INSERT INTO settings (key, value) VALUES ('container_price', '1000') ON CONFLICT (key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('container_product_id', '7') ON CONFLICT (key) DO NOTHING;"
 

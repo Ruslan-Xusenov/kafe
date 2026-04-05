@@ -96,14 +96,13 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	for i := range order.Items {
 		item := &order.Items[i]
 		prod, err := s.productRepo.GetByID(item.ProductID)
-		if err != nil {
-			return fmt.Errorf("failed to get product %d: %w", item.ProductID, err)
-		}
-		if prod == nil {
-			return fmt.Errorf("product %d not found", item.ProductID)
+		if err != nil || prod == nil {
+			if item.ProductID == containerID {
+				return fmt.Errorf("tizim sozlamasidagi idish mahsuloti (ID: %d) topilmadi. Iltimos admin panelda sozlamalarni tekshiring.", containerID)
+			}
+			return fmt.Errorf("mahsulot topilmadi (ID: %d)", item.ProductID)
 		}
 
-		// Unit conversion logic: if product is "pors" but item is ordered as "dona"
 		itemPrice := prod.Price
 		if item.Unit == "dona" && prod.Unit == "pors" {
 			itemPrice = prod.Price / 4.0

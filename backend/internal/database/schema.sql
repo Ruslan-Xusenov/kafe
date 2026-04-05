@@ -66,6 +66,7 @@ CREATE TABLE order_items (
     product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
     quantity DECIMAL(12, 3) NOT NULL DEFAULT 1.000,
     price DECIMAL(12, 2) NOT NULL, -- Individual product price at times of purchase
+    unit TEXT DEFAULT 'dona',
     comment TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
