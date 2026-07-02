@@ -56,12 +56,21 @@ const Printer = () => {
       {latestOrder && (
         <div className="print-area">
           <div className="receipt">
-            <h2 className="cafe-name">KAFE NOMi</h2>
+            <h2 className="cafe-name">Mangal</h2>
             <div className="receipt-divider">======================</div>
             <p className="receipt-text">Buyurtma #{latestOrder.id}</p>
             <p className="receipt-text">Sana: {new Date(latestOrder.created_at).toLocaleString()}</p>
-            <p className="receipt-text">Mijoz: {latestOrder.phone}</p>
-            {latestOrder.address && <p className="receipt-text">Manzil: {latestOrder.address}</p>}
+            {latestOrder.table_number ? (
+              <>
+                <p className="receipt-text" style={{fontSize: '16px', fontWeight: 'bold'}}>Stol: №{latestOrder.table_number}</p>
+                <p className="receipt-text">Ofitsant: {latestOrder.waiter_name}</p>
+              </>
+            ) : (
+              <>
+                <p className="receipt-text">Mijoz: {latestOrder.phone}</p>
+                {latestOrder.address && <p className="receipt-text">Manzil: {latestOrder.address}</p>}
+              </>
+            )}
             <div className="receipt-divider">======================</div>
             
             <table className="receipt-table">

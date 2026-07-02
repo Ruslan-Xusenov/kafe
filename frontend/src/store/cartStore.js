@@ -1,7 +1,72 @@
 import { create } from 'zustand';
+import api from './authStore';
 
 // ID for 'Bir martalik idish' (Disposable Container)
 let CONTAINER_PRODUCT_ID = 7; // Default, will be updated by fetchSettings
+
+const consolidateItems = (items) => {
+    const newItems = [];
+    const groups = {};
+    items.forEach(i => {
+        if (!groups[i.id]) groups[i.id] = [];
+        groups[i.id].push(i);
+    });
+
+    for (let id in groups) {
+        const productItems = groups[id];
+        let porsItem = productItems.find(i => i.unit === 'pors');
+        let donaItem = productItems.find(i => i.unit === 'dona');
+
+        if (donaItem && donaItem.base_unit === 'pors') {
+             const portions = Math.floor(donaItem.quantity / 4);
+             if (portions > 0) {
+                 if (porsItem) {
+                     porsItem.quantity += portions;
+                 } else {
+                     porsItem = { ...donaItem, unit: 'pors', price: donaItem.price * 4, quantity: portions };
+                     productItems.push(porsItem);
+                 }
+                 donaItem.quantity -= (portions * 4);
+             }
+        }
+        
+        productItems.forEach(i => {
+            if (i.quantity > 0) newItems.push(i);
+        });
+    }
+    return newItems;
+};
+
+const recalculateContainers = (items, currentContainerId, containerPrice) => {
+    let totalPortions = 0;
+    const filteredItems = items.filter(i => i.id !== currentContainerId); 
+    
+    filteredItems.forEach(i => {
+       if (i.has_mandatory_container) {
+          if (i.unit === 'gr') {
+              totalPortions += (i.quantity / 100.0);
+          } else if (i.unit === 'kg') {
+              totalPortions += (i.quantity * 10.0);
+          } else {
+              // for 'pors' and 'dona', 1 quantity = 1 container
+              totalPortions += i.quantity;
+          }
+       }
+    });
+
+    const neededContainers = Math.ceil(totalPortions);
+    
+    if (neededContainers > 0) {
+        filteredItems.push({
+            id: currentContainerId,
+            name: 'Bir martalik idish',
+            price: containerPrice,
+            quantity: neededContainers,
+            unit: 'dona'
+        });
+    }
+    return filteredItems;
+};
 
 export const useCartStore = create((set, get) => ({
   items: [],
@@ -10,9 +75,8 @@ export const useCartStore = create((set, get) => ({
   
   fetchSettings: async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://kafe.ruslandev.uz';
-      const response = await fetch(`${apiUrl}/api/catalog/settings`);
-      const data = await response.json();
+      const response = await api.get('/catalog/settings');
+      const data = response.data;
       
       let price = 1000;
       let newId = 7;
@@ -48,46 +112,22 @@ export const useCartStore = create((set, get) => ({
     const itemUnit = product.unit || 'dona';
     const existing = items.find(i => i.id === product.id && i.unit === itemUnit);
     
-    const initialQty = product.min_quantity || 1;
+    // Use product.quantity if provided, otherwise use step/min_quantity
+    const qtyToAdd = product.quantity !== undefined ? product.quantity : (product.quantity_step || 1);
+    const initialQty = product.quantity !== undefined ? product.quantity : (product.min_quantity || 1);
+
     let newItems;
     if (existing) {
-      const step = product.quantity_step || 1;
       newItems = items.map(i => (i.id === product.id && i.unit === itemUnit)
-        ? { ...i, quantity: i.quantity + step } 
+        ? { ...i, quantity: i.quantity + qtyToAdd } 
         : i
       );
     } else {
       newItems = [...items, { ...product, quantity: initialQty, unit: itemUnit }];
     }
+
     
-    // Handle mandatory container logic (4 dona = 1 portion)
-    if (product.has_mandatory_container && product.id !== currentContainerId) {
-      const containerItem = newItems.find(i => i.id === currentContainerId);
-      const step = product.quantity_step || 1;
-      const addedQty = existing ? step : initialQty;
-      
-      let containerDelta = addedQty;
-      if (itemUnit === 'dona') {
-        containerDelta = addedQty / 4.0;
-      }
-      
-      if (containerItem) {
-        newItems = newItems.map(i => i.id === currentContainerId 
-          ? { ...i, quantity: i.quantity + containerDelta, price: get().containerPrice } 
-          : i
-        );
-      } else {
-        newItems.push({
-          id: currentContainerId,
-          name: 'Bir martalik idish',
-          price: get().containerPrice,
-          quantity: containerDelta,
-          unit: 'dona'
-        });
-      }
-    }
-    
-    set({ items: newItems });
+    set({ items: recalculateContainers(consolidateItems(newItems), currentContainerId, get().containerPrice) });
   },
   
   removeItem: (productId, unit) => {
@@ -101,41 +141,27 @@ export const useCartStore = create((set, get) => ({
         return;
     }
 
-    const itemToRemove = items.find(i => i.id === productId && i.unit === unit);
     let newItems = items.filter(i => !(i.id === productId && i.unit === unit));
-    
-    if (itemToRemove && itemToRemove.has_mandatory_container && productId !== currentContainerId) {
-        const containerItem = newItems.find(i => i.id === currentContainerId);
-        if (containerItem) {
-            let containerSub = itemToRemove.quantity;
-            if (unit === 'dona') containerSub = itemToRemove.quantity / 4.0;
-            
-            const newQty = Math.max(0, containerItem.quantity - containerSub);
-            if (newQty <= 0.001) { // Floating point safety
-                newItems = newItems.filter(i => i.id !== currentContainerId);
-            } else {
-                newItems = newItems.map(i => i.id === currentContainerId ? { ...i, quantity: newQty } : i);
-            }
-        }
-    }
-    
-    set({ items: newItems });
+    set({ items: recalculateContainers(consolidateItems(newItems), currentContainerId, get().containerPrice) });
   },
   
   updateQuantity: (productId, unit, delta) => {
     const items = get().items;
     const currentContainerId = get().containerId;
+    
+    if (productId === currentContainerId) {
+       // Allow manual modification of container qty? The user might just want to change it.
+       // But to keep it simple, we just ignore manual changes if it's below the mandatory limit,
+       // actually, let's just let it recalculate normally if they touch other items.
+    }
+
     const item = items.find(i => i.id === productId && i.unit === unit);
     if (!item) return;
 
     const step = item.quantity_step || 1;
     const minQty = item.min_quantity || 1;
-    const newQty = Math.max(minQty, item.quantity + (delta > 0 ? step : -step));
+    const newQty = Math.max(minQty, Math.round((item.quantity + (delta > 0 ? step : -step)) * 1000) / 1000);
     
-    const actualDelta = newQty - item.quantity;
-    let containerDelta = actualDelta;
-    if (unit === 'dona') containerDelta = actualDelta / 4.0;
-
     let newItems = items.map(i => {
       if (i.id === productId && i.unit === unit) {
         return { ...i, quantity: newQty };
@@ -143,17 +169,25 @@ export const useCartStore = create((set, get) => ({
       return i;
     });
 
-    if (item.has_mandatory_container && productId !== currentContainerId) {
-      const containerItem = newItems.find(i => i.id === currentContainerId);
-      if (containerItem) {
-        newItems = newItems.map(i => i.id === currentContainerId 
-            ? { ...i, quantity: Math.max(0, i.quantity + containerDelta) } 
-            : i
-        ).filter(i => i.id !== currentContainerId || i.quantity > 0.001);
+    set({ items: recalculateContainers(consolidateItems(newItems), currentContainerId, get().containerPrice) });
+  },
+
+  setQuantity: (productId, unit, quantity) => {
+    const items = get().items;
+    const currentContainerId = get().containerId;
+    const item = items.find(i => i.id === productId && i.unit === unit);
+    if (!item) return;
+
+    const minQty = item.min_quantity || 1;
+    const validQty = Math.max(minQty, quantity || minQty);
+
+    let newItems = items.map(i => {
+      if (i.id === productId && i.unit === unit) {
+         return { ...i, quantity: validQty };
       }
-    }
-    
-    set({ items: newItems });
+      return i;
+    });
+    set({ items: recalculateContainers(consolidateItems(newItems), currentContainerId, get().containerPrice) });
   },
   
   clearCart: () => set({ items: [] }),

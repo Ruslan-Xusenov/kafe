@@ -61,21 +61,24 @@ async function start() {
     "telegram_bot"
   );
 
-  // 3. Start Frontend (npm install if needed, but dev for now)
-  const frontend = runProcess(
-    "Frontend",
-    colors.green,
-    process.platform === "win32" ? "npm.cmd" : "npm",
-    ["run", "dev"],
-    "frontend"
-  );
+  // 3. Start Frontend after a short delay so backend has time to start
+  let frontend;
+  setTimeout(() => {
+    frontend = runProcess(
+      "Frontend",
+      colors.green,
+      process.platform === "win32" ? "npm.cmd" : "npm",
+      ["run", "dev"],
+      "frontend"
+    );
+  }, 3000);
 
   // Handle termination
   const cleanup = () => {
     console.log(`\n${colors.cyan}🛑 Stopping all services...${colors.reset}`);
-    backend.kill();
-    bot.kill();
-    frontend.kill();
+    if (backend) backend.kill();
+    if (bot) bot.kill();
+    if (frontend) frontend.kill();
     process.exit();
   };
 

@@ -30,8 +30,14 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
 	id := userID.(int)
-	order.CustomerID = &id
+
+	if role == string(models.RoleWaiter) {
+		order.WaiterID = &id
+	} else {
+		order.CustomerID = &id
+	}
 
 	if err := h.service.CreateOrder(&order); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

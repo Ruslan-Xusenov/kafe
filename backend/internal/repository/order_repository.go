@@ -29,9 +29,9 @@ func (r *OrderRepository) Create(order *models.Order) error {
 	defer tx.Rollback()
 
 	// Insert Order
-	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment) 
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`
-	err = tx.QueryRow(query, order.CustomerID, order.TotalPrice, order.Status, order.Address, order.Phone, order.Lat, order.Lng, order.Comment).
+	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment, table_id, waiter_id) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`
+	err = tx.QueryRow(query, order.CustomerID, order.TotalPrice, order.Status, order.Address, order.Phone, order.Lat, order.Lng, order.Comment, order.TableID, order.WaiterID).
 		Scan(&order.ID, &order.CreatedAt, &order.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert order: %w", err)
@@ -56,13 +56,17 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	var order models.Order
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
-			   o.lat, o.lng, o.courier_id, o.cook_id, COALESCE(o.comment, '') as comment, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
-			   COALESCE(u2.full_name, '') as cook_name
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
 		WHERE o.id = $1
 	`
 	err := r.db.Get(&order, query, id)
@@ -96,13 +100,17 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 	var orders []models.Order
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
-			   o.lat, o.lng, o.courier_id, o.cook_id, COALESCE(o.comment, '') as comment, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
-			   COALESCE(u2.full_name, '') as cook_name
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
 		WHERE o.customer_id = $1 
 		ORDER BY o.created_at DESC
 	`
@@ -132,13 +140,17 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	var orders []models.Order
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
-			   o.lat, o.lng, o.courier_id, o.cook_id, COALESCE(o.comment, '') as comment, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
-			   COALESCE(u2.full_name, '') as cook_name
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
 		ORDER BY o.created_at DESC
 	`
 	err := r.db.Select(&orders, query)
@@ -170,13 +182,17 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 	var orders []models.Order
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
-			   o.lat, o.lng, o.courier_id, o.cook_id, COALESCE(o.comment, '') as comment, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
-			   COALESCE(u2.full_name, '') as cook_name
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
 		WHERE o.status = $1 
 		ORDER BY o.created_at ASC
 	`

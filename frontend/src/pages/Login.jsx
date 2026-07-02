@@ -30,6 +30,7 @@ const Login = () => {
       if (res.role === 'admin') navigate('/admin');
       else if (res.role === 'cook') navigate('/kitchen');
       else if (res.role === 'courier') navigate('/delivery');
+      else if (res.role === 'waiter') navigate('/waiter');
       else navigate('/');
     }
   };

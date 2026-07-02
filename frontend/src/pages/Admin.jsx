@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import StatsSection from '../components/StatsSection';
+import InventorySection from '../components/InventorySection';
 import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from '../utils/validation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
-  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings
+  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package
 } from 'lucide-react';
 
 const Admin = () => {
@@ -14,10 +15,16 @@ const Admin = () => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [tables, setTables] = useState([]);
   const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [containerPrice, setContainerPrice] = useState('1000');
   const [containerId, setContainerId] = useState('7');
+
+  // Finance states
+  const [expenses, setExpenses] = useState([]);
+  const [financeStats, setFinanceStats] = useState({ total_revenue: 0, total_expenses: 0, net_profit: 0 });
+  const [newExpense, setNewExpense] = useState({ amount: '', category: 'mahsulot', description: '' });
 
   // States for Modals/Forms
   const [showCatModal, setShowCatModal] = useState(false);
@@ -33,6 +40,8 @@ const Admin = () => {
   const [newStaff, setNewStaff] = useState({ full_name: '', phone: '', password: '', role: 'cook' });
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
+  const [showTableModal, setShowTableModal] = useState(false);
+  const [newTable, setNewTable] = useState({ number: '', capacity: '' });
   
   const [errors, setErrors] = useState({});
 
@@ -63,6 +72,19 @@ const Admin = () => {
         const res = await api.get('/catalog/settings');
         setContainerPrice(res.data.container_price || '1000');
         setContainerId(res.data.container_product_id || '7');
+      } else if (activeTab === 'inventory') {
+        const res = await api.get('/catalog/products');
+        setProducts(res.data || []);
+      } else if (activeTab === 'finance') {
+        const [statsRes, expRes] = await Promise.all([
+          api.get('/finance/stats'),
+          api.get('/finance/expenses')
+        ]);
+        setFinanceStats(statsRes.data || { total_revenue: 0, total_expenses: 0, net_profit: 0 });
+        setExpenses(expRes.data || []);
+      } else if (activeTab === 'tables') {
+        const res = await api.get('/tables');
+        setTables(res.data || []);
       }
     } catch (err) {
       console.error(err);
@@ -225,6 +247,49 @@ const Admin = () => {
     }
   };
 
+  const handleCreateExpense = async (e) => {
+    e.preventDefault();
+    if (!newExpense.amount) {
+      setErrors({ expense: 'Summani kiritish majburiy' });
+      return;
+    }
+    try {
+      await api.post('/finance/expenses', {
+        amount: parseFloat(newExpense.amount),
+        category: newExpense.category,
+        description: newExpense.description
+      });
+      setNewExpense({ amount: '', category: 'mahsulot', description: '' });
+      setErrors({});
+      fetchData();
+    } catch (err) {
+      alert('Xarajat qo\'shishda xatolik: ' + (err.response?.data?.error || ''));
+    }
+  };
+
+  const handleCreateTable = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/tables', { 
+        number: parseInt(newTable.number),
+        capacity: parseInt(newTable.capacity) || 4 
+      });
+      setShowTableModal(false);
+      setNewTable({ number: '', capacity: '' });
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Stol qo\'shishda xatolik');
+    }
+  };
+
+  const deleteTable = async (id) => {
+    if (!window.confirm('Rostdan ham bu stolni o\'chirmoqchimisiz?')) return;
+    try {
+      await api.delete(`/tables/${id}`);
+      fetchData();
+    } catch (err) { alert('Xatolik'); }
+  };
+
   if (loading) return <div className="flex-center h-full"><Loader2 className="animate-spin" /></div>;
 
   return (
@@ -244,8 +309,17 @@ const Admin = () => {
           <button className={activeTab === 'staff' ? 'active' : ''} onClick={() => setActiveTab('staff')}>
             <Users size={20} /> Xodimlar
           </button>
+          <button className={activeTab === 'tables' ? 'active' : ''} onClick={() => setActiveTab('tables')}>
+            <LayoutDashboard size={20} /> Stollar
+          </button>
           <button className={activeTab === 'performance' ? 'active' : ''} onClick={() => setActiveTab('performance')}>
             <Star size={20} /> Reytinglar
+          </button>
+          <button className={activeTab === 'finance' ? 'active' : ''} onClick={() => setActiveTab('finance')}>
+            <Wallet size={20} /> Moliya (Foyda)
+          </button>
+          <button className={activeTab === 'inventory' ? 'active' : ''} onClick={() => setActiveTab('inventory')}>
+            <Package size={20} /> Omborxona
           </button>
           <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
             <Settings size={20} /> Sozlamalar
@@ -254,6 +328,127 @@ const Admin = () => {
       </aside>
 
       <main className="admin-main">
+        {activeTab === 'inventory' && (
+          <InventorySection products={products} />
+        )}
+
+        {activeTab === 'finance' && (
+          <div className="finance-mgmt animate-fade">
+            <div className="flex justify-between items-center mb-6">
+              <h2>Moliya va Xarajatlar</h2>
+              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Yangilash</button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="stats-grid mb-6">
+              <div className="stat-card">
+                <div className="stat-icon-wrap" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }}>
+                  <TrendingUp size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Umumiy Tushum</span>
+                  <span className="stat-value">{financeStats.total_revenue.toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon-wrap" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}>
+                  <Wallet size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Umumiy Xarajat</span>
+                  <span className="stat-value">{financeStats.total_expenses.toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon-wrap" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
+                  <LayoutDashboard size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Sof Foyda</span>
+                  <span className="stat-value">{financeStats.net_profit.toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid" style={{ gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+              {/* Add Expense Form */}
+              <div className="premium-card">
+                <h3 className="mb-4">Xarajat qo'shish</h3>
+                <form onSubmit={handleCreateExpense}>
+                  <div className="input-group mb-4">
+                    <label>Summa (so'm)</label>
+                    <input 
+                      type="number" 
+                      value={newExpense.amount} 
+                      onChange={e => setNewExpense({...newExpense, amount: e.target.value})} 
+                      placeholder="0"
+                    />
+                    {errors.expense && <span className="error-text">{errors.expense}</span>}
+                  </div>
+                  <div className="input-group mb-4">
+                    <label>Kategoriya</label>
+                    <select 
+                      value={newExpense.category} 
+                      onChange={e => setNewExpense({...newExpense, category: e.target.value})}
+                    >
+                      <option value="mahsulot">Mahsulot (Sklad)</option>
+                      <option value="oylik">Oylik maosh</option>
+                      <option value="arenda">Arenda (Ijara)</option>
+                      <option value="kommunal">Kommunal to'lovlar</option>
+                      <option value="boshqa">Boshqa xarajat</option>
+                    </select>
+                  </div>
+                  <div className="input-group mb-4">
+                    <label>Izoh</label>
+                    <textarea 
+                      value={newExpense.description} 
+                      onChange={e => setNewExpense({...newExpense, description: e.target.value})}
+                      placeholder="Nima uchun ishlatildi?"
+                      rows="2"
+                    ></textarea>
+                  </div>
+                  <button type="submit" className="btn-primary w-full">
+                    <Plus size={18} /> Qo'shish
+                  </button>
+                </form>
+              </div>
+
+              {/* Expenses List */}
+              <div className="premium-card">
+                <h3 className="mb-4">Xarajatlar tarixi</h3>
+                <div className="orders-table-wrapper" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Sana</th>
+                        <th>Kategoriya</th>
+                        <th>Summa</th>
+                        <th>Izoh</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenses.length > 0 ? expenses.map(exp => (
+                        <tr key={exp.id}>
+                          <td>{new Date(exp.created_at).toLocaleString()}</td>
+                          <td>
+                            <span className="status-badge preparing">{exp.category}</span>
+                          </td>
+                          <td style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
+                            -{exp.amount.toLocaleString()} so'm
+                          </td>
+                          <td>{exp.description || '-'}</td>
+                        </tr>
+                      )) : (
+                        <tr><td colSpan="4" className="text-center text-muted py-4">Xarajatlar yo'q</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="settings-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
@@ -476,6 +671,46 @@ const Admin = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'tables' && (
+          <div className="tables-mgmt animate-fade">
+            <div className="flex-header">
+              <h2>Stollar Boshqaruvi</h2>
+              <button className="btn-primary" onClick={() => setShowTableModal(true)}>
+                <Plus size={18} /> Stol qo'shish
+              </button>
+            </div>
+            <div className="premium-card">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Stol Raqami</th>
+                    <th>Odam soni (Capacity)</th>
+                    <th>Holat</th>
+                    <th>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tables.map(t => (
+                    <tr key={t.id}>
+                      <td>№{t.number}</td>
+                      <td>{t.capacity || 4} kishi</td>
+                      <td>
+                        <span className={`status-badge ${t.status === 'free' ? 'ready' : 'cancelled'}`}>
+                          {t.status === 'free' ? 'Bo\'sh' : 'Band'}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="delete-btn" onClick={() => deleteTable(t.id)}><Trash2 size={16} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {tables.length === 0 && <div className="text-center p-4">Stollar yo'q</div>}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Staff Modal */}
@@ -526,6 +761,7 @@ const Admin = () => {
                 <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})}>
                   <option value="cook">Oshpaz (Cook)</option>
                   <option value="courier">Kuryer (Courier)</option>
+                  <option value="waiter">Ofitsant (Waiter)</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
@@ -691,6 +927,38 @@ const Admin = () => {
                   />
                   <label htmlFor="mandatory_container" style={{ cursor: 'pointer' }}>Majburiy idish qo'shish</label>
                 </div>
+              </div>
+              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Table Modal */}
+      {showTableModal && (
+        <div className="modal-overlay">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '400px'}}>
+            <div className="modal-header">
+              <h3>Yangi Stol</h3>
+              <button onClick={() => setShowTableModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreateTable}>
+              <div className="input-group mb-4">
+                <label>Stol Raqami</label>
+                <input 
+                  type="number"
+                  required
+                  value={newTable.number} 
+                  onChange={e => setNewTable({...newTable, number: e.target.value})} 
+                />
+              </div>
+              <div className="input-group mb-4">
+                <label>Odam soni (Ixtiyoriy)</label>
+                <input 
+                  type="number"
+                  value={newTable.capacity} 
+                  onChange={e => setNewTable({...newTable, capacity: e.target.value})} 
+                />
               </div>
               <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
             </form>

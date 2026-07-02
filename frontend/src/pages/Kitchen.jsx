@@ -147,7 +147,7 @@ const Kitchen = () => {
                         <div className="order-items">
                           {(order.items || []).map((item, idx) => (
                             <div key={idx} className="order-item-row">
-                              <span className="item-qty">{item.quantity}×</span>
+                              <span className="item-qty">{item.quantity} {item.unit || 'x'}</span>
                               <span className="item-name">{item.product_name || 'Noma\'lum'}</span>
                             </div>
                           ))}

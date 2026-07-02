@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
-import { Utensils, ShoppingCart, Package, ChefHat, Truck, LayoutDashboard } from 'lucide-react';
+import { Utensils, ShoppingCart, Package, ChefHat, Truck, LayoutDashboard, ClipboardList } from 'lucide-react';
 
 const BottomNav = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -13,13 +13,15 @@ const BottomNav = () => {
   const isActive = (path) => location.pathname === path;
 
   const tabs = [
-    { to: '/', icon: <Utensils size={22} />, label: 'Menyu', always: true },
-    { to: '/cart', icon: <ShoppingCart size={22} />, label: 'Savat', badge: cartCount > 0 ? cartCount : null, always: true },
-    { to: '/my-orders', icon: <Package size={22} />, label: 'Buyurtmalar', auth: true },
+    { to: '/', icon: <Utensils size={22} />, label: 'Menyu', always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/cart', icon: <ShoppingCart size={22} />, label: 'Savat', badge: cartCount > 0 ? cartCount : null, always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/my-orders', icon: <Package size={22} />, label: 'Buyurtmalar', auth: true, hideForRoles: ['cook', 'courier', 'waiter'] },
     { to: '/kitchen', icon: <ChefHat size={22} />, label: 'Oshxona', roles: ['admin','cook'] },
     { to: '/delivery', icon: <Truck size={22} />, label: 'Yetkazish', roles: ['admin','courier'] },
+    { to: '/waiter', icon: <ClipboardList size={22} />, label: 'Ofitsant', roles: ['admin','waiter'] },
     { to: '/admin', icon: <LayoutDashboard size={22} />, label: 'Admin', roles: ['admin'] },
   ].filter(tab => {
+    if (tab.hideForRoles && user && tab.hideForRoles.includes(user.role)) return false;
     if (tab.always) return true;
     if (tab.auth && !isAuthenticated) return false;
     if (tab.roles && (!user || !tab.roles.includes(user.role))) return false;

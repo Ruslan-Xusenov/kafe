@@ -218,6 +218,7 @@ const Home = () => {
                             e.stopPropagation();
                             addItem({
                               ...prod,
+                              base_unit: prod.unit,
                               price: currentPrice,
                               unit: currentUnit
                             });

@@ -43,6 +43,7 @@ const ProductDetail = () => {
 
       setProduct(foundProduct);
       setSelectedUnit(foundProduct.unit || 'dona');
+      setQuantity(foundProduct.min_quantity || 1);
       const cats = catRes.data || [];
       setCategories(cats);
       
@@ -71,13 +72,13 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     if (!product) return;
     const currentPrice = getPrice();
-    for (let i = 0; i < quantity; i++) {
-      addItem({
-        ...product,
-        price: currentPrice,
-        unit: selectedUnit
-      });
-    }
+    addItem({
+      ...product,
+      base_unit: product.unit,
+      price: currentPrice,
+      unit: selectedUnit,
+      quantity: quantity
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -146,9 +147,28 @@ const ProductDetail = () => {
               )}
             </div>
             <div className="qty-control">
-              <button disabled={quantity <= 1} onClick={() => setQuantity(q => q - 1)}><Minus size={18} /></button>
-              <span>{quantity}</span>
-              <button onClick={() => setQuantity(q => q + 1)}><Plus size={18} /></button>
+              <button 
+                disabled={quantity <= (product.min_quantity || 1)} 
+                onClick={() => setQuantity(q => Math.max((product.min_quantity || 1), Math.round((Number(q) - (product.quantity_step || 1)) * 1000) / 1000))}
+              >
+                <Minus size={18} />
+              </button>
+              <input 
+                type="number" 
+                value={quantity} 
+                onChange={e => setQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                onBlur={() => {
+                   if (!quantity || quantity < (product.min_quantity || 1)) setQuantity(product.min_quantity || 1);
+                }}
+                step={product.quantity_step || 1}
+                min={product.min_quantity || 1}
+                style={{ width: '60px', textAlign: 'center', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '800', fontSize: '1.2rem', outline: 'none' }}
+              />
+              <button 
+                onClick={() => setQuantity(q => Math.round((Number(q) + (product.quantity_step || 1)) * 1000) / 1000)}
+              >
+                <Plus size={18} />
+              </button>
             </div>
           </div>
 

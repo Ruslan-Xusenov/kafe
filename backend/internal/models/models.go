@@ -11,6 +11,7 @@ const (
 	RoleCook     UserRole = "cook"
 	RoleCourier  UserRole = "courier"
 	RoleAdmin    UserRole = "admin"
+	RoleWaiter   UserRole = "waiter"
 )
 
 type User struct {
@@ -21,6 +22,14 @@ type User struct {
 	Role         UserRole  `json:"role" db:"role"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+}
+
+type Table struct {
+	ID        int       `json:"id" db:"id"`
+	Number    int       `json:"number" db:"number"`
+	Capacity  *int      `json:"capacity" db:"capacity"`
+	Status    string    `json:"status" db:"status"` // "free", "occupied"
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type Category struct {
@@ -70,8 +79,12 @@ type Order struct {
 	Lng        *float64    `json:"lng" db:"lng"`
 	CourierID   *int        `json:"courier_id" db:"courier_id"`
 	CookID      *int        `json:"cook_id" db:"cook_id"`
+	TableID     *int        `json:"table_id" db:"table_id"`
+	WaiterID    *int        `json:"waiter_id" db:"waiter_id"`
 	CourierName string     `json:"courier_name" db:"courier_name"` // Joined field
 	CookName    string     `json:"cook_name" db:"cook_name"`       // Joined field
+	WaiterName  string     `json:"waiter_name" db:"waiter_name"`   // Joined field
+	TableNumber *int       `json:"table_number" db:"table_number"` // Joined field
 	Comment    string     `json:"comment" db:"comment"`
 	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt  *time.Time `json:"updated_at" db:"updated_at"`

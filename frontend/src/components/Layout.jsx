@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import {
   ShoppingCart, LogOut, Utensils, LayoutDashboard,
-  Truck, ChefHat, Package, Menu, X
+  Truck, ChefHat, Package, Menu, X, ClipboardList
 } from 'lucide-react';
 import { useState } from 'react';
 import BottomNav from './BottomNav';
@@ -26,12 +26,14 @@ const Layout = () => {
   const isActive = (path) => location.pathname === path;
 
   const navLinks = [
-    { to: '/', label: 'Menyu', icon: <Utensils size={16} />, always: true },
-    { to: '/my-orders', label: 'Buyurtmalarim', icon: <Package size={16} />, auth: true },
+    { to: '/', label: 'Menyu', icon: <Utensils size={16} />, always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/my-orders', label: 'Buyurtmalarim', icon: <Package size={16} />, auth: true, hideForRoles: ['cook', 'courier', 'waiter'] },
     { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={16} />, roles: ['admin'] },
     { to: '/kitchen', label: 'Oshxona', icon: <ChefHat size={16} />, roles: ['admin','cook'] },
     { to: '/delivery', label: 'Yetkazish', icon: <Truck size={16} />, roles: ['admin','courier'] },
+    { to: '/waiter', label: 'Ofitsant', icon: <ClipboardList size={16} />, roles: ['admin','waiter'] },
   ].filter(link => {
+    if (link.hideForRoles && user && link.hideForRoles.includes(user.role)) return false;
     if (link.always) return true;
     if (link.auth && !isAuthenticated) return false;
     if (link.roles && (!user || !link.roles.includes(user.role))) return false;
@@ -68,11 +70,13 @@ const Layout = () => {
 
           {/* Actions */}
           <div className="navbar-actions">
-            {/* Cart */}
-            <button className="icon-btn cart-btn" onClick={() => navigate('/cart')}>
-              <ShoppingCart size={20} />
-              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-            </button>
+            {/* Cart - Hide for staff roles */}
+            {(!user || !['cook', 'courier', 'waiter'].includes(user.role)) && (
+              <button className="icon-btn cart-btn" onClick={() => navigate('/cart')}>
+                <ShoppingCart size={20} />
+                {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+              </button>
+            )}
 
             {isAuthenticated ? (
               <div className="user-chip">

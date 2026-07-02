@@ -1,5 +1,5 @@
 -- Create User Role Enum
-CREATE TYPE user_role AS ENUM ('customer', 'cook', 'courier', 'admin');
+CREATE TYPE user_role AS ENUM ('customer', 'cook', 'courier', 'admin', 'waiter');
 
 -- Create Order Status Enum
 CREATE TYPE order_status AS ENUM ('new', 'preparing', 'ready', 'on_way', 'delivered', 'cancelled');
@@ -42,6 +42,15 @@ CREATE TABLE products (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Tables Table
+CREATE TABLE tables (
+    id SERIAL PRIMARY KEY,
+    number INTEGER NOT NULL UNIQUE,
+    capacity INTEGER,
+    status VARCHAR(20) DEFAULT 'free', -- free, occupied
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Orders Table
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
@@ -55,6 +64,8 @@ CREATE TABLE orders (
     courier_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     cook_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     comment TEXT,
+    table_id INTEGER REFERENCES tables(id) ON DELETE SET NULL,
+    waiter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -96,3 +107,49 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Staff Ratings Table
+CREATE TABLE staff_ratings (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    staff_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    staff_role VARCHAR(50) NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(order_id, staff_id, staff_role)
+);
+
+-- Create Expense Category Enum
+CREATE TYPE expense_category AS ENUM ('mahsulot', 'oylik', 'arenda', 'kommunal', 'boshqa');
+
+-- Expenses Table
+CREATE TABLE expenses (
+    id SERIAL PRIMARY KEY,
+    amount DECIMAL(12, 2) NOT NULL,
+    category expense_category NOT NULL DEFAULT 'boshqa',
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Ingredients Table (Sklad)
+CREATE TABLE ingredients (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    stock DECIMAL(12, 3) NOT NULL DEFAULT 0,
+    unit VARCHAR(20) NOT NULL DEFAULT 'gr',
+    min_stock DECIMAL(12, 3) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Product Ingredients Table (Recipe)
+CREATE TABLE product_ingredients (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+    ingredient_id INTEGER REFERENCES ingredients(id) ON DELETE CASCADE,
+    quantity DECIMAL(12, 3) NOT NULL,
+    unit VARCHAR(20) NOT NULL DEFAULT 'gr',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(product_id, ingredient_id)
+);

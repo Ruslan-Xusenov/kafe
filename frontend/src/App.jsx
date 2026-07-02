@@ -15,6 +15,7 @@ import Kitchen from './pages/Kitchen';
 import Courier from './pages/Courier';
 import Admin from './pages/Admin';
 import Printer from './pages/Printer';
+import Waiter from './pages/Waiter';
 import MyOrders from './pages/MyOrders';
 import ProductDetail from './pages/ProductDetail';
 import PrivacyConsent from './components/PrivacyConsent';
@@ -74,6 +75,12 @@ function App() {
           <Route path="delivery" element={
             <ProtectedRoute allowedRoles={['admin', 'courier']}>
               <Courier />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="waiter" element={
+            <ProtectedRoute allowedRoles={['admin', 'waiter']}>
+              <Waiter />
             </ProtectedRoute>
           } />
         </Route>

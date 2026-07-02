@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"math"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,16 +15,18 @@ type OrderService struct {
 	orderRepo   *repository.OrderRepository
 	productRepo *repository.ProductRepository
 	settingsRepo *repository.SettingsRepository
+	inventoryRepo repository.InventoryRepository
 	wsService    *WebsocketService
 	botService   *BotService
 	printerService *PrinterService
 }
 
-func NewOrderService(orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, settingsRepo *repository.SettingsRepository, wsService *WebsocketService, botService *BotService, printerService *PrinterService) *OrderService {
+func NewOrderService(orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, settingsRepo *repository.SettingsRepository, inventoryRepo repository.InventoryRepository, wsService *WebsocketService, botService *BotService, printerService *PrinterService) *OrderService {
 	return &OrderService{
 		orderRepo:   orderRepo,
 		productRepo: productRepo,
 		settingsRepo: settingsRepo,
+		inventoryRepo: inventoryRepo,
 		wsService:    wsService,
 		botService:   botService,
 		printerService: printerService,
@@ -46,10 +50,12 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 
 	// Check for existing order from the same phone in the last 30 minutes
-	lastOrder, err := s.orderRepo.GetLastOrderByPhone(order.Phone)
-	if err == nil && lastOrder != nil {
-		if time.Since(lastOrder.CreatedAt) < 30*time.Minute {
-			return fmt.Errorf("siz oxirgi 30 daqiqa ichida buyurtma bergansiz. Iltimos kuting.")
+	if os.Getenv("APP_ENV") != "development" {
+		lastOrder, err := s.orderRepo.GetLastOrderByPhone(order.Phone)
+		if err == nil && lastOrder != nil {
+			if time.Since(lastOrder.CreatedAt) < 30*time.Minute {
+				return fmt.Errorf("siz oxirgi 30 daqiqa ichida buyurtma bergansiz. Iltimos kuting.")
+			}
 		}
 	}
 
@@ -60,16 +66,18 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		if err != nil || prod == nil { continue }
 
 		if prod.HasMandatoryContainer {
-			// Auto-convert: if unit is "dona" and qty >= 4, it's 1+ portion
 			totalPortions := 0.0
-			if item.Unit == "dona" {
-				totalPortions = item.Quantity / 4.0
+			if item.Unit == "gr" {
+				totalPortions = item.Quantity / 100.0
+			} else if item.Unit == "kg" {
+				totalPortions = item.Quantity * 10.0
 			} else {
+				// For 'pors' and 'dona'
 				totalPortions = item.Quantity
 			}
 
 			if totalPortions > 0 {
-				numContainers := totalPortions 
+				numContainers := math.Ceil(totalPortions) 
 				
 				itemsToAdd = append(itemsToAdd, models.OrderItem{
 					ProductID: containerID, // Use dynamic ID
@@ -117,8 +125,10 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 	
 	// Check minimum order value (40,000 UZS)
-	if total < 40000 {
-		return fmt.Errorf("minimum buyurtma qiymati 40.000 so'm bo'lishi kerak")
+	if os.Getenv("APP_ENV") != "development" {
+		if total < 40000 {
+			return fmt.Errorf("minimum buyurtma qiymati 40.000 so'm bo'lishi kerak")
+		}
 	}
 
 	order.TotalPrice = total
@@ -130,11 +140,15 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 
 	// Enrich order items with product names for notification
+	// And deduct inventory stock for each item
 	for i := range order.Items {
 		prod, _ := s.productRepo.GetByID(order.Items[i].ProductID)
 		if prod != nil {
 			order.Items[i].ProductName = prod.Name
 		}
+		
+		// Deduct inventory stock
+		_ = s.inventoryRepo.DeductStockForProduct(order.Items[i].ProductID, order.Items[i].Quantity)
 	}
 
 	// Trigger Task: Send Notification to Telegram
@@ -147,9 +161,15 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 	s.botService.SendNewOrderNotification(order, &firstImageUrl)
 	
-	// Real-time: Notify Cooks and Admin (Printer is notified separately via notifyAPI to avoid double printing)
+	// Real-time: Notify Cooks and Admin (Printer is notified separately via notifyAPI to avoid double printing for bot orders)
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
+
+	// Print Waiter orders (since they don't trigger the bot's notifyAPI)
+	if order.WaiterID != nil {
+		s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
+		go s.printerService.PrintOrder(order)
+	}
 
 	return nil
 }
@@ -232,6 +252,13 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 	if err == nil {
 		order, _ := s.orderRepo.GetByID(orderID)
 		if order != nil {
+			// If cancelled, restore stock
+			if status == models.StatusCancelled {
+				for _, item := range order.Items {
+					_ = s.inventoryRepo.RestoreStockForProduct(item.ProductID, item.Quantity)
+				}
+			}
+
 			// Notify Customer
 			if order.CustomerID != nil {
 				s.wsService.BroadcastToUser(*order.CustomerID, map[string]interface{}{"type": "status_update", "status": status, "order_id": orderID})

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft } from 'lucide-react';
 
 const Cart = () => {
-  const { items, removeItem, updateQuantity, getTotal } = useCartStore();
+  const { items, removeItem, updateQuantity, setQuantity, getTotal } = useCartStore();
   const navigate = useNavigate();
 
   const getImageUrl = (url) => {
@@ -249,7 +249,18 @@ const Cart = () => {
                   <button className="qty-btn" onClick={() => updateQuantity(item.id, item.unit, -1)}>
                     <Minus size={14} />
                   </button>
-                  <span className="qty-num">{item.quantity}</span>
+                  <input 
+                    type="number" 
+                    className="qty-num"
+                    value={item.quantity}
+                    onChange={e => setQuantity(item.id, item.unit, e.target.value === '' ? '' : Number(e.target.value))}
+                    onBlur={() => {
+                       if (!item.quantity || item.quantity < (item.min_quantity || 1)) setQuantity(item.id, item.unit, item.min_quantity || 1);
+                    }}
+                    step={item.quantity_step || 1}
+                    min={item.min_quantity || 1}
+                    style={{ width: '40px', textAlign: 'center', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '800', fontSize: '0.95rem', outline: 'none' }}
+                  />
                   <button className="qty-btn plus" onClick={() => updateQuantity(item.id, item.unit, 1)}>
                     <Plus size={14} />
                   </button>

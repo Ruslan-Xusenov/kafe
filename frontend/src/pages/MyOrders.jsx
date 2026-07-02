@@ -112,7 +112,7 @@ const MyOrders = () => {
                     <div className="mo-items">
                       {order.items.map((item, i) => (
                         <span key={i} className="mo-item-chip">
-                          <span className="mo-item-qty">{item.quantity}×</span>
+                          <span className="mo-item-qty">{item.quantity} {item.unit || 'x'}</span>
                           {item.product_name}
                         </span>
                       ))}

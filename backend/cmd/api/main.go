@@ -35,6 +35,9 @@ func main() {
 	prodRepo := repository.NewProductRepository(database.DB)
 	orderRepo := repository.NewOrderRepository(database.DB)
 	settingsRepo := repository.NewSettingsRepository(database.DB)
+	financeRepo := repository.NewFinanceRepository(database.DB)
+	inventoryRepo := repository.NewInventoryRepository(database.DB)
+	tableRepo := repository.NewTableRepository(database.DB)
 
 	// Initialize Services
 	authService := service.NewAuthService(userRepo)
@@ -42,13 +45,16 @@ func main() {
 	wsService := service.NewWebsocketService()
 	botService := service.NewBotService()
 	printerService := service.NewPrinterService()
-	orderService := service.NewOrderService(orderRepo, prodRepo, settingsRepo, wsService, botService, printerService)
+	orderService := service.NewOrderService(orderRepo, prodRepo, settingsRepo, inventoryRepo, wsService, botService, printerService)
 
 	// Initialize Handlers
 	authHandler := handlers.NewAuthHandler(authService, userRepo)
 	catalogHandler := handlers.NewCatalogHandler(catalogService)
 	orderHandler := handlers.NewOrderHandler(orderService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
+	financeHandler := handlers.NewFinanceHandler(financeRepo)
+	inventoryHandler := handlers.NewInventoryHandler(inventoryRepo)
+	tableHandler := handlers.NewTableHandler(tableRepo)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -59,7 +65,12 @@ func main() {
 
 	// CORS Middleware
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
@@ -145,7 +156,7 @@ func main() {
 
 			// Staff/Admin Protected
 			staff := orders.Group("/")
-			staff.Use(middleware.RoleMiddleware("admin", "cook", "courier"))
+			staff.Use(middleware.RoleMiddleware("admin", "cook", "courier", "waiter"))
 			{
 				staff.GET("/all", orderHandler.GetAllOrders)
 				staff.GET("/active", orderHandler.GetActiveOrders)
@@ -153,6 +164,39 @@ func main() {
 				staff.PUT("/:id/status", orderHandler.UpdateStatus)
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
 			}
+		}
+
+		// Tables (Admin and Waiter)
+		tables := api.Group("/tables")
+		tables.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "waiter"))
+		{
+			tables.GET("/", tableHandler.GetAll)
+			tables.POST("/", tableHandler.Create)
+			tables.PUT("/:id", tableHandler.Update)
+			tables.DELETE("/:id", tableHandler.Delete)
+		}
+		
+		// Finance (Admin only)
+		finance := api.Group("/finance")
+		finance.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
+		{
+			finance.GET("/stats", financeHandler.GetStats)
+			finance.GET("/expenses", financeHandler.GetExpenses)
+			finance.POST("/expenses", financeHandler.CreateExpense)
+		}
+
+		// Inventory (Admin only)
+		inventory := api.Group("/inventory")
+		inventory.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
+		{
+			inventory.GET("/ingredients", inventoryHandler.GetIngredients)
+			inventory.POST("/ingredients", inventoryHandler.CreateIngredient)
+			inventory.PUT("/ingredients/:id", inventoryHandler.UpdateIngredient)
+			inventory.DELETE("/ingredients/:id", inventoryHandler.DeleteIngredient)
+
+			inventory.GET("/recipes/:product_id", inventoryHandler.GetProductIngredients)
+			inventory.POST("/recipes", inventoryHandler.AddProductIngredient)
+			inventory.DELETE("/recipes/:id", inventoryHandler.DeleteProductIngredient)
 		}
 
 		// Printer Control (Staff Only)
@@ -198,6 +242,7 @@ func main() {
 			// Broadcast to all roles including printer
 			wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 			wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
+			wsService.BroadcastToRole("waiter", map[string]interface{}{"type": "new_order", "order": order})
 			wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
 
 			c.JSON(http.StatusOK, gin.H{"status": "notified"})
