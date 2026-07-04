@@ -9,6 +9,15 @@ import {
   CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer
 } from 'lucide-react';
 
+const STATUS_MAP = {
+  new: 'Yangi',
+  preparing: 'Tayyorlanmoqda',
+  ready: 'Tayyor',
+  on_way: 'Yo\'lda',
+  delivered: 'Yetkazib berildi',
+  cancelled: 'Bekor qilingan'
+};
+
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState([]);
