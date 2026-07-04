@@ -6,7 +6,7 @@ import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
-  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package
+  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer
 } from 'lucide-react';
 
 const Admin = () => {
