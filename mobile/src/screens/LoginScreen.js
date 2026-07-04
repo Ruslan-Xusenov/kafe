@@ -14,7 +14,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Kirish</Text>
+      <Text style={styles.title}>Вход</Text>
       {error && <Text style={styles.error}>{error}</Text>}
       
       <TextInput 
@@ -26,7 +26,7 @@ const LoginScreen = ({ navigation }) => {
       />
       <TextInput 
         style={styles.input}
-        placeholder="Parol"
+        placeholder="Пароль"
         placeholderTextColor="#666"
         secureTextEntry
         value={password}
@@ -34,11 +34,11 @@ const LoginScreen = ({ navigation }) => {
       />
       
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Tizimga kirish</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Войти в систему</Text>}
       </TouchableOpacity>
       
       <TouchableOpacity onPress={() => navigation.navigate('CustomerMain')} style={{marginTop: 20}}>
-        <Text style={{color: '#f97316'}}>Menyuga qaytish (Mehmon)</Text>
+        <Text style={{color: '#f97316'}}>Вернуться в меню (Гость)</Text>
       </TouchableOpacity>
     </View>
   );

@@ -45,7 +45,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		msg := err.Error()
 		if strings.Contains(msg, "unique constraint \"users_phone_key\"") {
-			c.JSON(http.StatusConflict, gin.H{"error": "Bu telefon raqami allaqachon ro'yxatdan o'tgan"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Этот номер телефона уже зарегистрирован"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -136,5 +136,5 @@ func (h *AuthHandler) DeleteStaff(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Xodim o'chirildi"})
+	c.JSON(http.StatusOK, gin.H{"message": "Сотрудник удален"})
 }

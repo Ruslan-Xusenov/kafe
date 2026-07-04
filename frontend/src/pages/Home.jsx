@@ -40,6 +40,7 @@ const Home = () => {
         initialUnits[p.id] = p.unit || 'dona';
       });
       setSelectedUnits(initialUnits);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {

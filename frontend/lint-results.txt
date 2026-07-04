@@ -1,0 +1,89 @@
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/App.jsx
+  41:6  warning  React Hook useEffect has missing dependencies: 'checkAuth' and 'fetchSettings'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/components/InventorySection.jsx
+   71:14  error  'err' is defined but never used  no-unused-vars
+  100:14  error  'err' is defined but never used  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/components/PrivacyConsent.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/components/RatingModal.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/components/StatsSection.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/hooks/useWebsocket.js
+  32:6   warning  React Hook useEffect has a missing dependency: 'onMessage'. Either include it or remove the dependency array. If 'onMessage' changes too often, find the parent component that defines it and wrap that definition in useCallback                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  34:10  error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  32 |   }, [isAuthenticated, token]);
+  33 |
+> 34 |   return socketRef.current;
+     |          ^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  35 | };  react-hooks/refs
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Admin.jsx
+    6:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                 no-unused-vars
+   68:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  114:9   error    'fetchFinanceStats' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u             no-unused-vars
+  118:14  error    'err' is defined but never used                                                                               no-unused-vars
+  118:19  error    Empty block statement                                                                                         no-empty
+  125:14  error    'err' is defined but never used                                                                               no-unused-vars
+  137:14  error    'err' is defined but never used                                                                               no-unused-vars
+  148:14  error    'err' is defined but never used                                                                               no-unused-vars
+  255:14  error    'err' is defined but never used                                                                               no-unused-vars
+  287:16  error    'err' is defined but never used                                                                               no-unused-vars
+  347:14  error    'err' is defined but never used                                                                               no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Cart.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Checkout.jsx
+  7:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Courier.jsx
+   4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  35:14  error  'err' is defined but never used                                                no-unused-vars
+  46:14  error  'err' is defined but never used                                                no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Home.jsx
+   6:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u               no-unused-vars
+  50:9   error  'toggleUnit' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Kitchen.jsx
+   4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  49:14  error  'err' is defined but never used                                                no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Login.jsx
+  5:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/MyOrders.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Printer.jsx
+  1:27  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/ProductDetail.jsx
+   6:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                    no-unused-vars
+  25:6   warning  React Hook useEffect has a missing dependency: 'fetchProduct'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  30:14  error    'prodRes' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                          no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Register.jsx
+  5:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Success.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/pages/Waiter.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/home/kali/Desktop/projects/Django/Kafe/frontend/src/store/authStore.js
+  79:14  error  'err' is defined but never used  no-unused-vars
+
+✖ 38 problems (34 errors, 4 warnings)
+

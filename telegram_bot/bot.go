@@ -224,34 +224,34 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 	switch session.State {
 	case "awaiting_order_address":
 		session.Address = msg.Text
-		session.State = "awaiting_order_phone"; b.sendMessage(chatID, "📞 Telefon raqamingizni kiriting:")
+		session.State = "awaiting_order_phone"; b.sendMessage(chatID, "📞 Введите ваш номер телефона:")
 	case "awaiting_order_phone":
 		session.OrderPhone = msg.Text
 		session.State = "awaiting_order_comment"
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⏩ O'tkazib yuborish", "skip_comment")))
-		reply := tgbotapi.NewMessage(chatID, "💬 Buyurtmaga izoh qo'shmoqchimisiz?")
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⏩ Пропустить", "skip_comment")))
+		reply := tgbotapi.NewMessage(chatID, "💬 Хотите добавить комментарий к заказу?")
 		reply.ReplyMarkup = keyboard; b.api.Send(reply)
 	case "awaiting_order_comment": session.Comment = msg.Text; session.State = ""; b.confirmOrder(chatID)
 	case "awaiting_rating_cook":
 		rating := parseRating(msg.Text)
-		if rating == 0 { b.sendMessage(chatID, "❌ Iltimos, 1 dan 5 gacha baho bering"); return }
-		session.RatingCookScore = rating; session.State = "awaiting_rating_courier"; b.sendMessage(chatID, "🚗 Kuryerga baho bering (1-5):")
+		if rating == 0 { b.sendMessage(chatID, "❌ Пожалуйста, оцените от 1 до 5"); return }
+		session.RatingCookScore = rating; session.State = "awaiting_rating_courier"; b.sendMessage(chatID, "🚗 Оцените курьера (1-5):")
 	case "awaiting_rating_courier":
 		rating := parseRating(msg.Text)
-		if rating == 0 { b.sendMessage(chatID, "❌ Iltimos, 1 dan 5 gacha baho bering"); return }
+		if rating == 0 { b.sendMessage(chatID, "❌ Пожалуйста, оцените от 1 до 5"); return }
 		session.RatingCourierScore = rating; session.State = ""; b.submitRating(chatID)
 	case "awaiting_admin_id": b.processAdminAction(chatID, msg.Text)
 	case "admin_product_name":
-		if session.AdminProductEdit != nil { session.AdminProductEdit.Name = msg.Text; session.AdminProductEdit.Step = "description"; session.State = "admin_product_description"; b.sendMessage(chatID, "📝 Mahsulot tavsifini kiriting:") }
+		if session.AdminProductEdit != nil { session.AdminProductEdit.Name = msg.Text; session.AdminProductEdit.Step = "description"; session.State = "admin_product_description"; b.sendMessage(chatID, "📝 Введите описание продукта:") }
 	case "admin_product_description":
-		if session.AdminProductEdit != nil { session.AdminProductEdit.Description = msg.Text; session.AdminProductEdit.Step = "price"; session.State = "admin_product_price"; b.sendMessage(chatID, "💰 Narxini kiriting (masalan: 25000):") }
+		if session.AdminProductEdit != nil { session.AdminProductEdit.Description = msg.Text; session.AdminProductEdit.Step = "price"; session.State = "admin_product_price"; b.sendMessage(chatID, "💰 Введите цену (например: 25000):") }
 	case "admin_product_price":
 		if session.AdminProductEdit != nil {
 			price := parsePrice(msg.Text)
-			if price <= 0 { b.sendMessage(chatID, "❌ Noto'g'ri narx. Faqat raqam kiriting:"); return }
+			if price <= 0 { b.sendMessage(chatID, "❌ Неверная цена. Введите только число:"); return }
 			session.AdminProductEdit.Price = price; session.AdminProductEdit.Step = "image"; session.State = "admin_product_image"
-			keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⏩ O'tkazib yuborish", "skip_product_image")))
-			reply := tgbotapi.NewMessage(chatID, "🖼 Mahsulot rasmining URL manzilini kiriting yoki <b>rasmni fayl ko'rinishida yuboring:</b>")
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⏩ Пропустить", "skip_product_image")))
+			reply := tgbotapi.NewMessage(chatID, "🖼 Введите URL адрес изображения продукта или <b>отправьте изображение как файл:</b>")
 			reply.ParseMode = "HTML"
 			reply.ReplyMarkup = keyboard
 			b.api.Send(reply)
@@ -263,7 +263,7 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) {
 				photo := msg.Photo[len(msg.Photo)-1]
 				filePath, err := b.downloadAndSavePhoto(photo.FileID)
 				if err != nil {
-					b.sendMessage(chatID, fmt.Sprintf("❌ Rasm yuklashda xatolik: %v", err))
+					b.sendMessage(chatID, fmt.Sprintf("❌ Ошибка загрузки изображения: %v", err))
 					return
 				}
 				session.AdminProductEdit.ImageURL = filePath
@@ -323,7 +323,7 @@ func (b *Bot) handleCallback(cb *tgbotapi.CallbackQuery) {
 	case data == "checkout": b.startCheckout(chatID)
 	case data == "skip_comment": session := b.getSession(chatID); session.Comment = ""; session.State = ""; b.confirmOrder(chatID)
 	case data == "confirm_order": b.placeOrder(chatID)
-	case data == "cancel_order": session := b.getSession(chatID); session.State = ""; b.sendMessage(chatID, "❌ Buyurtma bekor qilindi"); b.showMainMenu(chatID)
+	case data == "cancel_order": session := b.getSession(chatID); session.State = ""; b.sendMessage(chatID, "❌ Заказ отменен"); b.showMainMenu(chatID)
 	case data == "show_orders": b.showOrderHistory(chatID)
 	case strings.HasPrefix(data, "order_detail_"): b.showOrderDetail(chatID, data)
 	case strings.HasPrefix(data, "rate_order_"): b.startRating(chatID, data)
@@ -351,9 +351,9 @@ func (b *Bot) handleCallback(cb *tgbotapi.CallbackQuery) {
 	case data == "admin_add_courier": b.startAddCourier(chatID)
 	case data == "admin_remove_courier": b.startRemoveCourier(chatID)
 	case data == "contact_info":
-		b.sendMessage(chatID, "📞 <b>Biz bilan bog'lanish:</b>\n\n📍 Manzil: Toshkent sh., Chilonzor\n☎️ Telefon: +998 90 123 45 67\n🌐 Sayt: kafe.ruslandev.uz")
+		b.sendMessage(chatID, "📞 <b>Свяжитесь с нами:</b>\n\n📍 Адрес: г. Ташкент, Чиланзар\n☎️ Телефон: +998 90 123 45 67\n🌐 Сайт: kafe.ruslandev.uz")
 	case data == "how_to_use":
-		b.sendMessage(chatID, "📖 <b>Ishlatish tartibi:</b>\n\n1. '🌐 Onlayn buyurtma berish' tugmasini bosing.\n2. Taomlarni tanlang va savatchaga qo'shing.\n3. Savatchaga o'ting va buyurtmani tasdiqlang.\n4. Kuryerimiz tez orada siz bilan bog'lanadi!")
+		b.sendMessage(chatID, "📖 <b>Как пользоваться:</b>\n\n1. Нажмите кнопку '🌐 Онлайн заказ'.\n2. Выберите блюда и добавьте в корзину.\n3. Перейдите в корзину и подтвердите заказ.\n4. Наш курьер скоро свяжется с вами!")
 	case data == "skip_product_image": session := b.getSession(chatID); if session.AdminProductEdit != nil { session.AdminProductEdit.ImageURL = ""; session.State = ""; b.saveProduct(chatID) }
 	}
 }
@@ -379,7 +379,12 @@ func parsePrice(text string) float64 {
 
 func (b *Bot) notifyBackend(orderID int) {
 	// Directly notify the local API for printer bridge trigger
-	url := fmt.Sprintf("http://localhost:8080/api/notify-order/%d?key=KAFE_PRINTER_SECRET_2026", orderID)
+	backendURL := os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		backendURL = "http://localhost:8080"
+	}
+	printerSecret := os.Getenv("PRINTER_SECRET")
+	url := fmt.Sprintf("%s/api/notify-order/%d?key=%s", backendURL, orderID, printerSecret)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Printf("TELEGRAM_DEBUG: Failed to notify backend for order %d: %v\n", orderID, err)

@@ -22,7 +22,7 @@ func CheckPasswordHash(password, hash string) bool {
 func GenerateToken(userID int, role string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default_secret" // Better to error out in production
+		return "", fmt.Errorf("JWT_SECRET is not configured")
 	}
 
 	claims := jwt.MapClaims{
@@ -38,7 +38,7 @@ func GenerateToken(userID int, role string) (string, error) {
 func ValidateToken(tokenString string) (*jwt.Token, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default_secret"
+		return nil, fmt.Errorf("JWT_SECRET is not configured")
 	}
 
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

@@ -24,6 +24,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			tokenString = parts[1]
 		} else if queryToken := c.Query("token"); queryToken != "" {
 			tokenString = queryToken
+		} else if wsToken := c.GetHeader("Sec-WebSocket-Protocol"); wsToken != "" {
+			tokenString = wsToken
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header or token query parameter is required"})
 			c.Abort()

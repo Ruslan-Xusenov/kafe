@@ -40,7 +40,7 @@ const CustomerTabs = () => {
         component={HomeScreen} 
         options={{
           tabBarIcon: ({ color, size }) => <Utensils color={color} size={size} />,
-          tabBarLabel: 'Menyu'
+          tabBarLabel: 'Меню'
         }}
       />
       <Tab.Screen 
@@ -48,7 +48,7 @@ const CustomerTabs = () => {
         component={CartScreen} 
         options={{
           tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
-          tabBarLabel: 'Savat',
+          tabBarLabel: 'Корзина',
           tabBarBadge: cartCount > 0 ? cartCount : null,
           tabBarBadgeStyle: { backgroundColor: '#f97316' }
         }}
@@ -58,7 +58,7 @@ const CustomerTabs = () => {
         component={ProfileScreen} 
         options={{
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-          tabBarLabel: 'Profil'
+          tabBarLabel: 'Профиль'
         }}
       />
     </Tab.Navigator>

@@ -62,7 +62,7 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 	// Header - YETUK ONLAYN ZAKAZ (Centered and Big)
 	conn.Write(ALIGN_CENTER)
 	conn.Write(FONT_BIG)
-	conn.Write([]byte("YETUK ONLAYN ZAKAZ\n"))
+	conn.Write([]byte("YETUK ONLINE ZAKAZ\n"))
 	conn.Write(FONT_NORMAL)
 	conn.Write([]byte("------------------------------------------------\n"))
 	
@@ -70,8 +70,8 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 	conn.Write(ALIGN_LEFT)
 	conn.Write([]byte(fmt.Sprintf("Чек №: %d\n", order.ID)))
 	conn.Write([]byte(fmt.Sprintf("Зал: Доставка №%d\n", order.ID)))
-	conn.Write([]byte("Стол: onlayn\n"))
-	conn.Write([]byte("Обслужил: YETUK KAFE onlayn\n"))
+	conn.Write([]byte("Стол: онлайн\n"))
+	conn.Write([]byte("Обслужил: YETUK KAFE онлайн\n"))
 	
 	createdAt := order.CreatedAt
 	if createdAt.IsZero() {
@@ -83,7 +83,7 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 
 	// Items Table
 	// Name: 22, Qty: 6, Price: 10, Total: 10
-	conn.Write([]byte("Наименование           Soni   Narxi      Jami\n"))
+	conn.Write([]byte("Наименование           Кол-во Цена       Итого\n"))
 	conn.Write([]byte("------------------------------------------------\n"))
 	
 	for _, item := range order.Items {
@@ -97,15 +97,22 @@ func (s *PrinterService) PrintOrder(order *models.Order) {
 		conn.Write([]byte(line))
 		
 		if item.Comment != "" {
-			conn.Write([]byte(fmt.Sprintf("  * Izoh: %s\n", s.transliterate(item.Comment))))
+			conn.Write([]byte(fmt.Sprintf("  * Коммент: %s\n", s.transliterate(item.Comment))))
 		}
 	}
 	conn.Write([]byte("------------------------------------------------\n"))
 
 	// Footer Summary
 	conn.Write(ALIGN_RIGHT)
-	conn.Write([]byte(fmt.Sprintf("Подитог: %.0f\n", order.TotalPrice)))
-	conn.Write([]byte("Обслуживание(0.0%): 0\n"))
+	
+	if order.ServiceFee > 0 {
+		subtotal := order.TotalPrice - order.ServiceFee
+		conn.Write([]byte(fmt.Sprintf("Подитог: %.0f\n", subtotal)))
+		conn.Write([]byte(fmt.Sprintf("Обслуживание(%.0f%%): %.0f\n", order.ServicePercentage, order.ServiceFee)))
+	} else {
+		conn.Write([]byte(fmt.Sprintf("Подитог: %.0f\n", order.TotalPrice)))
+		conn.Write([]byte("Обслуживание(0%): 0\n"))
+	}
 	conn.Write([]byte("Скидка(0%): 0\n"))
 	conn.Write([]byte("\n"))
 	

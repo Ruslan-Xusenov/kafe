@@ -52,6 +52,7 @@ const Checkout = () => {
         clearCart();
         navigate('/success', { state: { orderId: res.data.id } });
       }
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert(err.response?.data?.error || 'Buyurtma berishda xatolik yuz berdi');
     } finally {

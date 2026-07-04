@@ -7,14 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/username/kafe-backend/internal/models"
 	"github.com/username/kafe-backend/internal/repository"
+	"github.com/username/kafe-backend/internal/service"
 )
 
 type TableHandler struct {
-	tableRepo *repository.TableRepository
+	tableRepo    *repository.TableRepository
+	orderService *service.OrderService
 }
 
-func NewTableHandler(tableRepo *repository.TableRepository) *TableHandler {
-	return &TableHandler{tableRepo: tableRepo}
+func NewTableHandler(tableRepo *repository.TableRepository, orderService *service.OrderService) *TableHandler {
+	return &TableHandler{tableRepo: tableRepo, orderService: orderService}
 }
 
 func (h *TableHandler) GetAll(c *gin.Context) {
@@ -52,16 +54,66 @@ func (h *TableHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var table models.Table
-	if err := c.ShouldBindJSON(&table); err != nil {
+	var payload struct {
+		models.Table
+		PaymentMethod string `json:"payment_method"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	table := payload.Table
 	table.ID = id
+
+	// Pre-validation: If table is being freed, check waiter ownership
+	if table.Status == "free" && h.orderService != nil {
+		activeOrders, err := h.orderService.GetActiveOrders()
+		if err == nil {
+			for _, o := range activeOrders {
+				if o.TableID != nil && *o.TableID == table.ID {
+					userID, _ := c.Get("user_id")
+					role, _ := c.Get("role")
+					if userID == nil {
+						userID = 0
+					}
+					if role == nil {
+						role = "admin"
+					}
+					
+					// Security: Only the waiter who owns the order can free the table
+					if role == "waiter" && o.WaiterID != nil && *o.WaiterID != userID.(int) {
+						c.JSON(http.StatusForbidden, gin.H{"error": "Вы можете освобождать только свои столы."})
+						return
+					}
+				}
+			}
+		}
+	}
 
 	if err := h.tableRepo.Update(&table); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Post-update: Close the order now that we confirmed permission
+	if table.Status == "free" && h.orderService != nil {
+		activeOrders, _ := h.orderService.GetActiveOrders()
+		for _, o := range activeOrders {
+			if o.TableID != nil && *o.TableID == table.ID {
+				userID, _ := c.Get("user_id")
+				role, _ := c.Get("role")
+				if userID == nil { userID = 0 }
+				if role == nil { role = "admin" }
+				
+				// Set Payment Method if provided
+				if payload.PaymentMethod != "" {
+					_ = h.orderService.SetPaymentMethod(o.ID, payload.PaymentMethod)
+				}
+				
+				_ = h.orderService.UpdateOrderStatus(o.ID, models.StatusDelivered, userID.(int), role.(string))
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, table)

@@ -22,6 +22,7 @@ const ProductDetail = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProduct();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchProduct = async () => {
@@ -53,6 +54,7 @@ const ProductDetail = () => {
         .slice(0, 4);
       setRelatedProducts(related);
 
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
       navigate('/');

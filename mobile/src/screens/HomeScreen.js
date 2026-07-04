@@ -62,13 +62,13 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.productName}>{item.name}</Text>
           <Text style={styles.productDesc} numberOfLines={2}>{item.description}</Text>
           <View style={styles.productBottom}>
-            <Text style={styles.productPrice}>{item.price.toLocaleString()} so'm</Text>
+            <Text style={styles.productPrice}>{item.price.toLocaleString()} сум</Text>
             <TouchableOpacity 
               style={[styles.addButton, inCart && styles.addButtonActive]} 
               onPress={() => addItem(item)}
             >
               <ShoppingCart size={16} color="#fff" />
-              <Text style={styles.addButtonText}>{inCart ? `+${item.quantity_step}` : "Qo'shish"}</Text>
+              <Text style={styles.addButtonText}>{inCart ? `+${item.quantity_step}` : "Добавить"}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -86,7 +86,7 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Kafe<Text style={{color: '#f97316'}}>Plat</Text></Text>
-        <Text style={styles.headerSub}>Eng shirin taomlar ro'yxati</Text>
+        <Text style={styles.headerSub}>Список самых вкусных блюд</Text>
       </View>
 
       <View style={styles.categoriesContainer}>

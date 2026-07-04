@@ -49,18 +49,19 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		}
 	}
 
-	// Check for existing order from the same phone in the last 30 minutes
-	if os.Getenv("APP_ENV") != "development" {
+	// Check for existing order from the same phone in the last 30 minutes (skip for cafe orders)
+	if os.Getenv("APP_ENV") != "development" && order.TableID == nil {
 		lastOrder, err := s.orderRepo.GetLastOrderByPhone(order.Phone)
 		if err == nil && lastOrder != nil {
 			if time.Since(lastOrder.CreatedAt) < 30*time.Minute {
-				return fmt.Errorf("siz oxirgi 30 daqiqa ichida buyurtma bergansiz. Iltimos kuting.")
+				return fmt.Errorf("вы делали заказ в последние 30 минут. Пожалуйста, подождите.")
 			}
 		}
 	}
 
-	// Business logic for mandatory containers
+	// Business logic for mandatory containers (only for delivery/takeaway, skip for dine-in tables)
 	var itemsToAdd []models.OrderItem
+	if order.TableID == nil {
 	for _, item := range order.Items {
 		prod, err := s.productRepo.GetByID(item.ProductID)
 		if err != nil || prod == nil { continue }
@@ -102,6 +103,7 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 			order.Items = append(order.Items, newItem)
 		}
 	}
+	} // end if order.TableID == nil
 
 	var total float64
 	for i := range order.Items {
@@ -109,9 +111,9 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		prod, err := s.productRepo.GetByID(item.ProductID)
 		if err != nil || prod == nil {
 			if item.ProductID == containerID {
-				return fmt.Errorf("tizim sozlamasidagi idish mahsuloti (ID: %d) topilmadi. Iltimos admin panelda sozlamalarni tekshiring.", containerID)
+				return fmt.Errorf("продукт 'контейнер' в настройках системы (ID: %d) не найден. Пожалуйста, проверьте настройки в админ панели.", containerID)
 			}
-			return fmt.Errorf("mahsulot topilmadi (ID: %d)", item.ProductID)
+			return fmt.Errorf("продукт не найден (ID: %d)", item.ProductID)
 		}
 
 		itemPrice := prod.Price
@@ -124,10 +126,10 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		total += item.Price * item.Quantity
 	}
 	
-	// Check minimum order value (40,000 UZS)
-	if os.Getenv("APP_ENV") != "development" {
+	// Check minimum order value (40,000 UZS) for delivery customers
+	if os.Getenv("APP_ENV") != "development" && order.TableID == nil {
 		if total < 40000 {
-			return fmt.Errorf("minimum buyurtma qiymati 40.000 so'm bo'lishi kerak")
+			return fmt.Errorf("минимальная сумма заказа должна быть 40.000 сум")
 		}
 	}
 
@@ -137,6 +139,12 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 
 	if err := s.orderRepo.Create(order); err != nil {
 		return err
+	}
+
+	// Fetch fully populated order to get WaiterName and TableNumber
+	populatedOrder, err := s.orderRepo.GetByID(order.ID)
+	if err == nil && populatedOrder != nil {
+		order = populatedOrder
 	}
 
 	// Enrich order items with product names for notification
@@ -165,8 +173,8 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
 
-	// Print Waiter orders (since they don't trigger the bot's notifyAPI)
-	if order.WaiterID != nil {
+	// Print Cafe orders (since they don't trigger the bot's notifyAPI)
+	if order.TableID != nil {
 		s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
 		go s.printerService.PrintOrder(order)
 	}
@@ -243,6 +251,13 @@ func (s *OrderService) GetActiveOrders() ([]models.Order, error) {
 }
 
 func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus, userID int, role string) error {
+	order, _ := s.orderRepo.GetByID(orderID)
+	if order != nil && role == "waiter" {
+		if order.WaiterID != nil && *order.WaiterID != userID {
+			return fmt.Errorf("Siz faqat o'zingizning buyurtmalaringizni o'zgartira olasiz")
+		}
+	}
+
 	var cookID *int
 	if role == "cook" && status == models.StatusPreparing {
 		cookID = &userID
@@ -272,9 +287,15 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 
 			// Notify bot for specific statuses
 			if status == models.StatusReady {
-				s.botService.SendOrderStatusNotification(order, "TAYYOR - Kuryerlar olib ketishi mumkin")
+				s.botService.SendOrderStatusNotification(order, "ГОТОВО - Курьеры могут забрать")
 			} else if status == models.StatusDelivered {
-				s.botService.SendOrderStatusNotification(order, "YETKAZIB BERILDI")
+				s.botService.SendOrderStatusNotification(order, "ДОСТАВЛЕНО")
+				
+				// Print Final Receipt for Cafe orders when closed
+				if order.TableID != nil {
+					s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": order})
+					go s.printerService.PrintOrder(order)
+				}
 			}
 		}
 	}
@@ -332,11 +353,11 @@ func (s *OrderService) TestPrinter() error {
 	testOrder := &models.Order{
 		ID:         9999,
 		TotalPrice: 50000,
-		Address:    "TEST MANZIL",
+		Address:    "ТЕСТОВЫЙ АДРЕС",
 		Phone:      "998901234567",
 		Items: []models.OrderItem{
-			{ProductName: "TEST TAOM 1", Quantity: 1, Price: 25000},
-			{ProductName: "TEST TAOM 2", Quantity: 1, Price: 25000},
+			{ProductName: "ТЕСТ БЛЮДО 1", Quantity: 1, Price: 25000},
+			{ProductName: "ТЕСТ БЛЮДО 2", Quantity: 1, Price: 25000},
 		},
 	}
 	
@@ -349,4 +370,53 @@ func (s *OrderService) TestPrinter() error {
 	go s.printerService.PrintOrder(testOrder)
 
 	return nil
+}
+
+func (s *OrderService) ReprintOrder(orderID int) error {
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil {
+		return err
+	}
+	
+	// Notify WS bridge just in case they use it instead of TCP
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
+	
+	// Direct TCP print
+	go s.printerService.PrintOrder(order)
+	return nil
+}
+
+func (s *OrderService) SetServiceFee(orderID int, percentage float64) (*models.Order, error) {
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil {
+		return nil, err
+	}
+	if order == nil {
+		return nil, fmt.Errorf("order %d not found", orderID)
+	}
+
+	// Calculate base price (total minus any previous service fee)
+	basePrice := order.TotalPrice - order.ServiceFee
+
+	// Calculate new service fee
+	serviceFee := basePrice * (percentage / 100.0)
+	newTotal := basePrice + serviceFee
+
+	// Save to DB
+	err = s.orderRepo.SetServiceFee(orderID, percentage, serviceFee, newTotal)
+	if err != nil {
+		return nil, err
+	}
+
+	// Refresh order data
+	order, _ = s.orderRepo.GetByID(orderID)
+	return order, nil
+}
+
+func (s *OrderService) SetPaymentMethod(orderID int, method string) error {
+	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+	if !validMethods[method] {
+		return fmt.Errorf("недопустимый тип оплаты: %s", method)
+	}
+	return s.orderRepo.SetPaymentMethod(orderID, method)
 }

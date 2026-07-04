@@ -25,21 +25,102 @@ func (r *ProductRepository) Create(product *models.Product) error {
 
 func (r *ProductRepository) GetAll() ([]models.Product, error) {
 	var products []models.Product
-	query := `SELECT * FROM products ORDER BY id ASC`
+	query := `
+		SELECT p.*,
+		COALESCE((
+			SELECT SUM(
+				CASE 
+					WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					ELSE pi.quantity * COALESCE(i.cost_price, 0)
+				END
+			) FROM product_ingredients pi JOIN ingredients i ON pi.ingredient_id = i.id WHERE pi.product_id = p.id
+		), 0) as cost_price,
+		(p.price - COALESCE((
+			SELECT SUM(
+				CASE 
+					WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					ELSE pi.quantity * COALESCE(i.cost_price, 0)
+				END
+			) FROM product_ingredients pi JOIN ingredients i ON pi.ingredient_id = i.id WHERE pi.product_id = p.id
+		), 0)) as profit_margin
+		FROM products p ORDER BY p.id ASC
+	`
 	err := r.db.Select(&products, query)
 	return products, err
 }
 
 func (r *ProductRepository) GetByCategoryID(categoryID int) ([]models.Product, error) {
 	var products []models.Product
-	query := `SELECT * FROM products WHERE category_id = $1 AND is_active = true ORDER BY id ASC`
+	query := `
+		SELECT p.*,
+		COALESCE((
+			SELECT SUM(
+				CASE 
+					WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					ELSE pi.quantity * COALESCE(i.cost_price, 0)
+				END
+			) FROM product_ingredients pi JOIN ingredients i ON pi.ingredient_id = i.id WHERE pi.product_id = p.id
+		), 0) as cost_price,
+		(p.price - COALESCE((
+			SELECT SUM(
+				CASE 
+					WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					ELSE pi.quantity * COALESCE(i.cost_price, 0)
+				END
+			) FROM product_ingredients pi JOIN ingredients i ON pi.ingredient_id = i.id WHERE pi.product_id = p.id
+		), 0)) as profit_margin
+		FROM products p WHERE p.category_id = $1 AND p.is_active = true ORDER BY p.id ASC
+	`
 	err := r.db.Select(&products, query, categoryID)
 	return products, err
 }
 
 func (r *ProductRepository) GetByID(id int) (*models.Product, error) {
 	var product models.Product
-	query := `SELECT * FROM products WHERE id = $1`
+	query := `
+		SELECT p.*,
+		COALESCE((
+			SELECT SUM(
+				CASE 
+					WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					ELSE pi.quantity * COALESCE(i.cost_price, 0)
+				END
+			) FROM product_ingredients pi JOIN ingredients i ON pi.ingredient_id = i.id WHERE pi.product_id = p.id
+		), 0) as cost_price,
+		(p.price - COALESCE((
+			SELECT SUM(
+				CASE 
+					WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+					WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+					ELSE pi.quantity * COALESCE(i.cost_price, 0)
+				END
+			) FROM product_ingredients pi JOIN ingredients i ON pi.ingredient_id = i.id WHERE pi.product_id = p.id
+		), 0)) as profit_margin
+		FROM products p WHERE p.id = $1
+	`
 	err := r.db.Get(&product, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

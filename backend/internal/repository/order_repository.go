@@ -57,6 +57,8 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
 			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
@@ -101,6 +103,8 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
 			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
@@ -141,6 +145,8 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
 			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
@@ -183,6 +189,8 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
 			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
 			   o.created_at, o.updated_at,
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
@@ -335,4 +343,16 @@ func (r *OrderRepository) GetLastOrderByPhone(phone string) (*models.Order, erro
 		return nil, err
 	}
 	return &order, nil
+}
+
+func (r *OrderRepository) SetServiceFee(orderID int, percentage float64, fee float64, newTotal float64) error {
+	query := `UPDATE orders SET service_percentage = $1, service_fee = $2, total_price = $3, updated_at = NOW() WHERE id = $4`
+	_, err := r.db.Exec(query, percentage, fee, newTotal, orderID)
+	return err
+}
+
+func (r *OrderRepository) SetPaymentMethod(orderID int, method string) error {
+	query := `UPDATE orders SET payment_method = $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.db.Exec(query, method, orderID)
+	return err
 }

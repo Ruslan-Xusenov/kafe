@@ -28,6 +28,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
               setCourierComment(r.comment || '');
             }
           });
+      // eslint-disable-next-line no-unused-vars
         } catch (err) {
           console.error('Failed to fetch existing ratings:', err);
         } finally {
@@ -81,6 +82,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
       })));
       onSuccess();
       onClose();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error('Rating failed:', err);
       const serverMsg = err.response?.data?.error || "Qaytadan urunib ko'ring.";

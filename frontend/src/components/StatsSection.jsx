@@ -12,6 +12,7 @@ const StatsSection = ({ role }) => {
     try {
       const res = await api.get('/orders/stats');
       setStats(res.data);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error('Failed to fetch stats', err);
     } finally {

@@ -58,7 +58,6 @@ func (r *financeRepository) GetStats() (*models.FinanceStats, error) {
 	stats := &models.FinanceStats{}
 
 	// Calculate total revenue from delivered orders
-	// Using 'delivered' status to only count completed orders
 	revenueQuery := `SELECT COALESCE(SUM(total_price), 0) FROM orders WHERE status = 'delivered'`
 	if err := r.db.QueryRow(revenueQuery).Scan(&stats.TotalRevenue); err != nil {
 		return nil, fmt.Errorf("failed to get revenue: %v", err)
@@ -71,6 +70,23 @@ func (r *financeRepository) GetStats() (*models.FinanceStats, error) {
 	}
 
 	stats.NetProfit = stats.TotalRevenue - stats.TotalExpenses
+
+	// Payment method breakdown
+	paymentQuery := `
+		SELECT 
+			COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_price ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN payment_method = 'card' THEN total_price ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN payment_method = 'click' THEN total_price ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN payment_method = 'nasiya' THEN total_price ELSE 0 END), 0)
+		FROM orders WHERE status = 'delivered'
+	`
+	if err := r.db.QueryRow(paymentQuery).Scan(&stats.CashRevenue, &stats.CardRevenue, &stats.ClickRevenue, &stats.NasiyaRevenue); err != nil {
+		// Ignore error for backwards compatibility
+		stats.CashRevenue = 0
+		stats.CardRevenue = 0
+		stats.ClickRevenue = 0
+		stats.NasiyaRevenue = 0
+	}
 
 	return stats, nil
 }

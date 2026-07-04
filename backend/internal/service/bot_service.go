@@ -43,16 +43,16 @@ func (s *BotService) SendNewOrderNotification(order *models.Order, imageUrl *str
 		return
 	}
 
-	msgText := fmt.Sprintf("🔔 *Yangi Buyurtma! #%d*\n\n", order.ID)
-	msgText += fmt.Sprintf("👤 Mijoz: %s\n", order.Phone)
-	msgText += fmt.Sprintf("📍 Manzil: %s\n\n", order.Address)
-	msgText += "*Mahsulotlar:*\n"
+	msgText := fmt.Sprintf("🔔 *Новый заказ! #%d*\n\n", order.ID)
+	msgText += fmt.Sprintf("👤 Клиент: %s\n", order.Phone)
+	msgText += fmt.Sprintf("📍 Адрес: %s\n\n", order.Address)
+	msgText += "*Продукты:*\n"
 	
 	for _, item := range order.Items {
 		msgText += fmt.Sprintf("- %.1fx %s\n", item.Quantity, item.ProductName)
 	}
 	
-	msgText += fmt.Sprintf("\n💰 *Jami: %s so'm*", fmt.Sprintf("%.0f", order.TotalPrice))
+	msgText += fmt.Sprintf("\n💰 *Итого: %s сум*", fmt.Sprintf("%.0f", order.TotalPrice))
 
 	var msg tgbotapi.Chattable
 	if imageUrl != nil && *imageUrl != "" {
@@ -95,10 +95,10 @@ func (s *BotService) SendOrderStatusNotification(order *models.Order, statusMsg 
 		return
 	}
 
-	msgText := fmt.Sprintf("📦 *Buyurtma Holati O'zgardi: #%d*\n\n", order.ID)
-	msgText += fmt.Sprintf("Holati: *%s*\n", statusMsg)
-	msgText += fmt.Sprintf("Mijoz: %s\n", order.Phone)
-	msgText += fmt.Sprintf("Manzil: %s\n", order.Address)
+	msgText := fmt.Sprintf("📦 *Статус заказа изменен: #%d*\n\n", order.ID)
+	msgText += fmt.Sprintf("Статус: *%s*\n", statusMsg)
+	msgText += fmt.Sprintf("Клиент: %s\n", order.Phone)
+	msgText += fmt.Sprintf("Адрес: %s\n", order.Address)
 
 	textMsg := tgbotapi.NewMessage(s.chatID, msgText)
 	textMsg.ParseMode = "Markdown"

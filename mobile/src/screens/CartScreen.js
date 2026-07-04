@@ -20,17 +20,17 @@ const CartScreen = ({ navigation }) => {
         })),
         total_price: totalPrice,
         address: 'Mobile App',
-        phone: 'Belgilanmagan', // We'll need a real modal for this later
+        phone: 'Не указан', // We'll need a real modal for this later
         delivery_method: 'pickup'
       };
 
       await api.post('/orders', payload);
-      Alert.alert('Muvaffaqiyatli', 'Buyurtma oshxonaga yuborildi!');
+      Alert.alert('Успешно', 'Заказ отправлен на кухню!');
       clearCart();
       navigation.navigate('Home');
     } catch (err) {
       console.error(err);
-      Alert.alert('Xatolik', 'Buyurtma yuborishda xatolik yuz berdi.');
+      Alert.alert('Ошибка', 'Произошла ошибка при отправке заказа.');
     }
   };
 
@@ -38,7 +38,7 @@ const CartScreen = ({ navigation }) => {
     <View style={styles.cartItem}>
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>{(item.price * item.quantity).toLocaleString()} so'm</Text>
+        <Text style={styles.itemPrice}>{(item.price * item.quantity).toLocaleString()} сум</Text>
       </View>
       <View style={styles.qtyControls}>
         <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.product_id, -item.step)}>
@@ -55,7 +55,7 @@ const CartScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Savatcha</Text>
+        <Text style={styles.title}>Корзина</Text>
         {items.length > 0 && (
           <TouchableOpacity onPress={clearCart}>
             <Trash2 color="#ef4444" size={24} />
@@ -66,7 +66,7 @@ const CartScreen = ({ navigation }) => {
       {items.length === 0 ? (
         <View style={styles.emptyState}>
           <ShoppingCart color="#333" size={64} style={{ marginBottom: 20 }} />
-          <Text style={styles.emptyText}>Savatchangiz bo'sh</Text>
+          <Text style={styles.emptyText}>Ваша корзина пуста</Text>
         </View>
       ) : (
         <>
@@ -78,11 +78,11 @@ const CartScreen = ({ navigation }) => {
           />
           <View style={styles.footer}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Jami summa:</Text>
-              <Text style={styles.totalPrice}>{totalPrice.toLocaleString()} so'm</Text>
+              <Text style={styles.totalLabel}>Итоговая сумма:</Text>
+              <Text style={styles.totalPrice}>{totalPrice.toLocaleString()} сум</Text>
             </View>
             <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout}>
-              <Text style={styles.checkoutBtnText}>Buyurtma Berish</Text>
+              <Text style={styles.checkoutBtnText}>Оформить заказ</Text>
             </TouchableOpacity>
           </View>
         </>

@@ -20,6 +20,9 @@ type InventoryRepository interface {
 	// Stock Operations
 	DeductStockForProduct(productID int, productQuantity float64) error
 	RestoreStockForProduct(productID int, productQuantity float64) error
+
+	// Cost Price
+	GetProductCostPrice(productID int) (float64, error)
 }
 
 type inventoryRepository struct {
@@ -31,20 +34,20 @@ func NewInventoryRepository(db *sqlx.DB) InventoryRepository {
 }
 
 func (r *inventoryRepository) CreateIngredient(ing *models.Ingredient) error {
-	query := `INSERT INTO ingredients (name, stock, unit, min_stock) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
-	return r.db.QueryRow(query, ing.Name, ing.Stock, ing.Unit, ing.MinStock).Scan(&ing.ID, &ing.CreatedAt, &ing.UpdatedAt)
+	query := `INSERT INTO ingredients (name, stock, unit, min_stock, cost_price) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`
+	return r.db.QueryRow(query, ing.Name, ing.Stock, ing.Unit, ing.MinStock, ing.CostPrice).Scan(&ing.ID, &ing.CreatedAt, &ing.UpdatedAt)
 }
 
 func (r *inventoryRepository) GetIngredients() ([]models.Ingredient, error) {
-	query := `SELECT id, name, stock, unit, min_stock, created_at, updated_at FROM ingredients ORDER BY name ASC`
+	query := `SELECT id, name, stock, unit, min_stock, COALESCE(cost_price, 0) as cost_price, created_at, updated_at FROM ingredients ORDER BY name ASC`
 	var ingredients []models.Ingredient
 	err := r.db.Select(&ingredients, query)
 	return ingredients, err
 }
 
 func (r *inventoryRepository) UpdateIngredient(ing *models.Ingredient) error {
-	query := `UPDATE ingredients SET name=$1, stock=$2, unit=$3, min_stock=$4, updated_at=NOW() WHERE id=$5`
-	_, err := r.db.Exec(query, ing.Name, ing.Stock, ing.Unit, ing.MinStock, ing.ID)
+	query := `UPDATE ingredients SET name=$1, stock=$2, unit=$3, min_stock=$4, cost_price=$5, updated_at=NOW() WHERE id=$6`
+	_, err := r.db.Exec(query, ing.Name, ing.Stock, ing.Unit, ing.MinStock, ing.CostPrice, ing.ID)
 	return err
 }
 
@@ -99,4 +102,26 @@ func (r *inventoryRepository) RestoreStockForProduct(productID int, productQuant
 	`
 	_, err := r.db.Exec(query, productID, productQuantity)
 	return err
+}
+
+// GetProductCostPrice calculates the total cost price for a product based on its recipe
+func (r *inventoryRepository) GetProductCostPrice(productID int) (float64, error) {
+	var costPrice float64
+	query := `
+		SELECT COALESCE(SUM(
+			CASE 
+				WHEN pi.unit = i.unit THEN pi.quantity * COALESCE(i.cost_price, 0)
+				WHEN pi.unit = 'gr' AND i.unit = 'kg' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+				WHEN pi.unit = 'kg' AND i.unit = 'gr' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+				WHEN pi.unit = 'ml' AND i.unit = 'l' THEN (pi.quantity / 1000.0) * COALESCE(i.cost_price, 0)
+				WHEN pi.unit = 'l' AND i.unit = 'ml' THEN (pi.quantity * 1000.0) * COALESCE(i.cost_price, 0)
+				ELSE pi.quantity * COALESCE(i.cost_price, 0)
+			END
+		), 0) as total_cost
+		FROM product_ingredients pi
+		JOIN ingredients i ON pi.ingredient_id = i.id
+		WHERE pi.product_id = $1
+	`
+	err := r.db.QueryRow(query, productID).Scan(&costPrice)
+	return costPrice, err
 }

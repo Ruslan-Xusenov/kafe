@@ -54,7 +54,7 @@ func main() {
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
 	financeHandler := handlers.NewFinanceHandler(financeRepo)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryRepo)
-	tableHandler := handlers.NewTableHandler(tableRepo)
+	tableHandler := handlers.NewTableHandler(tableRepo, orderService)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -66,9 +66,15 @@ func main() {
 	// CORS Middleware
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		if origin != "" {
+		allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+		if allowedOrigins == "" {
+			allowedOrigins = "http://localhost:3000,http://localhost:5173" // Default safe local origins
+		}
+
+		if origin != "" && strings.Contains(allowedOrigins, origin) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
+		} else if origin == "" {
+			// Allow non-browser clients (like bots/mobile) if no origin is set
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -163,6 +169,8 @@ func main() {
 				staff.GET("/stats", orderHandler.GetStats)
 				staff.PUT("/:id/status", orderHandler.UpdateStatus)
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
+				staff.POST("/:id/print", orderHandler.ReprintOrder)
+				staff.PUT("/:id/service-fee", orderHandler.SetServiceFee)
 			}
 		}
 
@@ -209,7 +217,8 @@ func main() {
 		// WebSocket
 		api.GET("/ws", func(c *gin.Context) {
 			pk := c.Query("printer_key")
-			if pk == "KAFE_PRINTER_SECRET_2026" {
+			expectedPK := os.Getenv("PRINTER_SECRET")
+			if pk != "" && expectedPK != "" && pk == expectedPK {
 				wsService.HandleConnection(c.Writer, c.Request, 0, "printer")
 				return
 			}
@@ -227,7 +236,8 @@ func main() {
 		// Internal Notify (For Telegram Bot)
 		api.GET("/notify-order/:id", func(c *gin.Context) {
 			pk := c.Query("key")
-			if pk != "KAFE_PRINTER_SECRET_2026" {
+			expectedPK := os.Getenv("PRINTER_SECRET")
+			if expectedPK == "" || pk != expectedPK {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid key"})
 				return
 			}

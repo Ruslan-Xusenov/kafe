@@ -17,13 +17,16 @@ import (
 
 // Order status and models (same as backend)
 type Order struct {
-	ID         int         `json:"id"`
-	TotalPrice float64     `json:"total_price"`
-	Items      []OrderItem `json:"items"`
-	Address    string      `json:"address"`
-	Phone      string      `json:"phone"`
-	Comment    string      `json:"comment"`
-	CreatedAt  time.Time   `json:"created_at"`
+	ID          int         `json:"id"`
+	TotalPrice  float64     `json:"total_price"`
+	Items       []OrderItem `json:"items"`
+	Address     string      `json:"address"`
+	Phone       string      `json:"phone"`
+	Comment     string      `json:"comment"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   *time.Time  `json:"updated_at"`
+	WaiterName  string      `json:"waiter_name"`
+	TableNumber *int        `json:"table_number"`
 }
 
 type OrderItem struct {
@@ -41,19 +44,23 @@ func main() {
 	// Load environment variables (from local .env or from app folder)
 	godotenv.Load()
 
-	apiHost := os.Getenv("API_HOST") // e.g. "api.kafe.uz"
+	apiHost := os.Getenv("API_HOST")
 	if apiHost == "" {
-		apiHost = "localhost:8080"
+		apiHost = "kafe.ruslandev.uz"
 	}
 	printerKey := os.Getenv("PRINTER_KEY")
 	if printerKey == "" {
-		printerKey = "KAFE_PRINTER_SECRET_2026"
+		printerKey = os.Getenv("PRINTER_SECRET")
 	}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: apiHost, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
+	scheme := "ws"
+	if strings.Contains(apiHost, "ruslandev.uz") {
+		scheme = "wss"
+	}
+	u := url.URL{Scheme: scheme, Host: apiHost, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
 	
 	log.Printf("🔌 Connecting to WebSocket: %s", u.String())
 
@@ -85,8 +92,8 @@ func main() {
 					continue
 				}
 				
-				if wsMsg.Type == "new_order" {
-					log.Printf("🔔 Received New Order #%d", wsMsg.Order.ID)
+				if wsMsg.Type == "new_order" || wsMsg.Type == "close_order" {
+					log.Printf("🔔 Received Order Event (%s) #%d", wsMsg.Type, wsMsg.Order.ID)
 					printOrder(wsMsg.Order)
 				}
 			}
@@ -117,8 +124,7 @@ func main() {
 func printOrder(order Order) {
 	printerIP := os.Getenv("PRINTER_IP")
 	if printerIP == "" {
-		log.Println("⚠️ PRINTER_IP not set in .env. Skipping print.")
-		return
+		printerIP = "192.168.1.12"
 	}
 	printerPort := os.Getenv("PRINTER_PORT")
 	if printerPort == "" {
@@ -151,24 +157,29 @@ func printOrder(order Order) {
 
 	conn.Write(ALIGN_CENTER)
 	conn.Write(FONT_BIG)
-	conn.Write([]byte("KAFE\n"))
+	conn.Write([]byte("Mangal\n"))
 	
 	conn.Write(FONT_NORMAL)
-	conn.Write([]byte("--------------------------------\n"))
-	conn.Write(FONT_DOUBLE_H)
-	conn.Write([]byte(fmt.Sprintf("BUYURTMA #%d\n", order.ID)))
-	conn.Write(FONT_NORMAL)
-	conn.Write([]byte(fmt.Sprintf("Sana: %s\n", time.Now().Format("02.01.2006 15:04"))))
-	conn.Write([]byte("--------------------------------\n"))
-
 	conn.Write(ALIGN_LEFT)
-	conn.Write([]byte(fmt.Sprintf("Mijoz: %s\n", order.Phone)))
-	conn.Write([]byte(fmt.Sprintf("Manzil: %s\n", transliterate(order.Address))))
-	if order.Comment != "" {
-		conn.Write([]byte(fmt.Sprintf("Izoh: %s\n", transliterate(order.Comment))))
+	conn.Write([]byte(fmt.Sprintf("Chek: %d\n", order.ID)))
+	
+	waiter := transliterate(order.WaiterName)
+	if waiter == "" {
+		waiter = "Noma'lum"
 	}
+	conn.Write([]byte(fmt.Sprintf("Ofitsiant: %s\n", waiter)))
+	
+	if order.TableNumber != nil {
+		conn.Write([]byte(fmt.Sprintf("Stol: %d\n", *order.TableNumber)))
+	}
+	
+	conn.Write([]byte("Odam soni: 1\n"))
+	conn.Write([]byte(fmt.Sprintf("Ochilgan vaqti: %s\n", order.CreatedAt.Format("02.01.2006 15:04"))))
+	if order.UpdatedAt != nil && !order.UpdatedAt.IsZero() {
+		conn.Write([]byte(fmt.Sprintf("Yopilgan vaqti: %s\n", order.UpdatedAt.Format("02.01.2006 15:04"))))
+	}
+	
 	conn.Write([]byte("--------------------------------\n"))
-
 	conn.Write([]byte("Mahsulot        Soni  Narxi   Jami\n"))
 	for _, item := range order.Items {
 		name := transliterate(item.ProductName)

@@ -35,7 +35,7 @@ fi
 # 3. Printer Ko'prik (Bridge) dasturini yoqish
 echo "3. Ko'prik dasturini ulayapman..."
 export SERVER_WS_URL=ws://localhost:8080/api/ws
-export AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwOTA1MDc5MDEsInJvbGUiOiJwcmludGVyIiwidXNlcl9pZCI6OTk5fQ.dauo2T2LmzMe6Layjz9mpUHdeK9NvfWeplgjBMmiv3c"
+export AUTH_TOKEN="your_test_token_here"
 export PRINTER_IP=127.0.0.1
 go run ./bridge/main.go > bridge_test.log 2>&1 &
 BRIDGE_PID=$!

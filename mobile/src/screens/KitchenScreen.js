@@ -5,9 +5,9 @@ import api from '../api';
 import { ChefHat, Flame, CheckCircle2, Clock, RefreshCw } from 'lucide-react-native';
 
 const STATUS_CONFIG = {
-  new:       { label: 'Yangi',          color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
-  preparing: { label: 'Tayyorlanmoqda', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-  ready:     { label: 'Tayyor',         color: '#34d399', bg: 'rgba(16,185,129,0.15)' },
+  new:       { label: 'Новый',          color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
+  preparing: { label: 'Готовится', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+  ready:     { label: 'Готово',         color: '#34d399', bg: 'rgba(16,185,129,0.15)' },
 };
 
 const KitchenScreen = () => {
@@ -48,7 +48,7 @@ const KitchenScreen = () => {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
       fetchOrders();
     } catch (err) {
-      Alert.alert('Xato', 'Statusni yangilashda xatolik');
+      Alert.alert('Ошибка', 'Ошибка при обновлении статуса');
     }
   };
 
@@ -88,18 +88,18 @@ const KitchenScreen = () => {
           {isNew && (
             <TouchableOpacity style={[styles.btn, { backgroundColor: STATUS_CONFIG.preparing.bg }]} onPress={() => updateStatus(order.id, 'preparing')}>
               <Flame size={16} color={STATUS_CONFIG.preparing.color} />
-              <Text style={[styles.btnText, { color: STATUS_CONFIG.preparing.color }]}>Pishirishni boshlash</Text>
+              <Text style={[styles.btnText, { color: STATUS_CONFIG.preparing.color }]}>Начать готовку</Text>
             </TouchableOpacity>
           )}
           {isPrep && (
             <TouchableOpacity style={[styles.btn, { backgroundColor: STATUS_CONFIG.ready.bg }]} onPress={() => updateStatus(order.id, 'ready')}>
               <CheckCircle2 size={16} color={STATUS_CONFIG.ready.color} />
-              <Text style={[styles.btnText, { color: STATUS_CONFIG.ready.color }]}>Tayyor!</Text>
+              <Text style={[styles.btnText, { color: STATUS_CONFIG.ready.color }]}>Готово!</Text>
             </TouchableOpacity>
           )}
           {isReady && (
             <View style={styles.waitingCourier}>
-              <Text style={{color: STATUS_CONFIG.ready.color, fontWeight: 'bold'}}>Kuryerni kutmoqda...</Text>
+              <Text style={{color: STATUS_CONFIG.ready.color, fontWeight: 'bold'}}>Ожидает курьера...</Text>
             </View>
           )}
         </View>
@@ -124,11 +124,11 @@ const KitchenScreen = () => {
         <View style={isDesktop ? styles.colBodyDesktop : styles.colBodyMobile}>
           {isDesktop ? (
             <ScrollView showsVerticalScrollIndicator={false}>
-              {colOrders.length === 0 ? <Text style={styles.emptyText}>Bo'sh</Text> : colOrders.map(renderOrderCard)}
+              {colOrders.length === 0 ? <Text style={styles.emptyText}>Пусто</Text> : colOrders.map(renderOrderCard)}
             </ScrollView>
           ) : (
             <View>
-              {colOrders.length === 0 ? <Text style={styles.emptyText}>Bo'sh</Text> : colOrders.map(renderOrderCard)}
+              {colOrders.length === 0 ? <Text style={styles.emptyText}>Пусто</Text> : colOrders.map(renderOrderCard)}
             </View>
           )}
         </View>
@@ -148,8 +148,8 @@ const KitchenScreen = () => {
         <View style={styles.headerLeft}>
           <ChefHat color="#fff" size={24} />
           <View>
-            <Text style={styles.headerTitle}>Oshxona</Text>
-            <Text style={styles.headerSubtitle}>{orders.length} ta aktiv buyurtma</Text>
+            <Text style={styles.headerTitle}>Кухня</Text>
+            <Text style={styles.headerSubtitle}>{orders.length} активных заказов</Text>
           </View>
         </View>
         <View style={{flexDirection: 'row', gap: 10}}>
@@ -157,7 +157,7 @@ const KitchenScreen = () => {
             <RefreshCw color="#888" size={20} />
           </TouchableOpacity>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Chiqish</Text>
+            <Text style={styles.logoutText}>Выйти</Text>
           </TouchableOpacity>
         </View>
       </View>

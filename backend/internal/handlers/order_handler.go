@@ -183,3 +183,31 @@ func (h *OrderHandler) TestPrinter(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "test sent"})
 }
+
+func (h *OrderHandler) ReprintOrder(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if err := h.service.ReprintOrder(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "order sent to printer"})
+}
+
+func (h *OrderHandler) SetServiceFee(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var req struct {
+		Percentage float64 `json:"percentage"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	order, err := h.service.SetServiceFee(id, req.Percentage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}

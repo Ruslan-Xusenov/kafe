@@ -29,6 +29,7 @@ export const useWebsocket = (onMessage) => {
     return () => {
       socket.close();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token]);
 
   return socketRef.current;

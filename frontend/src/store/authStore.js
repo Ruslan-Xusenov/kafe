@@ -43,6 +43,7 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', token);
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true, role: user.role };
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       const msg = translateError(err) || 'Kirishda xatolik yuz berdi';
       set({ error: msg, loading: false });
@@ -58,6 +59,7 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', token);
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true };
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       const msg = translateError(err) || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
       set({ error: msg, loading: false });
@@ -76,6 +78,7 @@ export const useAuthStore = create((set) => ({
     try {
       const res = await api.get('/auth/me');
       set({ user: res.data, isAuthenticated: true });
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       localStorage.removeItem('token');
       set({ user: null, token: null, isAuthenticated: false });

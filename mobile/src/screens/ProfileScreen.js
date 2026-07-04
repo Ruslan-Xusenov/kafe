@@ -7,14 +7,14 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Profil</Text>
+      <Text style={styles.text}>Профиль</Text>
       {isAuthenticated ? (
         <>
-          <Text style={styles.subtext}>Xush kelibsiz, {user.full_name}</Text>
-          <Button title="Chiqish" onPress={logout} color="#ef4444" />
+          <Text style={styles.subtext}>Добро пожаловать, {user.full_name}</Text>
+          <Button title="Выйти" onPress={logout} color="#ef4444" />
         </>
       ) : (
-        <Button title="Tizimga kirish" onPress={() => navigation.navigate('Login')} color="#f97316" />
+        <Button title="Войти в систему" onPress={() => navigation.navigate('Login')} color="#f97316" />
       )}
     </View>
   );

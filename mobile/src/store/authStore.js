@@ -19,7 +19,7 @@ export const useAuthStore = create((set) => ({
       return { success: true, role: user.role };
     } catch (err) {
       set({ 
-        error: err.response?.data?.error || 'Kirishda xatolik yuz berdi',
+        error: err.response?.data?.error || 'Ошибка при входе',
         loading: false 
       });
       return { success: false };

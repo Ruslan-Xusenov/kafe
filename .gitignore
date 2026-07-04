@@ -11,6 +11,11 @@ backend/kafe-bot
 backend/bot
 telegram_bot/kafe-bot
 
+# Database and uploads
+backend/kafe.db
+backend/uploads/
+uploads/
+*.db
 
 # Binaries and executables
 *.exe

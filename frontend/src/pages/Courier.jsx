@@ -20,6 +20,7 @@ const Courier = () => {
     try {
       const res = await api.get('/orders/active');
       setOrders((res.data || []).filter(o => o.status === 'ready' || o.status === 'on_way'));
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {
@@ -32,6 +33,7 @@ const Courier = () => {
     try {
       await api.post(`/orders/${orderId}/assign`);
       fetchOrders();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Buyurtmani qabul qilishda xatolik');
     }
@@ -43,6 +45,7 @@ const Courier = () => {
     try {
       await api.put(`/orders/${orderId}/status`, { status: 'delivered' });
       fetchOrders();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setOrders(prev);
       alert('Statusni yangilashda xatolik');

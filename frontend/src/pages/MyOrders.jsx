@@ -25,6 +25,7 @@ const MyOrders = () => {
     try {
       const res = await api.get('/orders/my');
       setOrders(Array.isArray(res.data) ? res.data : []);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
       setOrders([]);

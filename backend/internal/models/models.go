@@ -53,6 +53,8 @@ type Product struct {
 	MinQuantity           float64   `json:"min_quantity" db:"min_quantity"`
 	QuantityStep          float64   `json:"quantity_step" db:"quantity_step"`
 	HasMandatoryContainer bool      `json:"has_mandatory_container" db:"has_mandatory_container"`
+	CostPrice             float64   `json:"cost_price" db:"cost_price"`       // Calculated field
+	ProfitMargin          float64   `json:"profit_margin" db:"profit_margin"` // Calculated field
 	CreatedAt             time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -86,6 +88,9 @@ type Order struct {
 	WaiterName  string     `json:"waiter_name" db:"waiter_name"`   // Joined field
 	TableNumber *int       `json:"table_number" db:"table_number"` // Joined field
 	Comment    string     `json:"comment" db:"comment"`
+	ServicePercentage float64 `json:"service_percentage" db:"service_percentage"`
+	ServiceFee float64   `json:"service_fee" db:"service_fee"`
+	PaymentMethod string  `json:"payment_method" db:"payment_method"`
 	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt  *time.Time `json:"updated_at" db:"updated_at"`
 	Items      []OrderItem `json:"items,omitempty" db:"-"`

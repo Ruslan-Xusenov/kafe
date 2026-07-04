@@ -28,7 +28,7 @@ const WaiterScreen = () => {
       setProducts(pRes.data || []);
     } catch (err) {
       console.error(err);
-      Alert.alert("Xato", "Ma'lumotlarni yuklashda xatolik: " + (err.response?.data?.error || err.message));
+      Alert.alert("Ошибка", "Ошибка при загрузке данных: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ const WaiterScreen = () => {
   };
 
   const submitOrder = async () => {
-    if (cart.length === 0) return Alert.alert("Xato", "Savatcha bo'sh!");
+    if (cart.length === 0) return Alert.alert("Ошибка", "Корзина пуста!");
     
     const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     
@@ -78,8 +78,8 @@ const WaiterScreen = () => {
           unit: i.unit
         })),
         total_price: totalPrice,
-        address: `Stol: ${selectedTable.number}`,
-        phone: 'Ichki buyurtma',
+        address: `Стол: ${selectedTable.number}`,
+        phone: 'Внутренний заказ',
         delivery_method: 'dine_in'
       };
 
@@ -89,31 +89,32 @@ const WaiterScreen = () => {
         await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'occupied' });
       }
 
-      Alert.alert('Muvaffaqiyatli', 'Buyurtma oshxonaga yuborildi!');
+      Alert.alert('Успешно', 'Заказ отправлен на кухню!');
       setSelectedTable(null);
       setCart([]);
       fetchInitialData();
     } catch (err) {
-      Alert.alert('Xato', 'Buyurtma yuborishda xatolik');
+      Alert.alert('Ошибка', 'Ошибка при отправке заказа');
     }
   };
 
   const freeTable = () => {
     Alert.alert(
-      "Tasdiqlash",
-      "Stolni bo'shatishni xohlaysizmi?",
+      "Подтверждение",
+      "Вы хотите освободить стол?",
       [
-        { text: "Yo'q", style: "cancel" },
+        { text: "Нет", style: "cancel" },
         { 
-          text: "Ha", 
+          text: "Да", 
           onPress: async () => {
             try {
               await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'free' });
-              Alert.alert("Bajarildi", "Stol bo'shatildi!");
+              Alert.alert("Выполнено", "Стол освобожден!");
               setSelectedTable(null);
               fetchInitialData();
             } catch (err) {
-              Alert.alert("Xato", "Xatolik yuz berdi");
+              const msg = err.response?.data?.error || "Произошла ошибка";
+              Alert.alert("Ошибка", msg);
             }
           }
         }
@@ -129,10 +130,10 @@ const WaiterScreen = () => {
         onPress={() => setSelectedTable(item)}
       >
         <Text style={[styles.tableNum, isFree ? styles.textFree : styles.textOccupied]}>
-          Stol {item.number}
+          Стол {item.number}
         </Text>
         <Text style={[styles.tableStatus, isFree ? styles.textFree : styles.textOccupied]}>
-          {isFree ? "Bo'sh" : "Band"}
+          {isFree ? "Свободен" : "Занят"}
         </Text>
       </TouchableOpacity>
     );
@@ -144,7 +145,7 @@ const WaiterScreen = () => {
       <View style={styles.productCard}>
         <View style={{flex: 1}}>
           <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productPrice}>{item.price.toLocaleString()} so'm</Text>
+          <Text style={styles.productPrice}>{item.price.toLocaleString()} сум</Text>
         </View>
         
         {inCart ? (
@@ -182,14 +183,14 @@ const WaiterScreen = () => {
             <ArrowLeft color="#fff" size={24} />
           </TouchableOpacity>
           <View style={{alignItems: 'center'}}>
-            <Text style={styles.orderTitle}>Stol № {selectedTable.number}</Text>
+            <Text style={styles.orderTitle}>Стол № {selectedTable.number}</Text>
             <Text style={{color: selectedTable.status === 'free' ? '#10b981' : '#ef4444', fontWeight: 'bold'}}>
-              {selectedTable.status === 'free' ? "Bo'sh" : "Band"}
+              {selectedTable.status === 'free' ? "Свободен" : "Занят"}
             </Text>
           </View>
           {selectedTable.status !== 'free' ? (
             <TouchableOpacity onPress={freeTable} style={styles.freeBtn}>
-              <Text style={styles.freeBtnText}>Bo'shatish</Text>
+              <Text style={styles.freeBtnText}>Освободить</Text>
             </TouchableOpacity>
           ) : (
             <View style={{width: 60}} /> // Placeholder for alignment
@@ -207,11 +208,11 @@ const WaiterScreen = () => {
         {cart.length > 0 && (
           <View style={styles.cartPanel}>
             <View>
-              <Text style={{color: '#fff', fontSize: 12}}>Jami summa</Text>
-              <Text style={{color: '#fff', fontSize: 20, fontWeight: 'bold'}}>{cartTotal.toLocaleString()} so'm</Text>
+              <Text style={{color: '#fff', fontSize: 12}}>Итоговая сумма</Text>
+              <Text style={{color: '#fff', fontSize: 20, fontWeight: 'bold'}}>{cartTotal.toLocaleString()} сум</Text>
             </View>
             <TouchableOpacity style={styles.submitBtn} onPress={submitOrder}>
-              <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>Yuborish</Text>
+              <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>Отправить</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -222,7 +223,7 @@ const WaiterScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ofitsant Paneli</Text>
+        <Text style={styles.headerTitle}>Панель Официанта</Text>
         <View style={{flexDirection: 'row', gap: 10}}>
           <TouchableOpacity onPress={fetchInitialData} style={styles.iconBtn}>
             <RefreshCw color="#888" size={20} />
@@ -296,10 +297,10 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <SafeAreaView style={{flex: 1, backgroundColor: '#0d0d0f', padding: 20, justifyContent: 'center'}}>
-          <Text style={{color: '#ef4444', fontSize: 20, fontWeight: 'bold'}}>Kutilmagan xatolik yuz berdi!</Text>
+          <Text style={{color: '#ef4444', fontSize: 20, fontWeight: 'bold'}}>Произошла непредвиденная ошибка!</Text>
           <Text style={{color: '#fff', marginTop: 10}}>{this.state.error?.toString()}</Text>
           <TouchableOpacity onPress={() => this.setState({hasError: false, error: null})} style={{marginTop: 20, padding: 10, backgroundColor: '#333', borderRadius: 8}}>
-            <Text style={{color: '#fff', textAlign: 'center'}}>Qayta urinish</Text>
+            <Text style={{color: '#fff', textAlign: 'center'}}>Повторить попытку</Text>
           </TouchableOpacity>
         </SafeAreaView>
       );

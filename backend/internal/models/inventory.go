@@ -8,6 +8,7 @@ type Ingredient struct {
 	Stock     float64   `json:"stock" db:"stock"`
 	Unit      string    `json:"unit" db:"unit"`
 	MinStock  float64   `json:"min_stock" db:"min_stock"`
+	CostPrice float64   `json:"cost_price" db:"cost_price"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }

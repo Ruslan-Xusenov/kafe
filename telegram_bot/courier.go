@@ -11,7 +11,7 @@ import (
 
 func (b *Bot) handleCourierCommand(chatID int64) {
 	if !b.IsCourier(chatID) && !b.IsAdmin(chatID) {
-		b.sendMessage(chatID, "❌ Sizda kuryer huquqlari yo'q")
+		b.sendMessage(chatID, "❌ У вас нет прав курьера")
 		return
 	}
 	b.showCourierActiveOrders(chatID)
@@ -20,7 +20,7 @@ func (b *Bot) handleCourierCommand(chatID int64) {
 func (b *Bot) showCourierActiveOrders(chatID int64) {
 	orders, err := b.repo.GetAllOrders()
 	if err != nil {
-		b.sendMessage(chatID, "❌ Xato")
+		b.sendMessage(chatID, "❌ Ошибка")
 		return
 	}
 
@@ -34,30 +34,30 @@ func (b *Bot) showCourierActiveOrders(chatID int64) {
 		}
 	}
 
-	text := "🚗 <b>Kuryer Paneli</b>\n\n"
+	text := "🚗 <b>Панель Курьера</b>\n\n"
 	var rows [][]tgbotapi.InlineKeyboardButton
 
 	if len(available) > 0 {
-		text += "📦 <b>Tayyor buyurtmalar (Olib ketish uchun):</b>\n"
+		text += "📦 <b>Готовые заказы (Для самовывоза):</b>\n"
 		for _, o := range available {
-			text += fmt.Sprintf("<b>#%d</b> | %.0f so'm\n📍 %s\n\n", o.ID, o.TotalPrice, o.Address)
-			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("🚚 Olish #%d", o.ID), fmt.Sprintf("courier_accept_%d", o.ID))))
+			text += fmt.Sprintf("<b>#%d</b> | %.0f сум\n📍 %s\n\n", o.ID, o.TotalPrice, o.Address)
+			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("🚚 Взять #%d", o.ID), fmt.Sprintf("courier_accept_%d", o.ID))))
 		}
 	}
 
 	if len(myOrders) > 0 {
-		text += "🚴 <b>Mening buyurtmalarim (Yo'lda):</b>\n"
+		text += "🚴 <b>Мои заказы (В пути):</b>\n"
 		for _, o := range myOrders {
 			text += fmt.Sprintf("<b>#%d</b> | 📞 %s\n📍 %s\n\n", o.ID, o.Phone, o.Address)
-			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("✅ Topshirildi #%d", o.ID), fmt.Sprintf("courier_delivered_%d", o.ID))))
+			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("✅ Доставлено #%d", o.ID), fmt.Sprintf("courier_delivered_%d", o.ID))))
 		}
 	}
 
 	if len(available) == 0 && len(myOrders) == 0 {
-		text += "📭 Hozircha yangi buyurtmalar yo'q."
+		text += "📭 Пока нет новых заказов."
 	}
 
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔄 Yangilash", "courier_active_orders"), tgbotapi.NewInlineKeyboardButtonData("🏠 Menyu", "main_menu")))
+	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔄 Обновить", "courier_active_orders"), tgbotapi.NewInlineKeyboardButtonData("🏠 Меню", "main_menu")))
 	b.sendMessageWithKeyboard(chatID, text, tgbotapi.NewInlineKeyboardMarkup(rows...))
 }
 
@@ -66,7 +66,7 @@ func (b *Bot) courierAcceptOrder(chatID int64, data string) {
 	
 	// Bazada kuryerni biriktirish
 	if err := b.repo.AssignCourierByTelegramID(id, chatID); err != nil {
-		b.sendMessage(chatID, "❌ Xato: Buyurtmani qabul qilib bo'lmadi")
+		b.sendMessage(chatID, "❌ Ошибка: Не удалось принять заказ")
 		return
 	}
 	
@@ -74,23 +74,23 @@ func (b *Bot) courierAcceptOrder(chatID int64, data string) {
 	b.ordersToCouriers[id] = chatID
 	b.ordersMu.Unlock()
 	
-	b.sendMessage(chatID, fmt.Sprintf("🚚 Buyurtma #%d qabul qilindi. Yo'lga tushdingiz!", id))
+	b.sendMessage(chatID, fmt.Sprintf("🚚 Заказ #%d принят. Вы в пути!", id))
 	b.showCourierActiveOrders(chatID)
 }
 
 func (b *Bot) courierDeliveredOrder(chatID int64, data string) {
 	id, _ := strconv.Atoi(strings.TrimPrefix(data, "courier_delivered_"))
 	if err := b.repo.UpdateStatus(id, models.StatusDelivered, nil); err != nil {
-		b.sendMessage(chatID, "❌ Xato")
+		b.sendMessage(chatID, "❌ Ошибка")
 		return
 	}
-	b.sendMessage(chatID, fmt.Sprintf("✅ Buyurtma #%d topshirildi. Baraka toping!", id))
+	b.sendMessage(chatID, fmt.Sprintf("✅ Заказ #%d доставлен. Спасибо!", id))
 	b.showCourierActiveOrders(chatID)
 }
 
 func (b *Bot) notifyCouriers(order *models.Order) {
-	text := fmt.Sprintf("🚗 <b>TAYYOR BUYURTMA #%d!</b>\n\nTayyor bo'ldi, olib ketishingiz mumkin.\n📍 %s", order.ID, order.Address)
-	kb := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🚚 Olish", fmt.Sprintf("courier_accept_%d", order.ID))))
+	text := fmt.Sprintf("🚗 <b>ГОТОВЫЙ ЗАКАЗ #%d!</b>\n\nГотов, можете забрать.\n📍 %s", order.ID, order.Address)
+	kb := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🚚 Взять", fmt.Sprintf("courier_accept_%d", order.ID))))
 	
 	var targets []int64
 	b.couriersMu.RLock()

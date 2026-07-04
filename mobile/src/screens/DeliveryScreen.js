@@ -36,7 +36,7 @@ const DeliveryScreen = () => {
       await api.post(`/orders/${orderId}/assign`);
       fetchOrders();
     } catch (err) {
-      Alert.alert('Xato', 'Buyurtmani qabul qilishda xatolik');
+      Alert.alert('Ошибка', 'Ошибка при принятии заказа');
     }
   };
 
@@ -45,7 +45,7 @@ const DeliveryScreen = () => {
       await api.put(`/orders/${orderId}/status`, { status: 'delivered' });
       fetchOrders();
     } catch (err) {
-      Alert.alert('Xato', 'Statusni yangilashda xatolik');
+      Alert.alert('Ошибка', 'Ошибка при обновлении статуса');
     }
   };
 
@@ -56,7 +56,7 @@ const DeliveryScreen = () => {
     <View key={order.id} style={[styles.card, styles.readyCard]}>
       <View style={styles.cardTop}>
         <Text style={styles.cardId}>#{order.id}</Text>
-        <Text style={styles.cardPrice}>{order.total_price?.toLocaleString()} so'm</Text>
+        <Text style={styles.cardPrice}>{order.total_price?.toLocaleString()} сум</Text>
       </View>
       <View style={styles.infoRow}>
         <MapPin size={16} color="#888" />
@@ -64,7 +64,7 @@ const DeliveryScreen = () => {
       </View>
       <TouchableOpacity style={styles.btnPrimary} onPress={() => pickUp(order.id)}>
         <Navigation size={18} color="#fff" />
-        <Text style={styles.btnTextPrimary}>Olib ketish</Text>
+        <Text style={styles.btnTextPrimary}>Забрать</Text>
       </TouchableOpacity>
     </View>
   );
@@ -74,7 +74,7 @@ const DeliveryScreen = () => {
       <View style={styles.cardTop}>
         <Text style={styles.cardId}>#{order.id}</Text>
         <View style={styles.onWayBadge}>
-          <Text style={styles.onWayText}>🚴 Yo'lda</Text>
+          <Text style={styles.onWayText}>🚴 В пути</Text>
         </View>
       </View>
       
@@ -99,7 +99,7 @@ const DeliveryScreen = () => {
 
       <TouchableOpacity style={styles.btnSuccess} onPress={() => deliver(order.id)}>
         <CheckCircle size={18} color="#34d399" />
-        <Text style={styles.btnTextSuccess}>Yetkazib berildi</Text>
+        <Text style={styles.btnTextSuccess}>Доставлено</Text>
       </TouchableOpacity>
     </View>
   );
@@ -116,8 +116,8 @@ const DeliveryScreen = () => {
         <View style={styles.headerLeft}>
           <Truck color="#fff" size={24} />
           <View>
-            <Text style={styles.headerTitle}>Kuryer Paneli</Text>
-            <Text style={styles.headerSubtitle}>{readyOrders.length} tayyor · {activeOrders.length} yo'lda</Text>
+            <Text style={styles.headerTitle}>Панель Курьера</Text>
+            <Text style={styles.headerSubtitle}>{readyOrders.length} готово · {activeOrders.length} в пути</Text>
           </View>
         </View>
         <View style={{flexDirection: 'row', gap: 10}}>
@@ -125,7 +125,7 @@ const DeliveryScreen = () => {
             <RefreshCw color="#888" size={20} />
           </TouchableOpacity>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Chiqish</Text>
+            <Text style={styles.logoutText}>Выйти</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -136,15 +136,15 @@ const DeliveryScreen = () => {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionPill}>
               <Package size={16} color="#fff" />
-              <Text style={styles.sectionPillText}>Olish mumkin</Text>
+              <Text style={styles.sectionPillText}>Доступно для взятия</Text>
             </View>
-            <Text style={styles.sectionCount}>{readyOrders.length} ta</Text>
+            <Text style={styles.sectionCount}>{readyOrders.length} шт</Text>
           </View>
           
           {readyOrders.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📦</Text>
-              <Text style={styles.emptyText}>Hozircha tayyor buyurtmalar yo'q</Text>
+              <Text style={styles.emptyText}>Пока нет готовых заказов</Text>
             </View>
           ) : (
             readyOrders.map(renderReadyOrder)
@@ -156,15 +156,15 @@ const DeliveryScreen = () => {
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionPill, { backgroundColor: 'rgba(249,115,22,0.15)' }]}>
               <Truck size={16} color="#f97316" />
-              <Text style={[styles.sectionPillText, { color: '#f97316' }]}>Faol yetkazishlar</Text>
+              <Text style={[styles.sectionPillText, { color: '#f97316' }]}>Активные доставки</Text>
             </View>
-            <Text style={styles.sectionCount}>{activeOrders.length} ta</Text>
+            <Text style={styles.sectionCount}>{activeOrders.length} шт</Text>
           </View>
           
           {activeOrders.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🚴</Text>
-              <Text style={styles.emptyText}>Hozircha faol buyurtmalar yo'q</Text>
+              <Text style={styles.emptyText}>Пока нет активных заказов</Text>
             </View>
           ) : (
             activeOrders.map(renderActiveOrder)

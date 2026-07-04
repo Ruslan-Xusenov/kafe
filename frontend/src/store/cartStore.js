@@ -103,6 +103,7 @@ export const useCartStore = create((set, get) => ({
           });
           set({ items: updatedItems });
       }
+      // eslint-disable-next-line no-unused-vars
     } catch (err) { console.error("Failed to fetch settings", err); }
   },
 

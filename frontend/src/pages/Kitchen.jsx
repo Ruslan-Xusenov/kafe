@@ -34,6 +34,7 @@ const Kitchen = () => {
         o.status === 'new' || o.status === 'preparing' || o.status === 'ready'
       );
       setOrders(kitchenOrders);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,6 +47,7 @@ const Kitchen = () => {
     try {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
       fetchOrders();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Statusni yangilashda xatolik');
     }

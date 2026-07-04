@@ -32,7 +32,11 @@ func NewWebsocketService() *WebsocketService {
 }
 
 func (s *WebsocketService) HandleConnection(w http.ResponseWriter, r *http.Request, userID int, role string) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	u := upgrader
+	if sub := r.Header.Get("Sec-WebSocket-Protocol"); sub != "" {
+		u.Subprotocols = []string{sub}
+	}
+	conn, err := u.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WS Upgrade Error: %v", err)
 		return

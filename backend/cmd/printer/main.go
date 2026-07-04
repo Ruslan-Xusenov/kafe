@@ -16,9 +16,10 @@ import (
 
 const (
 	serverAddr    = "46.224.133.140:8080"
-	printerKey    = "KAFE_PRINTER_SECRET_2026"
 	printerDevice = "\\\\localhost\\XP-80C"
 )
+
+var printerKey = os.Getenv("PRINTER_SECRET")
 
 // ESC/POS Commands
 var (
@@ -124,23 +125,23 @@ func printOrder(order map[string]interface{}) {
 	// Header - YETUK ONLAYN ZAKAZ
 	f.Write(ALIGN_CENTER)
 	f.Write(FONT_BIG)
-	f.Write([]byte("YETUK ONLAYN ZAKAZ\n"))
+	f.Write([]byte("YETUK ONLINE ZAKAZ\n"))
 	f.Write(FONT_NORMAL)
 	f.Write([]byte("------------------------------------------------\n"))
 	
 	// Details
 	f.Write(ALIGN_LEFT)
-	f.Write([]byte(fmt.Sprintf("Check No / Chek raqami: %d\n", id)))
-	f.Write([]byte(fmt.Sprintf("Tur / Tip: Dostavka / Dostavka %d\n", id)))
-	f.Write([]byte("Stol / Stol: onlayn\n"))
-	f.Write([]byte("Xizmat / Servis: YETUK KAFE onlayn\n"))
+	f.Write([]byte(fmt.Sprintf("Chek No: %d\n", id)))
+	f.Write([]byte(fmt.Sprintf("Tip: Dostavka %d\n", id)))
+	f.Write([]byte("Stol: online\n"))
+	f.Write([]byte("Obsluzhil: YETUK KAFE online\n"))
 	
-	f.Write([]byte(fmt.Sprintf("Ochilish vaqti / Vremya: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
-	f.Write([]byte("Yopilish vaqti / Zakritie: -\n"))
+	f.Write([]byte(fmt.Sprintf("Vremya: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
+	f.Write([]byte("Zakritie: -\n"))
 	f.Write([]byte("------------------------------------------------\n"))
 
 	// Items Table
-	f.Write([]byte("Mahsulot nomi          Soni   Narxi      Jami\n"))
+	f.Write([]byte("Naimenovanie           Kol-vo Tsena      Itogo\n"))
 	f.Write([]byte("------------------------------------------------\n"))
 	
 	items, _ := order["items"].([]interface{})
@@ -159,20 +160,20 @@ func printOrder(order map[string]interface{}) {
 		f.Write([]byte(line))
 		
 		if comment, ok := item["comment"].(string); ok && comment != "" {
-			f.Write([]byte(fmt.Sprintf("  * Izoh / Comment: %s\n", transliterate(comment))))
+			f.Write([]byte(fmt.Sprintf("  * Komment: %s\n", transliterate(comment))))
 		}
 	}
 	f.Write([]byte("------------------------------------------------\n"))
 
 	// Footer Summary
 	f.Write(ALIGN_RIGHT)
-	f.Write([]byte(fmt.Sprintf("Podditog / Poditog: %.0f\n", order["total_price"].(float64))))
-	f.Write([]byte("Xizmat / Servis (0.0%%): 0\n"))
-	f.Write([]byte("Chegirma / Skidka (0%%): 0\n"))
+	f.Write([]byte(fmt.Sprintf("Poditog: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte("Obsluzhivanie (0.0%): 0\n"))
+	f.Write([]byte("Skidka (0%): 0\n"))
 	f.Write([]byte("\n"))
 	
 	f.Write(FONT_DOUBLE_W)
-	f.Write([]byte(fmt.Sprintf("  JAMI / ITOGO: %.0f\n", order["total_price"].(float64))))
+	f.Write([]byte(fmt.Sprintf("  ITOGO: %.0f\n", order["total_price"].(float64))))
 	f.Write(FONT_NORMAL)
 	f.Write([]byte("\n\n\n\n"))
 

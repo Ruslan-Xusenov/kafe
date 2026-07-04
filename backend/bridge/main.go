@@ -17,13 +17,15 @@ import (
 
 // Simplified models for the bridge
 type Order struct {
-	ID         int         `json:"id"`
-	Phone      string      `json:"phone"`
-	Address    string      `json:"address"`
-	Comment    *string     `json:"comment"`
-	TotalPrice float64     `json:"total_price"`
-	CreatedAt  time.Time   `json:"created_at"`
-	Items      []OrderItem `json:"items"`
+	ID                int         `json:"id"`
+	Phone             string      `json:"phone"`
+	Address           string      `json:"address"`
+	Comment           *string     `json:"comment"`
+	TotalPrice        float64     `json:"total_price"`
+	ServicePercentage float64     `json:"service_percentage"`
+	ServiceFee        float64     `json:"service_fee"`
+	CreatedAt         time.Time   `json:"created_at"`
+	Items             []OrderItem `json:"items"`
 }
 
 type OrderItem struct {
@@ -156,30 +158,30 @@ func printOrder(order *Order, ip, port string) {
 
 	conn.Write(ALIGN_CENTER)
 	conn.Write(FONT_BIG)
-	conn.Write([]byte("ONLAYN BUYURTMA\n"))
+	conn.Write([]byte("ONLINE ZAKAZ\n"))
 	conn.Write(FONT_NORMAL)
 	conn.Write([]byte("------------------------------------------------\n"))
 	
 	conn.Write(FONT_DOUBLE_H)
-	conn.Write([]byte(fmt.Sprintf("BUYURTMA #%d\n", order.ID)))
+	conn.Write([]byte(fmt.Sprintf("ZAKAZ #%d\n", order.ID)))
 	conn.Write(FONT_NORMAL)
 	
 	createdAt := order.CreatedAt
 	if createdAt.IsZero() {
 		createdAt = time.Now()
 	}
-	conn.Write([]byte(fmt.Sprintf("Sana: %s\n", createdAt.Format("02.01.2006 15:04"))))
+	conn.Write([]byte(fmt.Sprintf("Data: %s\n", createdAt.Format("02.01.2006 15:04"))))
 	conn.Write([]byte("------------------------------------------------\n"))
 
 	conn.Write(ALIGN_LEFT)
-	conn.Write([]byte(fmt.Sprintf("Mijoz: %s\n", order.Phone)))
-	conn.Write([]byte(fmt.Sprintf("Manzil: %s\n", transliterate(order.Address))))
+	conn.Write([]byte(fmt.Sprintf("Klient: %s\n", order.Phone)))
+	conn.Write([]byte(fmt.Sprintf("Adres: %s\n", transliterate(order.Address))))
 	if order.Comment != nil && *order.Comment != "" {
-		conn.Write([]byte(fmt.Sprintf("Izoh: %s\n", transliterate(*order.Comment))))
+		conn.Write([]byte(fmt.Sprintf("Komment: %s\n", transliterate(*order.Comment))))
 	}
 	conn.Write([]byte("------------------------------------------------\n"))
 
-	conn.Write([]byte("Mahsulot               Soni   Narxi      Jami\n"))
+	conn.Write([]byte("Naimenovanie           Kol-vo Tsena      Itogo\n"))
 	for _, item := range order.Items {
 		name := transliterate(item.ProductName)
 		if len(name) > 22 {
@@ -191,19 +193,24 @@ func printOrder(order *Order, ip, port string) {
 		conn.Write([]byte(line))
 		
 		if item.Comment != nil && *item.Comment != "" {
-			conn.Write([]byte(fmt.Sprintf("  * %s\n", transliterate(*item.Comment))))
+			conn.Write([]byte(fmt.Sprintf("  * Komment: %s\n", transliterate(*item.Comment))))
 		}
 	}
 	conn.Write([]byte("------------------------------------------------\n"))
 
 	conn.Write(ALIGN_RIGHT)
+	if order.ServiceFee > 0 {
+		subtotal := order.TotalPrice - order.ServiceFee
+		conn.Write([]byte(fmt.Sprintf("Poditog: %.0f sum\n", subtotal)))
+		conn.Write([]byte(fmt.Sprintf("Obsluzhivanie(%.0f%%): %.0f sum\n", order.ServicePercentage, order.ServiceFee)))
+	}
 	conn.Write(FONT_DOUBLE_W)
-	conn.Write([]byte(fmt.Sprintf("JAMI: %.0f so'm\n", order.TotalPrice)))
+	conn.Write([]byte(fmt.Sprintf("ITOGO: %.0f sum\n", order.TotalPrice)))
 	conn.Write(FONT_NORMAL)
 	conn.Write([]byte("\n\n"))
 
 	conn.Write(ALIGN_CENTER)
-	conn.Write([]byte("Tayyor bo'lgach xabar beriladi.\n"))
+	conn.Write([]byte("Mi soobshim kogda budet gotovo.\n"))
 	conn.Write([]byte("\n\n\n\n\n"))
 
 	conn.Write(PAPER_CUT)

@@ -13,58 +13,58 @@ import (
 )
 
 func (b *Bot) handleStart(chatID int64) {
-	text := "🍽 <b>Kafe Botiga Xush Kelibsiz!</b>\n\nPastdagi tugmalar orqali buyurtma berishingiz yoki biz bilan bog'lanishingiz mumkin."
+	text := "🍽 <b>Добро пожаловать в Kafe Bot!</b>\n\nИспользуйте кнопки ниже для заказа или связи с нами."
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Onlayn buyurtma berish", tgbotapi.WebAppInfo{URL: "https://kafe.ruslandev.uz"})),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Онлайн заказ", tgbotapi.WebAppInfo{URL: "https://kafe.ruslandev.uz"})),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📞 Bog'lanish", "contact_info"),
-			tgbotapi.NewInlineKeyboardButtonData("📖 Ishlatish tartibi", "how_to_use"),
+			tgbotapi.NewInlineKeyboardButtonData("📞 Связаться", "contact_info"),
+			tgbotapi.NewInlineKeyboardButtonData("📖 Как пользоваться", "how_to_use"),
 		),
 	)
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }
 
 func (b *Bot) showMainMenu(chatID int64) {
-	text := "🏠 <b>Asosiy Menyu</b>"
+	text := "🏠 <b>Главное меню</b>"
 	rows := [][]tgbotapi.InlineKeyboardButton{
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍕 Menyu", "show_categories"), tgbotapi.NewInlineKeyboardButtonData("🛒 Savatcha", "show_cart")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("📦 Buyurtmalarim", "show_orders")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍕 Меню", "show_categories"), tgbotapi.NewInlineKeyboardButtonData("🛒 Корзина", "show_cart")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("📦 Мои заказы", "show_orders")),
 	}
-	if b.IsCook(chatID) { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍳 Oshxona Paneli", "cook_active_orders"))) }
-	if b.IsAdmin(chatID) { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⚙️ Admin Panel", "admin_panel"))) }
+	if b.IsCook(chatID) { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍳 Панель кухни", "cook_active_orders"))) }
+	if b.IsAdmin(chatID) { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⚙️ Админ панель", "admin_panel"))) }
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(rows...)
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }
 
 func (b *Bot) showCategories(chatID int64) {
 	categories, err := b.repo.GetAllCategories()
-	if err != nil || len(categories) == 0 { b.sendMessage(chatID, "📭 Hozircha kategoriyalar yo'q"); return }
-	text := "📂 <b>Kategoriyalar</b>"
+	if err != nil || len(categories) == 0 { b.sendMessage(chatID, "📭 Пока нет категорий"); return }
+	text := "📂 <b>Категории</b>"
 	var rows [][]tgbotapi.InlineKeyboardButton
 	for _, cat := range categories { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("📁 %s", cat.Name), fmt.Sprintf("cat_%d", cat.ID)))) }
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🏠 Asosiy Menyu", "main_menu")))
+	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🏠 Главное меню", "main_menu")))
 	b.sendMessageWithKeyboard(chatID, text, tgbotapi.NewInlineKeyboardMarkup(rows...))
 }
 
 func (b *Bot) showCategoryProducts(chatID int64, data string) {
 	catID, _ := strconv.Atoi(strings.TrimPrefix(data, "cat_"))
 	products, err := b.repo.GetByCategoryID(catID)
-	if err != nil || len(products) == 0 { b.sendMessage(chatID, "📭 Bu kategoriyada mahsulotlar yo'q"); return }
-	text := "📂 <b>Mahsulotlar</b>"
+	if err != nil || len(products) == 0 { b.sendMessage(chatID, "📭 В этой категории нет продуктов"); return }
+	text := "📂 <b>Продукты</b>"
 	var rows [][]tgbotapi.InlineKeyboardButton
-	for _, prod := range products { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("🍽 %s — %.0f so'm", prod.Name, prod.Price), fmt.Sprintf("prod_%d", prod.ID)))) }
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Kategoriyalar", "show_categories")))
+	for _, prod := range products { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("🍽 %s — %.0f сум", prod.Name, prod.Price), fmt.Sprintf("prod_%d", prod.ID)))) }
+	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Категории", "show_categories")))
 	b.sendMessageWithKeyboard(chatID, text, tgbotapi.NewInlineKeyboardMarkup(rows...))
 }
 
 func (b *Bot) showProductDetail(chatID int64, data string) {
 	prodID, _ := strconv.Atoi(strings.TrimPrefix(data, "prod_"))
 	prod, err := b.repo.GetProductByID(prodID)
-	if err != nil || prod == nil { b.sendMessage(chatID, "❌ Mahsulot topilmadi"); return }
-	text := fmt.Sprintf("🍽 <b>%s</b>\n\n📝 %s\n💰 <b>%.0f so'm</b>", prod.Name, prod.Description, prod.Price)
+	if err != nil || prod == nil { b.sendMessage(chatID, "❌ Продукт не найден"); return }
+	text := fmt.Sprintf("🍽 <b>%s</b>\n\n📝 %s\n💰 <b>%.0f сум</b>", prod.Name, prod.Description, prod.Price)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("➕ Savatchaga qo'shish", fmt.Sprintf("add_%d", prod.ID))),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Orqaga", fmt.Sprintf("cat_%d", prod.CategoryID)), tgbotapi.NewInlineKeyboardButtonData("🛒 Savatcha", "show_cart")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("➕ Добавить в корзину", fmt.Sprintf("add_%d", prod.ID))),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Назад", fmt.Sprintf("cat_%d", prod.CategoryID)), tgbotapi.NewInlineKeyboardButtonData("🛒 Корзина", "show_cart")),
 	)
 	if prod.ImageURL != "" {
 		imgURL := prod.ImageURL
@@ -99,28 +99,28 @@ func (b *Bot) showProductDetail(chatID int64, data string) {
 func (b *Bot) addToCart(chatID int64, data string) {
 	prodID, _ := strconv.Atoi(strings.TrimPrefix(data, "add_"))
 	prod, err := b.repo.GetProductByID(prodID)
-	if err != nil || prod == nil { b.sendMessage(chatID, "❌ Mahsulot topilmadi"); return }
+	if err != nil || prod == nil { b.sendMessage(chatID, "❌ Продукт не найден"); return }
 	session := b.getSession(chatID)
 	found := false
 	for i := range session.Cart { if session.Cart[i].ProductID == prodID { session.Cart[i].Quantity++; found = true; break } }
 	if !found { session.Cart = append(session.Cart, CartItem{ProductID: prodID, ProductName: prod.Name, Price: prod.Price, Quantity: 1}) }
-	text := fmt.Sprintf("✅ <b>%s</b> savatchaga qo'shildi!", prod.Name)
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍕 Menyu", fmt.Sprintf("cat_%d", prod.CategoryID)), tgbotapi.NewInlineKeyboardButtonData("🛒 Savatcha", "show_cart")))
+	text := fmt.Sprintf("✅ <b>%s</b> добавлен в корзину!", prod.Name)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🍕 Меню", fmt.Sprintf("cat_%d", prod.CategoryID)), tgbotapi.NewInlineKeyboardButtonData("🛒 Корзина", "show_cart")))
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }
 
 func (b *Bot) showCart(chatID int64) {
 	session := b.getSession(chatID)
-	if len(session.Cart) == 0 { b.sendMessage(chatID, "🛒 Savatcha bo'sh"); return }
-	text := "🛒 <b>Savatcha</b>\n\n"; var total float64; var rows [][]tgbotapi.InlineKeyboardButton
+	if len(session.Cart) == 0 { b.sendMessage(chatID, "🛒 Корзина пуста"); return }
+	text := "🛒 <b>Корзина</b>\n\n"; var total float64; var rows [][]tgbotapi.InlineKeyboardButton
 	for i, item := range session.Cart {
 		itotal := item.Price * float64(item.Quantity); total += itotal
-		text += fmt.Sprintf("%d. <b>%s</b>\n   %d x %.0f = <b>%.0f so'm</b>\n", i+1, item.ProductName, item.Quantity, item.Price, itotal)
+		text += fmt.Sprintf("%d. <b>%s</b>\n   %d x %.0f = <b>%.0f сум</b>\n", i+1, item.ProductName, item.Quantity, item.Price, itotal)
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("➖", fmt.Sprintf("qty_dec_%d", item.ProductID)), tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d", item.Quantity), "qty_info"), tgbotapi.NewInlineKeyboardButtonData("➕", fmt.Sprintf("qty_inc_%d", item.ProductID))))
 	}
-	text += fmt.Sprintf("\n💰 <b>Jami: %.0f so'm</b>", total)
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("✅ Buyurtma berish", "checkout"), tgbotapi.NewInlineKeyboardButtonData("🗑 Tozalash", "clear_cart")))
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🏠 Menyu", "main_menu")))
+	text += fmt.Sprintf("\n💰 <b>Итого: %.0f сум</b>", total)
+	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("✅ Оформить заказ", "checkout"), tgbotapi.NewInlineKeyboardButtonData("🗑 Очистить", "clear_cart")))
+	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🏠 Меню", "main_menu")))
 	b.sendMessageWithKeyboard(chatID, text, tgbotapi.NewInlineKeyboardMarkup(rows...))
 }
 
@@ -136,21 +136,21 @@ func (b *Bot) changeQuantity(chatID int64, data string) {
 	b.showCart(chatID)
 }
 
-func (b *Bot) clearCart(chatID int64) { b.getSession(chatID).Cart = []CartItem{}; b.sendMessage(chatID, "🗑 Savatcha tozalandi!"); b.showMainMenu(chatID) }
+func (b *Bot) clearCart(chatID int64) { b.getSession(chatID).Cart = []CartItem{}; b.sendMessage(chatID, "🗑 Корзина очищена!"); b.showMainMenu(chatID) }
 
 func (b *Bot) startCheckout(chatID int64) {
-	if len(b.getSession(chatID).Cart) == 0 { b.sendMessage(chatID, "🛒 Savatcha bo'sh"); return }
+	if len(b.getSession(chatID).Cart) == 0 { b.sendMessage(chatID, "🛒 Корзина пуста"); return }
 	b.getSession(chatID).State = "awaiting_order_address"
-	b.sendMessage(chatID, "📍 Yetkazib berish manzilini kiriting:")
+	b.sendMessage(chatID, "📍 Введите адрес доставки:")
 }
 
 func (b *Bot) confirmOrder(chatID int64) {
 	s := b.getSession(chatID)
 	var total float64; for _, it := range s.Cart { total += it.Price * float64(it.Quantity) }
 	comment := ""
-	if s.Comment != "" { comment = "\n💬 Izoh: " + s.Comment }
-	text := fmt.Sprintf("📋 <b>Buyurtmani tasdiqlang:</b>\n📍 Manzil: %s\n📞 Telefon: %s%s\n\n💰 Jami: <b>%.0f so'm</b>", s.Address, s.OrderPhone, comment, total)
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("✅ Tasdiqlash", "confirm_order"), tgbotapi.NewInlineKeyboardButtonData("❌ Bekor qilish", "cancel_order")))
+	if s.Comment != "" { comment = "\n💬 Комментарий: " + s.Comment }
+	text := fmt.Sprintf("📋 <b>Подтвердите заказ:</b>\n📍 Адрес: %s\n📞 Телефон: %s%s\n\n💰 Итого: <b>%.0f сум</b>", s.Address, s.OrderPhone, comment, total)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("✅ Подтвердить", "confirm_order"), tgbotapi.NewInlineKeyboardButtonData("❌ Отменить", "cancel_order")))
 	b.sendMessageWithKeyboard(chatID, text, keyboard)
 }
 
@@ -161,7 +161,7 @@ func (b *Bot) placeOrder(chatID int64) {
 	var total float64
 	for _, it := range s.Cart { order.Items = append(order.Items, models.OrderItem{ProductID: it.ProductID, Quantity: it.Quantity, Price: it.Price}); total += it.Price * float64(it.Quantity) }
 	order.TotalPrice = total
-	if err := b.repo.CreateOrder(order); err != nil { b.sendMessage(chatID, "❌ Buyurtmada xatolik"); return }
+	if err := b.repo.CreateOrder(order); err != nil { b.sendMessage(chatID, "❌ Ошибка в заказе"); return }
 	
 	// Notify Central API for Printer and Real-time UI (Identical to Site)
 	go b.notifyAPI(order.ID)
@@ -169,11 +169,11 @@ func (b *Bot) placeOrder(chatID int64) {
 	b.notifyCooks(order)
 
 	s.Cart = []CartItem{}; s.Address = ""; s.OrderPhone = ""; s.Comment = ""
-	b.sendMessage(chatID, fmt.Sprintf("✅ <b>Buyurtma #%d qabul qilindi!</b>\n\nTez orada tayyor bo'ladi.", order.ID))
+	b.sendMessage(chatID, fmt.Sprintf("✅ <b>Заказ #%d принят!</b>\n\nСкоро будет готов.", order.ID))
 }
 
 func (b *Bot) notifyAPI(orderID int) {
-	key := "KAFE_PRINTER_SECRET_2026"
+	key := os.Getenv("PRINTER_SECRET")
 	// Prefer internal localhost for speed, but fallback to public IP if needed
 	url := fmt.Sprintf("http://46.224.133.140:8080/api/notify-order/%d?key=%s", orderID, key)
 	
@@ -188,34 +188,34 @@ func (b *Bot) notifyAPI(orderID int) {
 
 func (b *Bot) showOrderHistory(chatID int64) {
 	orders, _ := b.repo.GetAllOrders()
-	if len(orders) == 0 { b.sendMessage(chatID, "📦 Hali buyurtma berilmagan"); return }
-	text := "📦 <b>Oxirgi Buyurtmalar:</b>"
+	if len(orders) == 0 { b.sendMessage(chatID, "📦 Вы еще не делали заказы"); return }
+	text := "📦 <b>Последние заказы:</b>"
 	var rows [][]tgbotapi.InlineKeyboardButton
-	for i, o := range orders { if i > 10 { break }; rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("#%d | %.0f so'm | %s", o.ID, o.TotalPrice, o.Status), fmt.Sprintf("order_detail_%d", o.ID)))) }
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🏠 Asosiy Menyu", "main_menu")))
+	for i, o := range orders { if i > 10 { break }; rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("#%d | %.0f сум | %s", o.ID, o.TotalPrice, o.Status), fmt.Sprintf("order_detail_%d", o.ID)))) }
+	rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🏠 Главное меню", "main_menu")))
 	b.sendMessageWithKeyboard(chatID, text, tgbotapi.NewInlineKeyboardMarkup(rows...))
 }
 
 func (b *Bot) showOrderDetail(chatID int64, data string) {
 	id, _ := strconv.Atoi(strings.TrimPrefix(data, "order_detail_"))
 	o, _ := b.repo.GetOrderByID(id)
-	if o == nil { b.sendMessage(chatID, "❌ Buyurtma topilmadi"); return }
-	text := fmt.Sprintf("📋 <b>Buyurtma #%d</b>\nHolati: %s\nManzil: %s\nTelefon: %s\n\n", o.ID, o.Status, o.Address, o.Phone)
+	if o == nil { b.sendMessage(chatID, "❌ Заказ не найден"); return }
+	text := fmt.Sprintf("📋 <b>Заказ #%d</b>\nСтатус: %s\nАдрес: %s\nТелефон: %s\n\n", o.ID, o.Status, o.Address, o.Phone)
 	for _, it := range o.Items {
 		name := "Noma'lum"
 		if it.ProductName != nil { name = *it.ProductName }
-		text += fmt.Sprintf("• %s x %d = %.0f so'm\n", name, it.Quantity, it.Price*float64(it.Quantity))
+		text += fmt.Sprintf("• %s x %d = %.0f сум\n", name, it.Quantity, it.Price*float64(it.Quantity))
 	}
-	text += fmt.Sprintf("\n💰 Jami: %.0f so'm", o.TotalPrice)
-	rows := [][]tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Orqaga", "show_orders"))}
-	if o.Status == models.StatusDelivered { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⭐ Baho berish", fmt.Sprintf("rate_order_%d", o.ID)))) }
+	text += fmt.Sprintf("\n💰 Итого: %.0f сум", o.TotalPrice)
+	rows := [][]tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Назад", "show_orders"))}
+	if o.Status == models.StatusDelivered { rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("⭐ Оценить", fmt.Sprintf("rate_order_%d", o.ID)))) }
 	b.sendMessageWithKeyboard(chatID, text, tgbotapi.NewInlineKeyboardMarkup(rows...))
 }
 
 func (b *Bot) startRating(chatID int64, data string) {
 	id, _ := strconv.Atoi(strings.TrimPrefix(data, "rate_order_"))
 	s := b.getSession(chatID); s.RatingOrderID = id; s.State = "awaiting_rating_cook"
-	b.sendMessage(chatID, "⭐ <b>Baho bering</b>\n\n🍳 Oshpazga baho bering (1-5):")
+	b.sendMessage(chatID, "⭐ <b>Оцените</b>\n\n🍳 Оцените повара (1-5):")
 }
 
 func (b *Bot) submitRating(chatID int64) {
@@ -231,13 +231,13 @@ func (b *Bot) submitRating(chatID int64) {
 			b.ordersMu.RLock(); cid = b.ordersToCouriers[s.RatingOrderID]; b.ordersMu.RUnlock()
 		}
 		if cid != 0 {
-			b.sendMessage(cid, fmt.Sprintf("🌟 <b>Buyurtma #%d uchun yangi baho!</b>\n\nMijoz sizga <b>%d ⭐</b> baho berdi.", s.RatingOrderID, s.RatingCourierScore))
+			b.sendMessage(cid, fmt.Sprintf("🌟 <b>Новая оценка для заказа #%d!</b>\n\nКлиент оценил вас на <b>%d ⭐</b>.", s.RatingOrderID, s.RatingCourierScore))
 		}
 	}
-	b.sendMessage(chatID, "🌟 Rahmat! Sizning bahoingiz qabul qilindi.")
+	b.sendMessage(chatID, "🌟 Спасибо! Ваша оценка принята.")
 	s.RatingOrderID = 0; b.showMainMenu(chatID)
 }
 
 func (b *Bot) sendHelp(chatID int64) {
-	b.sendMessage(chatID, "📋 <b>Yordam</b>\n\n/start - Boshlash\n/menu - Menyu\n/cart - Savatcha\n/orders - Tarix\n/admin - Admin\n/cook - Oshpaz")
+	b.sendMessage(chatID, "📋 <b>Помощь</b>\n\n/start - Начать\n/menu - Меню\n/cart - Корзина\n/orders - История\n/admin - Админ\n/cook - Повар")
 }
