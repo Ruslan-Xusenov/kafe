@@ -29,6 +29,7 @@ const Waiter = () => {
       setTables(tableRes.data || []);
       setCategories(catRes.data || []);
       setProducts(prodRes.data || []);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error("fetchInitialData ERROR:", err.message, err.response?.data);
       alert("Ma'lumotlarni yuklashda xatolik: " + (err.response?.data?.error || err.message));
@@ -106,6 +107,7 @@ const Waiter = () => {
       setSelectedTable(null);
       setCart([]);
       fetchInitialData();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
       alert('Buyurtma yuborishda xatolik');
@@ -114,14 +116,36 @@ const Waiter = () => {
 
   const freeTable = async () => {
     if (!window.confirm("Stolni bo'shatishni xohlaysizmi?")) return;
+    
+    const paymentMethodMap = {
+      '1': 'cash',
+      '2': 'card',
+      '3': 'click',
+      '4': 'nasiya'
+    };
+    
+    let method = null;
+    while (!method) {
+      const choice = window.prompt("To'lov turini tanlang (Raqamni kiriting):\n1 - 💵 Naqd\n2 - 💳 Terminal (Karta)\n3 - 📱 Click/Payme\n4 - 📒 Qarzga (Nasiya)");
+      
+      if (choice === null) return; // User cancelled
+      
+      method = paymentMethodMap[choice];
+      if (!method) {
+        alert("Iltimos, 1 dan 4 gacha bo'lgan raqamni kiriting.");
+      }
+    }
+
     try {
-      await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'free' });
+      await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'free', payment_method: method });
       alert("Stol bo'shatildi!");
       setSelectedTable(null);
       fetchInitialData();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
-      alert("Xatolik yuz berdi");
+      const msg = err.response?.data?.error || "Xatolik yuz berdi";
+      alert(msg);
     }
   };
 
