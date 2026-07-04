@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X } from 'lucide-react';
 
 const Waiter = () => {
   const [tables, setTables] = useState([]);
@@ -12,11 +12,23 @@ const Waiter = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [cart, setCart] = useState([]);
   
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInitialData();
   }, []);
+
+  const STATUS_MAP = {
+    new: 'Yangi',
+    preparing: 'Tayyorlanmoqda',
+    ready: 'Tayyor',
+    on_way: 'Yo\'lda',
+    delivered: 'Yopilgan',
+    cancelled: 'Bekor qilingan'
+  };
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -33,6 +45,19 @@ const Waiter = () => {
     } catch (err) {
       console.error("fetchInitialData ERROR:", err.message, err.response?.data);
       alert("Ma'lumotlarni yuklashda xatolik: " + (err.response?.data?.error || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/orders/staff/waiter-history');
+      setHistory(res.data || []);
+      setShowHistory(true);
+    } catch (err) {
+      alert("Tarixni yuklashda xatolik");
     } finally {
       setLoading(false);
     }
@@ -179,6 +204,9 @@ const Waiter = () => {
                 </div>
               </div>
               <div className="table-stats">
+                <button className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '99px', fontSize: '0.85rem' }} onClick={fetchHistory}>
+                  <Clock size={16} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }}/> Tarix
+                </button>
                 <div className="stat-pill free-pill">
                   <span className="dot"></span>
                   {freeCount} Bo'sh
@@ -341,6 +369,51 @@ const Waiter = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* History Modal */}
+      {showHistory && (
+        <div className="modal-overlay" style={{ zIndex: 100 }}>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '800px', background: '#121212', maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
+            <div className="modal-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3>Mening Buyurtmalarim (Tarix)</h3>
+              <button onClick={() => setShowHistory(false)}><X size={20} /></button>
+            </div>
+            <div className="order-details-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              {history.length === 0 ? (
+                <div className="text-center text-muted py-8">Hali buyurtmalar yo'q</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {history.map(order => (
+                    <div key={order.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span className="font-700 text-primary">Chek #{order.id}</span>
+                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                        <span>Stol: <b>№{order.table_number || order.table_id || '-'}</b></span>
+                        <span className={`status-badge-small ${order.status}`}>
+                          {STATUS_MAP[order.status] || order.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                        <span className="text-muted">To'lov: </span>
+                        {order.payment_method === 'cash' ? '💵 Naqd' :
+                         order.payment_method === 'card' ? '💳 Terminal (Karta)' :
+                         order.payment_method === 'click' ? '📱 Click/Payme' :
+                         order.payment_method === 'nasiya' ? '📒 Qarzga' : (order.payment_method || '-')}
+                      </div>
+                      <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border)', display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-muted">Jami summasi:</span>
+                        <span className="font-700">{(order.total_price || 0).toLocaleString()} so'm</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <style>{`
         .waiter-wrapper {
