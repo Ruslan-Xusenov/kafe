@@ -53,7 +53,7 @@ const Waiter = () => {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/orders/staff/waiter-history');
+      const res = await api.get('/orders/waiter-history');
       setHistory(res.data || []);
       setShowHistory(true);
     } catch (err) {
