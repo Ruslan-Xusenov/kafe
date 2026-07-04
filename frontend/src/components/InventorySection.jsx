@@ -5,7 +5,7 @@ import { Loader2, Plus, AlertTriangle, Trash2, Link } from 'lucide-react';
 const InventorySection = ({ products }) => {
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [newIngredient, setNewIngredient] = useState({ name: '', stock: '', unit: 'gr', min_stock: '' });
+  const [newIngredient, setNewIngredient] = useState({ name: '', stock: '', unit: 'gr', min_stock: '', cost_price: '' });
   
   // Recipe linking state
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -29,6 +29,7 @@ const InventorySection = ({ products }) => {
       setLoading(true);
       const res = await api.get('/inventory/ingredients');
       setIngredients(res.data || []);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {
@@ -40,6 +41,7 @@ const InventorySection = ({ products }) => {
     try {
       const res = await api.get(`/inventory/recipes/${productId}`);
       setRecipes(res.data || []);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     }
@@ -53,10 +55,12 @@ const InventorySection = ({ products }) => {
         name: newIngredient.name,
         stock: parseFloat(newIngredient.stock),
         unit: newIngredient.unit,
-        min_stock: parseFloat(newIngredient.min_stock || 0)
+        min_stock: parseFloat(newIngredient.min_stock || 0),
+        cost_price: parseFloat(newIngredient.cost_price || 0)
       });
-      setNewIngredient({ name: '', stock: '', unit: 'gr', min_stock: '' });
+      setNewIngredient({ name: '', stock: '', unit: 'gr', min_stock: '', cost_price: '' });
       fetchIngredients();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Xatolik: ' + (err.response?.data?.error || ''));
     }
@@ -67,6 +71,7 @@ const InventorySection = ({ products }) => {
     try {
       await api.delete(`/inventory/ingredients/${id}`);
       fetchIngredients();
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('O\'chirishda xatolik');
     }
@@ -86,6 +91,7 @@ const InventorySection = ({ products }) => {
       });
       setNewRecipe({ ingredient_id: '', quantity: '', unit: 'gr' });
       fetchRecipes(selectedProduct);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Xatolik: ' + (err.response?.data?.error || ''));
     }
@@ -96,6 +102,7 @@ const InventorySection = ({ products }) => {
     try {
       await api.delete(`/inventory/recipes/${id}`);
       fetchRecipes(selectedProduct);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Xatolik');
     }
@@ -123,6 +130,7 @@ const InventorySection = ({ products }) => {
               <option value="dona">dona</option>
             </select>
             <input type="number" placeholder="Min. chegara" value={newIngredient.min_stock} onChange={e=>setNewIngredient({...newIngredient, min_stock: e.target.value})} style={{width: '100px'}} />
+            <input type="number" placeholder="Tannarxi so'm" value={newIngredient.cost_price} onChange={e=>setNewIngredient({...newIngredient, cost_price: e.target.value})} style={{width: '120px'}} />
             <button type="submit" className="btn-primary p-2"><Plus size={18}/></button>
           </form>
 
