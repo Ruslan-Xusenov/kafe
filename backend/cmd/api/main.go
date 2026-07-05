@@ -141,6 +141,7 @@ func main() {
 				admin.POST("/staff", authHandler.Register)
 				admin.GET("/staff", authHandler.GetStaff)
 				admin.DELETE("/staff/:id", authHandler.DeleteStaff)
+				admin.PUT("/staff/:id/default-fee", authHandler.UpdateDefaultServiceFee)
 				admin.GET("/performance", orderHandler.GetStaffPerformance)
 
 				// Image Upload

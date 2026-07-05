@@ -64,6 +64,12 @@ func (r *UserRepository) Update(user *models.User) error {
 	return err
 }
 
+func (r *UserRepository) UpdateDefaultServiceFee(id int, fee float64) error {
+	query := `UPDATE users SET default_service_percentage = $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.db.Exec(query, fee, id)
+	return err
+}
+
 func (r *UserRepository) GetStaff() ([]models.User, error) {
 	var users []models.User
 	query := `SELECT * FROM users WHERE role != 'customer' ORDER BY role ASC, full_name ASC`

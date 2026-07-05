@@ -15,13 +15,14 @@ const (
 )
 
 type User struct {
-	ID           int       `json:"id" db:"id"`
-	FullName     string    `json:"full_name" db:"full_name"`
-	Phone        string    `json:"phone" db:"phone"`
-	PasswordHash string    `json:"-" db:"password_hash"`
-	Role         UserRole  `json:"role" db:"role"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+	ID                       int       `json:"id" db:"id"`
+	FullName                 string    `json:"full_name" db:"full_name"`
+	Phone                    string    `json:"phone" db:"phone"`
+	PasswordHash             string    `json:"-" db:"password_hash"`
+	Role                     UserRole  `json:"role" db:"role"`
+	DefaultServicePercentage float64   `json:"default_service_percentage" db:"default_service_percentage"`
+	CreatedAt                time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt                time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Table struct {

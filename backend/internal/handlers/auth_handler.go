@@ -138,3 +138,20 @@ func (h *AuthHandler) DeleteStaff(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Сотрудник удален"})
 }
+
+func (h *AuthHandler) UpdateDefaultServiceFee(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var req struct {
+		Percentage float64 `json:"percentage"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.UpdateDefaultServiceFee(id, req.Percentage); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully"})
+}

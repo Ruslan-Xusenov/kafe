@@ -58,6 +58,7 @@ const Admin = () => {
   const [waiterOrders, setWaiterOrders] = useState([]);
   const [waiterHistory, setWaiterHistory] = useState([]);
   const [showWaiterHistory, setShowWaiterHistory] = useState(false);
+  const [waiterDefaultFees, setWaiterDefaultFees] = useState({}); // {waiterId: percentage}
   const [waiterOrderFees, setWaiterOrderFees] = useState({}); // {orderId: percentage}
   const [waiterOrdersLoading, setWaiterOrdersLoading] = useState(false);
 
@@ -105,7 +106,11 @@ const Admin = () => {
         setTables(res.data || []);
       } else if (activeTab === 'waiterMgmt') {
         const res = await api.get('/catalog/staff');
-        setStaff((res.data || []).filter(s => s.role === 'waiter'));
+        const waiters = (res.data || []).filter(s => s.role === 'waiter');
+        setStaff(waiters);
+        const defaults = {};
+        waiters.forEach(w => { defaults[w.id] = w.default_service_percentage || 0; });
+        setWaiterDefaultFees(defaults);
       }
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
@@ -148,6 +153,16 @@ const Admin = () => {
       alert("Tarixni yuklashda xatolik: " + (err.response?.data?.error || err.message));
     } finally {
       setWaiterOrdersLoading(false);
+    }
+  };
+
+  const handleWaiterDefaultFee = async (waiterId, fee) => {
+    try {
+      await api.put(`/catalog/staff/${waiterId}/default-fee`, { percentage: parseFloat(fee || 0) });
+      setStaff(prev => prev.map(s => s.id === waiterId ? { ...s, default_service_percentage: parseFloat(fee || 0) } : s));
+      alert(`Ofitsant uchun default foiz saqlandi!`);
+    } catch (err) {
+      alert("Saqlashda xatolik: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -491,7 +506,19 @@ const Admin = () => {
                     }}
                   >
                     <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>{w.full_name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{w.phone}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{w.phone}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <span style={{ fontSize: '0.75rem' }}>Def %:</span>
+                        <input
+                          type="number" min="0" max="100" step="1"
+                          value={waiterDefaultFees[w.id] ?? 0}
+                          onChange={e => setWaiterDefaultFees(prev => ({ ...prev, [w.id]: e.target.value }))}
+                          onBlur={e => handleWaiterDefaultFee(w.id, e.target.value)}
+                          style={{ width: '45px', padding: '0.1rem 0.3rem', borderRadius: '4px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', textAlign: 'center', fontSize: '0.8rem' }}
+                        />
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
                         className="btn-primary"

@@ -28,10 +28,20 @@ func (r *OrderRepository) Create(order *models.Order) error {
 	}
 	defer tx.Rollback()
 
+	var defaultPercentage float64
+	if order.WaiterID != nil && order.TableID != nil {
+		_ = tx.Get(&defaultPercentage, `SELECT COALESCE(default_service_percentage, 0) FROM users WHERE id = $1`, *order.WaiterID)
+	}
+	if defaultPercentage > 0 {
+		order.ServicePercentage = defaultPercentage
+		order.ServiceFee = order.TotalPrice * defaultPercentage / 100
+		order.TotalPrice += order.ServiceFee
+	}
+
 	// Insert Order
-	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment, table_id, waiter_id) 
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`
-	err = tx.QueryRow(query, order.CustomerID, order.TotalPrice, order.Status, order.Address, order.Phone, order.Lat, order.Lng, order.Comment, order.TableID, order.WaiterID).
+	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment, table_id, waiter_id, service_percentage, service_fee) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, created_at, updated_at`
+	err = tx.QueryRow(query, order.CustomerID, order.TotalPrice, order.Status, order.Address, order.Phone, order.Lat, order.Lng, order.Comment, order.TableID, order.WaiterID, order.ServicePercentage, order.ServiceFee).
 		Scan(&order.ID, &order.CreatedAt, &order.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert order: %w", err)

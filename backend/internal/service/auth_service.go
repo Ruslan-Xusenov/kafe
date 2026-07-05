@@ -74,6 +74,9 @@ func (s *AuthService) Login(phone, password string) (*models.User, string, error
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate token: %w", err)
 	}
-
 	return user, token, nil
+}
+
+func (s *AuthService) UpdateDefaultServiceFee(id int, fee float64) error {
+	return s.userRepo.UpdateDefaultServiceFee(id, fee)
 }
