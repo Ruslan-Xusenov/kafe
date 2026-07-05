@@ -165,6 +165,7 @@ func main() {
 				staff.GET("/active", orderHandler.GetActiveOrders)
 				staff.GET("/stats", orderHandler.GetStats)
 				staff.GET("/waiter-history", orderHandler.GetWaiterHistory)
+				staff.GET("/waiter/:waiterID/active", orderHandler.GetActiveOrdersByWaiter)
 				staff.PUT("/:id/status", orderHandler.UpdateStatus)
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
 				staff.POST("/:id/print", orderHandler.ReprintOrder)
@@ -204,6 +205,7 @@ func main() {
 			inventory.POST("/ingredients", inventoryHandler.CreateIngredient)
 			inventory.PUT("/ingredients/:id", inventoryHandler.UpdateIngredient)
 			inventory.DELETE("/ingredients/:id", inventoryHandler.DeleteIngredient)
+			inventory.POST("/ingredients/:id/restock", inventoryHandler.RestockIngredient)
 
 			inventory.GET("/recipes/:product_id", inventoryHandler.GetProductIngredients)
 			inventory.POST("/recipes", inventoryHandler.AddProductIngredient)

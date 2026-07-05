@@ -356,3 +356,90 @@ func (r *OrderRepository) SetPaymentMethod(orderID int, method string) error {
 	_, err := r.db.Exec(query, method, orderID)
 	return err
 }
+
+// GetWaiterHistory returns all cafe (table-based) orders, newest first, with waiter info
+func (r *OrderRepository) GetWaiterHistory() ([]models.Order, error) {
+	var orders []models.Order
+	query := `
+		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
+			   o.created_at, o.updated_at,
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
+		FROM orders o
+		LEFT JOIN users u1 ON o.courier_id = u1.id
+		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
+		WHERE o.table_id IS NOT NULL
+		ORDER BY o.created_at DESC
+		LIMIT 200
+	`
+	err := r.db.Select(&orders, query)
+	if err != nil {
+		return nil, fmt.Errorf("GetWaiterHistory error: %w", err)
+	}
+
+	for i := range orders {
+		var items []models.OrderItem
+		itemQuery := `
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+				   COALESCE(oi.comment, '') as comment, oi.created_at,
+				   COALESCE(p.name, 'Noma''lum') as product_name 
+			FROM order_items oi
+			LEFT JOIN products p ON oi.product_id = p.id
+			WHERE oi.order_id = $1
+		`
+		_ = r.db.Select(&items, itemQuery, orders[i].ID)
+		orders[i].Items = items
+	}
+
+	return orders, nil
+}
+
+// GetActiveByWaiterID returns all active (non-delivered, non-cancelled) table orders for a waiter
+func (r *OrderRepository) GetActiveByWaiterID(waiterID int) ([]models.Order, error) {
+	var orders []models.Order
+	query := `
+		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
+			   o.created_at, o.updated_at,
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
+		FROM orders o
+		LEFT JOIN users u1 ON o.courier_id = u1.id
+		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
+		WHERE o.waiter_id = $1 
+		  AND o.table_id IS NOT NULL
+		  AND o.status NOT IN ('delivered', 'cancelled')
+		ORDER BY o.created_at DESC
+	`
+	err := r.db.Select(&orders, query, waiterID)
+	if err != nil {
+		return nil, fmt.Errorf("GetActiveByWaiterID error: %w", err)
+	}
+	for i := range orders {
+		var items []models.OrderItem
+		itemQuery := `
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
+				   COALESCE(oi.comment, '') as comment, oi.created_at,
+				   COALESCE(p.name, 'Noma''lum') as product_name
+			FROM order_items oi
+			LEFT JOIN products p ON oi.product_id = p.id
+			WHERE oi.order_id = $1
+		`
+		_ = r.db.Select(&items, itemQuery, orders[i].ID)
+		orders[i].Items = items
+	}
+	return orders, nil
+}

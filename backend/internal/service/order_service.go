@@ -420,3 +420,11 @@ func (s *OrderService) SetPaymentMethod(orderID int, method string) error {
 	}
 	return s.orderRepo.SetPaymentMethod(orderID, method)
 }
+
+func (s *OrderService) GetWaiterHistory() ([]models.Order, error) {
+	return s.orderRepo.GetWaiterHistory()
+}
+
+func (s *OrderService) GetActiveOrdersByWaiter(waiterID int) ([]models.Order, error) {
+	return s.orderRepo.GetActiveByWaiterID(waiterID)
+}

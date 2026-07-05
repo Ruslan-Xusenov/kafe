@@ -52,7 +52,13 @@ const Admin = () => {
   const [serviceFeePercent, setServiceFeePercent] = useState(10);
   const [showTableModal, setShowTableModal] = useState(false);
   const [newTable, setNewTable] = useState({ number: '', capacity: '' });
-  
+
+  // Waiter Management states
+  const [selectedWaiter, setSelectedWaiter] = useState(null);
+  const [waiterOrders, setWaiterOrders] = useState([]);
+  const [waiterOrderFees, setWaiterOrderFees] = useState({}); // {orderId: percentage}
+  const [waiterOrdersLoading, setWaiterOrdersLoading] = useState(false);
+
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -95,12 +101,57 @@ const Admin = () => {
       } else if (activeTab === 'tables') {
         const res = await api.get('/tables');
         setTables(res.data || []);
+      } else if (activeTab === 'waiterMgmt') {
+        const res = await api.get('/catalog/staff');
+        setStaff((res.data || []).filter(s => s.role === 'waiter'));
       }
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWaiterOrders = async (waiter) => {
+    setSelectedWaiter(waiter);
+    setWaiterOrders([]);
+    setWaiterOrdersLoading(true);
+    try {
+      const res = await api.get(`/orders/waiter/${waiter.id}/active`);
+      const orders = res.data || [];
+      setWaiterOrders(orders);
+      // Initialize fees from existing service_percentage
+      const fees = {};
+      orders.forEach(o => { fees[o.id] = o.service_percentage || 0; });
+      setWaiterOrderFees(fees);
+    } catch (err) {
+      alert("Ofitsant buyurtmalarini yuklashda xatolik");
+    } finally {
+      setWaiterOrdersLoading(false);
+    }
+  };
+
+  const handleWaiterOrderFee = async (orderId) => {
+    const pct = parseFloat(waiterOrderFees[orderId] || 0);
+    try {
+      const res = await api.put(`/orders/${orderId}/service-fee`, { percentage: pct });
+      setWaiterOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
+      alert(`Buyurtma #${orderId} ga ${pct}% xizmat haqi qo'shildi!`);
+    } catch (err) {
+      alert("Foiz qo'shishda xatolik: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleWaiterOrderFeeAndPrint = async (orderId) => {
+    const pct = parseFloat(waiterOrderFees[orderId] || 0);
+    try {
+      const res = await api.put(`/orders/${orderId}/service-fee`, { percentage: pct });
+      setWaiterOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
+      await api.post(`/orders/${orderId}/print`);
+      alert(`Chek #${orderId} printerga yuborildi!`);
+    } catch (err) {
+      alert("Xatolik: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -385,6 +436,9 @@ const Admin = () => {
           <button className={activeTab === 'inventory' ? 'active' : ''} onClick={() => setActiveTab('inventory')}>
             <Package size={20} /> Omborxona
           </button>
+          <button className={activeTab === 'waiterMgmt' ? 'active' : ''} onClick={() => setActiveTab('waiterMgmt')}>
+            <Users size={20} /> Ofitsant Foiz
+          </button>
           <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
             <Settings size={20} /> Sozlamalar
           </button>
@@ -394,6 +448,107 @@ const Admin = () => {
       <main className="admin-main">
         {activeTab === 'inventory' && (
           <InventorySection products={products} />
+        )}
+
+        {activeTab === 'waiterMgmt' && (
+          <div className="animate-fade">
+            <div className="section-header mb-6">
+              <h2>Ofitsant Buyurtmalari va Foiz Boshqaruvi</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+              {/* Waiters list */}
+              <div className="premium-card">
+                <h3 className="mb-4">Ofitsantlar</h3>
+                {staff.length === 0 && <p className="text-muted">Ofitsant topilmadi</p>}
+                {staff.map(w => (
+                  <div
+                    key={w.id}
+                    onClick={() => fetchWaiterOrders(w)}
+                    style={{
+                      padding: '0.75rem 1rem', borderRadius: '10px', cursor: 'pointer',
+                      marginBottom: '0.5rem',
+                      background: selectedWaiter?.id === w.id ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)',
+                      border: selectedWaiter?.id === w.id ? '1px solid rgba(249,115,22,0.5)' : '1px solid var(--border)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700 }}>{w.full_name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{w.phone}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Waiter orders */}
+              <div>
+                {!selectedWaiter && (
+                  <div className="premium-card flex-center" style={{ minHeight: '200px', color: 'var(--text-muted)' }}>
+                    Chap tomondagi ofitsantni tanlang
+                  </div>
+                )}
+                {selectedWaiter && (
+                  <div className="premium-card">
+                    <h3 className="mb-4">{selectedWaiter.full_name} — Aktiv buyurtmalar</h3>
+                    {waiterOrdersLoading && <div className="flex-center"><Loader2 className="animate-spin" /></div>}
+                    {!waiterOrdersLoading && waiterOrders.length === 0 && (
+                      <p className="text-muted">Hozircha aktiv buyurtma yo'q</p>
+                    )}
+                    {waiterOrders.map(order => (
+                      <div key={order.id} style={{
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                        borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <div>
+                            <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>Chek #{order.id}</span>
+                            <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Stol №{order.table_number || order.table_id}</span>
+                          </div>
+                          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{(order.total_price || 0).toLocaleString()} so'm</span>
+                        </div>
+
+                        {/* Items summary */}
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                          {order.items?.slice(0, 3).map(item => (
+                            <span key={item.id} style={{ marginRight: '0.5rem' }}>
+                              {item.product_name} ×{item.quantity}{item.unit};
+                            </span>
+                          ))}
+                          {(order.items?.length || 0) > 3 && <span>+{order.items.length - 3} ta boshqa</span>}
+                        </div>
+
+                        {/* Service fee control */}
+                        <div style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '10px', padding: '1rem' }}>
+                          {order.service_percentage > 0 && (
+                            <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                              Hozirgi foiz: <strong style={{ color: 'var(--primary)' }}>{order.service_percentage}%</strong>
+                              {' '}(+{(order.service_fee || 0).toLocaleString()} so'm)
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <label style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap' }}>Xizmat haqi %:</label>
+                            <input
+                              type="number" min="0" max="100" step="1"
+                              value={waiterOrderFees[order.id] ?? 0}
+                              onChange={e => setWaiterOrderFees(prev => ({ ...prev, [order.id]: e.target.value }))}
+                              style={{ width: '80px', padding: '0.4rem 0.6rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', textAlign: 'center', fontSize: '1rem', fontWeight: 700 }}
+                            />
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                              = {((order.total_price || 0) * (1 + (parseFloat(waiterOrderFees[order.id]) || 0) / 100)).toLocaleString()} so'm
+                            </span>
+                            <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => handleWaiterOrderFee(order.id)}>
+                              Saqlash
+                            </button>
+                            <button className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => handleWaiterOrderFeeAndPrint(order.id)}>
+                              <Printer size={14} /> Saqlash + Chek
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'finance' && (

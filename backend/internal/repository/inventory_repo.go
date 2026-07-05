@@ -20,6 +20,7 @@ type InventoryRepository interface {
 	// Stock Operations
 	DeductStockForProduct(productID int, productQuantity float64) error
 	RestoreStockForProduct(productID int, productQuantity float64) error
+	RestockIngredient(id int, amount float64) error
 
 	// Cost Price
 	GetProductCostPrice(productID int) (float64, error)
@@ -101,6 +102,12 @@ func (r *inventoryRepository) RestoreStockForProduct(productID int, productQuant
 		WHERE ingredients.id = pi.ingredient_id AND pi.product_id = $1
 	`
 	_, err := r.db.Exec(query, productID, productQuantity)
+	return err
+}
+
+func (r *inventoryRepository) RestockIngredient(id int, amount float64) error {
+	query := `UPDATE ingredients SET stock = stock + $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.db.Exec(query, amount, id)
 	return err
 }
 

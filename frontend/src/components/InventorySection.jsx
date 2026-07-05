@@ -6,6 +6,7 @@ const InventorySection = ({ products }) => {
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newIngredient, setNewIngredient] = useState({ name: '', stock: '', unit: 'gr', min_stock: '', cost_price: '' });
+  const [restockAmounts, setRestockAmounts] = useState({}); // {ingredientId: amount}
   
   // Recipe linking state
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -108,6 +109,18 @@ const InventorySection = ({ products }) => {
     }
   };
 
+  const handleRestock = async (ingId) => {
+    const amount = parseFloat(restockAmounts[ingId] || 0);
+    if (!amount || amount <= 0) return alert("Miqdorni kiriting");
+    try {
+      await api.post(`/inventory/ingredients/${ingId}/restock`, { amount });
+      setRestockAmounts(prev => ({ ...prev, [ingId]: '' }));
+      fetchIngredients();
+    } catch (err) {
+      alert('Zaxira qo\'shishda xatolik: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   return (
     <div className="inventory-section animate-fade">
       <div className="flex justify-between items-center mb-6">
@@ -135,18 +148,45 @@ const InventorySection = ({ products }) => {
           </form>
 
           {loading ? <div className="text-center"><Loader2 className="animate-spin" /></div> : (
-            <div style={{maxHeight: '400px', overflowY: 'auto'}}>
+            <div style={{maxHeight: '500px', overflowY: 'auto'}}>
+              {/* Low stock warning banner */}
+              {ingredients.filter(i => i.stock <= i.min_stock).length > 0 && (
+                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
+                  <AlertTriangle size={16} />
+                  <strong>{ingredients.filter(i => i.stock <= i.min_stock).length} ta masalliq kam qolgan!</strong>
+                </div>
+              )}
               <table className="admin-table">
-                <thead><tr><th>Nomi</th><th>Zahira</th><th>Holat</th><th></th></tr></thead>
+                <thead><tr><th>Nomi</th><th>Zahira</th><th>Tannarxi</th><th>Holat / Qo'shish</th><th></th></tr></thead>
                 <tbody>
                   {ingredients.map(ing => {
-                    const isLow = ing.stock <= ing.min_stock;
+                    const isLow = ing.min_stock > 0 && ing.stock <= ing.min_stock;
                     return (
-                      <tr key={ing.id} style={{background: isLow ? 'rgba(239, 68, 68, 0.05)' : ''}}>
-                        <td>{ing.name}</td>
-                        <td className="font-bold">{ing.stock} {ing.unit}</td>
+                      <tr key={ing.id} style={{background: isLow ? 'rgba(239, 68, 68, 0.07)' : ''}}>
+                        <td style={{ fontWeight: 600 }}>{ing.name}</td>
+                        <td className="font-bold" style={{ color: isLow ? '#ef4444' : 'var(--success)' }}>
+                          {ing.stock} {ing.unit}
+                          {ing.min_stock > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.8rem' }}> / min: {ing.min_stock}</span>}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          {ing.cost_price > 0 ? `${ing.cost_price.toLocaleString()} so'm` : '—'}
+                        </td>
                         <td>
-                          {isLow ? <span className="text-danger flex items-center gap-1"><AlertTriangle size={14}/> Kam qoldi</span> : <span className="text-success">Yetarli</span>}
+                          {isLow ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ color: '#ef4444', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <AlertTriangle size={12}/> Kam!
+                              </span>
+                              <input
+                                type="number" min="0" step="0.1"
+                                placeholder="+miqdor"
+                                value={restockAmounts[ing.id] || ''}
+                                onChange={e => setRestockAmounts(prev => ({ ...prev, [ing.id]: e.target.value }))}
+                                style={{ width: '75px', padding: '0.25rem 0.4rem', borderRadius: '6px', background: 'var(--bg-surface)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                              />
+                              <button onClick={() => handleRestock(ing.id)} className="btn-primary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}>+</button>
+                            </div>
+                          ) : <span className="text-success" style={{ fontSize: '0.85rem' }}>Yetarli</span>}
                         </td>
                         <td>
                           <button onClick={() => handleDeleteIngredient(ing.id)} className="icon-btn text-danger"><Trash2 size={16}/></button>
