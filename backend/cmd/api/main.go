@@ -156,9 +156,6 @@ func main() {
 		{
 			orders.POST("/", orderHandler.CreateOrder)
 			orders.GET("/my", orderHandler.GetMyOrders)
-			orders.GET("/:id", orderHandler.GetOrderByID)
-			orders.GET("/:id/ratings", orderHandler.GetOrderRatings)
-			orders.POST("/:id/rate", orderHandler.SubmitRating)
 
 			// Staff/Admin Protected
 			staff := orders.Group("/")
@@ -167,11 +164,17 @@ func main() {
 				staff.GET("/all", orderHandler.GetAllOrders)
 				staff.GET("/active", orderHandler.GetActiveOrders)
 				staff.GET("/stats", orderHandler.GetStats)
+				staff.GET("/waiter-history", orderHandler.GetWaiterHistory)
 				staff.PUT("/:id/status", orderHandler.UpdateStatus)
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
 				staff.POST("/:id/print", orderHandler.ReprintOrder)
 				staff.PUT("/:id/service-fee", orderHandler.SetServiceFee)
 			}
+
+			// Parameterized routes must be at the end to avoid shadowing
+			orders.GET("/:id", orderHandler.GetOrderByID)
+			orders.GET("/:id/ratings", orderHandler.GetOrderRatings)
+			orders.POST("/:id/rate", orderHandler.SubmitRating)
 		}
 
 		// Tables (Admin and Waiter)
