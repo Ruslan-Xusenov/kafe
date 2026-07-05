@@ -57,7 +57,8 @@ const Waiter = () => {
       setHistory(res.data || []);
       setShowHistory(true);
     } catch (err) {
-      alert("Tarixni yuklashda xatolik");
+      console.error(err);
+      alert("Tarixni yuklashda xatolik: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -625,15 +626,17 @@ const Waiter = () => {
         /* ── Smart Cart Panel ── */
         .smart-cart-panel {
           position: fixed;
-          bottom: 0; left: 0; right: 0;
+          bottom: 1.5rem; 
+          right: 1.5rem;
+          width: 450px;
+          max-width: calc(100vw - 3rem);
           background: rgba(13,13,15,0.95) !important;
-          border-top: 1px solid rgba(255,255,255,0.1);
-          border-top-left-radius: 24px;
-          border-top-right-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 24px;
           padding: 1.5rem;
-          box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+          box-shadow: 0 10px 50px rgba(0,0,0,0.6);
           z-index: 50;
-          max-height: 80vh;
+          max-height: calc(100vh - 3rem);
           display: flex; flex-direction: column;
         }
 
@@ -711,7 +714,17 @@ const Waiter = () => {
           .menu-card-info h4 { font-size: 0.9rem; }
           .price-row .price { font-size: 1rem; }
           
-          .smart-cart-panel { padding: 1.25rem 1rem; border-top-left-radius: 20px; border-top-right-radius: 20px; }
+          .smart-cart-panel { 
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            width: 100%;
+            max-width: none;
+            border-radius: 0;
+            border-top-left-radius: 20px; 
+            border-top-right-radius: 20px; 
+            padding: 1.25rem 1rem; 
+            max-height: 80vh;
+          }
           .item-actions { gap: 0.5rem; }
           .item-actions button { width: 28px; height: 28px; }
           .item-actions .qty { width: 30px; }
