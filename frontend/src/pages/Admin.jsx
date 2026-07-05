@@ -137,13 +137,15 @@ const Admin = () => {
   };
 
   const fetchWaiterHistory = async (waiter) => {
+    setSelectedWaiter(waiter);
+    setWaiterOrders([]);
     setWaiterOrdersLoading(true);
     try {
       const res = await api.get(`/orders/waiter-hist/${waiter.id}`);
       setWaiterHistory(res.data || []);
       setShowWaiterHistory(true);
     } catch (err) {
-      alert("Tarixni yuklashda xatolik");
+      alert("Tarixni yuklashda xatolik: " + (err.response?.data?.error || err.message));
     } finally {
       setWaiterOrdersLoading(false);
     }
