@@ -122,7 +122,7 @@ const Admin = () => {
     setShowWaiterHistory(false);
     setWaiterOrdersLoading(true);
     try {
-      const res = await api.get(`/orders/waiter/${waiter.id}/active`);
+      const res = await api.get(`/orders/waiter-active/${waiter.id}`);
       const orders = res.data || [];
       setWaiterOrders(orders);
       // Initialize fees from existing service_percentage
@@ -139,7 +139,7 @@ const Admin = () => {
   const fetchWaiterHistory = async (waiter) => {
     setWaiterOrdersLoading(true);
     try {
-      const res = await api.get(`/orders/waiter/${waiter.id}/history`);
+      const res = await api.get(`/orders/waiter-hist/${waiter.id}`);
       setWaiterHistory(res.data || []);
       setShowWaiterHistory(true);
     } catch (err) {
