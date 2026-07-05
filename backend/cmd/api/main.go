@@ -166,6 +166,7 @@ func main() {
 				staff.GET("/stats", orderHandler.GetStats)
 				staff.GET("/waiter-history", orderHandler.GetWaiterHistory)
 				staff.GET("/waiter/:waiterID/active", orderHandler.GetActiveOrdersByWaiter)
+				staff.GET("/waiter/:waiterID/history", orderHandler.GetOrderHistoryByWaiter)
 				staff.PUT("/:id/status", orderHandler.UpdateStatus)
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
 				staff.POST("/:id/print", orderHandler.ReprintOrder)

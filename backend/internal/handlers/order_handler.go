@@ -234,3 +234,17 @@ func (h *OrderHandler) GetActiveOrdersByWaiter(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, orders)
 }
+
+func (h *OrderHandler) GetOrderHistoryByWaiter(c *gin.Context) {
+	waiterID, err := strconv.Atoi(c.Param("waiterID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid waiter id"})
+		return
+	}
+	orders, err := h.service.GetOrderHistoryByWaiter(waiterID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, orders)
+}

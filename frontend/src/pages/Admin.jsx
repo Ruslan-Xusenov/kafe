@@ -56,6 +56,8 @@ const Admin = () => {
   // Waiter Management states
   const [selectedWaiter, setSelectedWaiter] = useState(null);
   const [waiterOrders, setWaiterOrders] = useState([]);
+  const [waiterHistory, setWaiterHistory] = useState([]);
+  const [showWaiterHistory, setShowWaiterHistory] = useState(false);
   const [waiterOrderFees, setWaiterOrderFees] = useState({}); // {orderId: percentage}
   const [waiterOrdersLoading, setWaiterOrdersLoading] = useState(false);
 
@@ -116,6 +118,8 @@ const Admin = () => {
   const fetchWaiterOrders = async (waiter) => {
     setSelectedWaiter(waiter);
     setWaiterOrders([]);
+    setWaiterHistory([]);
+    setShowWaiterHistory(false);
     setWaiterOrdersLoading(true);
     try {
       const res = await api.get(`/orders/waiter/${waiter.id}/active`);
@@ -127,6 +131,19 @@ const Admin = () => {
       setWaiterOrderFees(fees);
     } catch (err) {
       alert("Ofitsant buyurtmalarini yuklashda xatolik");
+    } finally {
+      setWaiterOrdersLoading(false);
+    }
+  };
+
+  const fetchWaiterHistory = async (waiter) => {
+    setWaiterOrdersLoading(true);
+    try {
+      const res = await api.get(`/orders/waiter/${waiter.id}/history`);
+      setWaiterHistory(res.data || []);
+      setShowWaiterHistory(true);
+    } catch (err) {
+      alert("Tarixni yuklashda xatolik");
     } finally {
       setWaiterOrdersLoading(false);
     }
@@ -463,29 +480,44 @@ const Admin = () => {
                 {staff.map(w => (
                   <div
                     key={w.id}
-                    onClick={() => fetchWaiterOrders(w)}
                     style={{
-                      padding: '0.75rem 1rem', borderRadius: '10px', cursor: 'pointer',
+                      padding: '0.75rem 1rem', borderRadius: '10px',
                       marginBottom: '0.5rem',
                       background: selectedWaiter?.id === w.id ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)',
                       border: selectedWaiter?.id === w.id ? '1px solid rgba(249,115,22,0.5)' : '1px solid var(--border)',
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontWeight: 700 }}>{w.full_name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{w.phone}</div>
+                    <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>{w.full_name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{w.phone}</div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        className="btn-primary"
+                        style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem', flex: 1 }}
+                        onClick={() => fetchWaiterOrders(w)}
+                      >
+                        ⚡ Aktiv
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem', flex: 1 }}
+                        onClick={() => fetchWaiterHistory(w)}
+                      >
+                        📋 Tarix
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Waiter orders */}
+              {/* Waiter orders / history panel */}
               <div>
                 {!selectedWaiter && (
                   <div className="premium-card flex-center" style={{ minHeight: '200px', color: 'var(--text-muted)' }}>
                     Chap tomondagi ofitsantni tanlang
                   </div>
                 )}
-                {selectedWaiter && (
+                {selectedWaiter && !showWaiterHistory && (
                   <div className="premium-card">
                     <h3 className="mb-4">{selectedWaiter.full_name} — Aktiv buyurtmalar</h3>
                     {waiterOrdersLoading && <div className="flex-center"><Loader2 className="animate-spin" /></div>}
@@ -544,6 +576,73 @@ const Admin = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Waiter history panel */}
+                {selectedWaiter && showWaiterHistory && (
+                  <div className="premium-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3>{selectedWaiter.full_name} — Buyurtmalar Tarixi</h3>
+                      <button className="btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setShowWaiterHistory(false)}>
+                        ← Aktiv ko'rish
+                      </button>
+                    </div>
+                    {waiterOrdersLoading && <div className="flex-center"><Loader2 className="animate-spin" /></div>}
+                    {!waiterOrdersLoading && waiterHistory.length === 0 && (
+                      <p className="text-muted">Tarix bo'sh</p>
+                    )}
+
+                    {/* Summary row */}
+                    {waiterHistory.length > 0 && (
+                      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', padding: '0.75rem 1.25rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Umumiy buyurtmalar</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{waiterHistory.length}</div>
+                        </div>
+                        <div style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '10px', padding: '0.75rem 1.25rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Jami tushum</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary)' }}>
+                            {waiterHistory.reduce((acc, o) => acc + (o.total_price || 0), 0).toLocaleString()} so'm
+                          </div>
+                        </div>
+                        <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', padding: '0.75rem 1.25rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Yopilgan (delivered)</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{waiterHistory.filter(o => o.status === 'delivered').length}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ maxHeight: '500px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {waiterHistory.map(order => (
+                        <div key={order.id} style={{
+                          background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                          borderRadius: '12px', padding: '1rem'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--primary)' }}>#{order.id}</span>
+                            <span style={{ fontWeight: 800 }}>{(order.total_price || 0).toLocaleString()} so'm</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.3rem' }}>
+                            <span className="text-muted">Stol №{order.table_number || order.table_id}</span>
+                            <span className={`status-badge ${order.status}`}>{STATUS_MAP[order.status] || order.status}</span>
+                          </div>
+                          <div style={{ fontSize: '0.85rem' }}>
+                            <span className="text-muted">To'lov: </span>
+                            {order.payment_method === 'cash' ? '💵 Naqd' :
+                             order.payment_method === 'card' ? '💳 Karta' :
+                             order.payment_method === 'click' ? '📱 Click/Payme' :
+                             order.payment_method === 'nasiya' ? '📒 Nasiya' : (order.payment_method || '—')}
+                            {order.service_percentage > 0 && (
+                              <span className="text-muted" style={{ marginLeft: '1rem' }}>Xizmat haqi: {order.service_percentage}%</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                            {new Date(order.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

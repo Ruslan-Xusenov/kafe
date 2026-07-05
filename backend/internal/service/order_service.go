@@ -428,3 +428,7 @@ func (s *OrderService) GetWaiterHistory() ([]models.Order, error) {
 func (s *OrderService) GetActiveOrdersByWaiter(waiterID int) ([]models.Order, error) {
 	return s.orderRepo.GetActiveByWaiterID(waiterID)
 }
+
+func (s *OrderService) GetOrderHistoryByWaiter(waiterID int) ([]models.Order, error) {
+	return s.orderRepo.GetHistoryByWaiterID(waiterID)
+}
