@@ -22,12 +22,12 @@ const Waiter = () => {
   }, []);
 
   const STATUS_MAP = {
-    new: 'Yangi',
-    preparing: 'Tayyorlanmoqda',
-    ready: 'Tayyor',
-    on_way: 'Yo\'lda',
-    delivered: 'Yopilgan',
-    cancelled: 'Bekor qilingan'
+    new: 'Новый',
+    preparing: 'Готовится',
+    ready: 'Готов',
+    on_way: 'В пути',
+    delivered: 'Закрыт',
+    cancelled: 'Отменен'
   };
 
   const fetchInitialData = async () => {
@@ -44,7 +44,7 @@ const Waiter = () => {
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error("fetchInitialData ERROR:", err.message, err.response?.data);
-      alert("Ma'lumotlarni yuklashda xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка загрузки данных: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ const Waiter = () => {
       setShowHistory(true);
     } catch (err) {
       console.error(err);
-      alert("Tarixni yuklashda xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка загрузки истории: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -104,8 +104,8 @@ const Waiter = () => {
   };
 
   const submitOrder = async () => {
-    if (cart.length === 0) return alert("Savatcha bo'sh!");
-    if (!selectedTable) return alert("Stol tanlanmagan!");
+    if (cart.length === 0) return alert("Корзина пуста!");
+    if (!selectedTable) return alert("Стол не выбран!");
 
     const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     
@@ -119,8 +119,8 @@ const Waiter = () => {
           unit: item.unit
         })),
         total_price: totalPrice,
-        address: `Stol: ${selectedTable.number}`,
-        phone: 'Ichki buyurtma'
+        address: `Стол: ${selectedTable.number}`,
+        phone: 'Внутренний заказ'
       };
 
       await api.post('/orders', payload);
@@ -129,19 +129,19 @@ const Waiter = () => {
          await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'occupied' });
       }
 
-      alert('Buyurtma oshxonaga yuborildi!');
+      alert('Заказ отправлен на кухню!');
       setSelectedTable(null);
       setCart([]);
       fetchInitialData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
-      alert('Buyurtma yuborishda xatolik');
+      alert('Ошибка при отправке заказа');
     }
   };
 
   const freeTable = async () => {
-    if (!window.confirm("Stolni bo'shatishni xohlaysizmi?")) return;
+    if (!window.confirm("Вы хотите освободить стол?")) return;
     
     const paymentMethodMap = {
       '1': 'cash',
@@ -152,25 +152,25 @@ const Waiter = () => {
     
     let method = null;
     while (!method) {
-      const choice = window.prompt("To'lov turini tanlang (Raqamni kiriting):\n1 - 💵 Naqd\n2 - 💳 Terminal (Karta)\n3 - 📱 Click/Payme\n4 - 📒 Qarzga (Nasiya)");
+      const choice = window.prompt("Выберите тип оплаты (введите цифру):\n1 - 💵 Наличные\n2 - 💳 Терминал (Карта)\n3 - 📱 Click/Payme\n4 - 📒 В долг");
       
       if (choice === null) return; // User cancelled
       
       method = paymentMethodMap[choice];
       if (!method) {
-        alert("Iltimos, 1 dan 4 gacha bo'lgan raqamni kiriting.");
+        alert("Пожалуйста, введите цифру от 1 до 4.");
       }
     }
 
     try {
       await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'free', payment_method: method });
-      alert("Stol bo'shatildi!");
+      alert("Стол освобожден!");
       setSelectedTable(null);
       fetchInitialData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.error || "Xatolik yuz berdi";
+      const msg = err.response?.data?.error || "Произошла ошибка";
       alert(msg);
     }
   };
@@ -200,21 +200,21 @@ const Waiter = () => {
               <div className="header-info">
                 <UtensilsCrossed size={32} className="text-primary" />
                 <div>
-                  <h1 className="waiter-title">Zal Boshqaruvi</h1>
-                  <p className="waiter-subtitle">Xizmat ko'rsatish uchun stolni tanlang</p>
+                  <h1 className="waiter-title">Управление залом</h1>
+                  <p className="waiter-subtitle">Выберите стол для обслуживания</p>
                 </div>
               </div>
               <div className="table-stats">
                 <button className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '99px', fontSize: '0.85rem' }} onClick={fetchHistory}>
-                  <Clock size={16} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }}/> Tarix
+                  <Clock size={16} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }}/> История
                 </button>
                 <div className="stat-pill free-pill">
                   <span className="dot"></span>
-                  {freeCount} Bo'sh
+                  {freeCount} Свободен
                 </div>
                 <div className="stat-pill occ-pill">
                   <span className="dot"></span>
-                  {occCount} Band
+                  {occCount} Занят
                 </div>
               </div>
             </header>
@@ -235,21 +235,21 @@ const Waiter = () => {
                     </div>
                     <div className="table-details">
                       <h3>№ {table.number}</h3>
-                      <span>{table.capacity} kishi</span>
+                      <span>{table.capacity} чел</span>
                     </div>
                   </div>
                   <div className="table-status-bar">
                     {table.status === 'free' ? (
-                      <><CheckCircle2 size={14} /> Bo'sh</>
+                      <><CheckCircle2 size={14} /> Свободен</>
                     ) : (
-                      <><LayoutDashboard size={14} /> Band</>
+                      <><LayoutDashboard size={14} /> Занят</>
                     )}
                   </div>
                 </motion.div>
               ))}
               {tables.length === 0 && (
                 <div className="no-tables">
-                  <p>Hozircha stollar yo'q</p>
+                  <p>Пока нет столов</p>
                 </div>
               )}
             </div>
@@ -265,22 +265,22 @@ const Waiter = () => {
             <header className="order-header glass sticky top-0 z-20">
               <button className="back-button" onClick={() => setSelectedTable(null)}>
                 <ArrowLeft size={20} />
-                <span>Ortga</span>
+                <span>Назад</span>
               </button>
               <div className="header-center">
-                <h2>Stol № {selectedTable.number}</h2>
+                <h2>Стол № {selectedTable.number}</h2>
                 <span className={`status-badge-small ${selectedTable.status}`}>
-                  {selectedTable.status === 'free' ? 'Bo\'sh' : 'Band'}
+                  {selectedTable.status === 'free' ? 'Свободен' : 'Занят'}
                 </span>
               </div>
               <div className="header-right">
                 {selectedTable.status !== 'free' && (
                   <button onClick={freeTable} className="btn-free-table">
-                    Stolni bo'shatish
+                    Освободить стол
                   </button>
                 )}
                 <div className="order-total-pill">
-                  {cartTotal.toLocaleString()} <small>so'm</small>
+                  {cartTotal.toLocaleString()} <small>сум</small>
                 </div>
               </div>
             </header>
@@ -320,7 +320,7 @@ const Waiter = () => {
                       <div className="menu-card-info">
                         <h4>{p.name}</h4>
                         <div className="price-row">
-                          <span className="price">{p.price.toLocaleString()} so'm</span>
+                          <span className="price">{p.price.toLocaleString()} сум</span>
                         </div>
                       </div>
                     </motion.div>
@@ -338,15 +338,15 @@ const Waiter = () => {
                   className="smart-cart-panel glass"
                 >
                   <div className="cart-panel-header">
-                    <h3>Savatcha ({cart.length})</h3>
-                    <span>Jami: {cartTotal.toLocaleString()} so'm</span>
+                    <h3>Корзина ({cart.length})</h3>
+                    <span>Итого: {cartTotal.toLocaleString()} сум</span>
                   </div>
                   <div className="smart-cart-items no-scrollbar">
                     {cart.map(item => (
                       <div key={item.product_id} className="smart-cart-item">
                         <div className="item-details">
                           <span className="name">{item.name}</span>
-                          <span className="price">{(item.price * item.quantity).toLocaleString()} so'm</span>
+                          <span className="price">{(item.price * item.quantity).toLocaleString()} сум</span>
                         </div>
                         <div className="item-actions">
                           <button onClick={() => updateQuantity(item.product_id, -item.step)}>
@@ -362,7 +362,7 @@ const Waiter = () => {
                   </div>
                   <button className="submit-order-btn" onClick={submitOrder}>
                     <Send size={18} />
-                    Oshxonaga Yuborish
+                    Отправить на кухню
                   </button>
                 </motion.div>
               )}
@@ -376,36 +376,36 @@ const Waiter = () => {
         <div className="modal-overlay" style={{ zIndex: 100 }}>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '800px', background: '#121212', maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
             <div className="modal-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <h3>Mening Buyurtmalarim (Tarix)</h3>
+              <h3>Мои заказы (История)</h3>
               <button onClick={() => setShowHistory(false)}><X size={20} /></button>
             </div>
             <div className="order-details-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
               {history.length === 0 ? (
-                <div className="text-center text-muted py-8">Hali buyurtmalar yo'q</div>
+                <div className="text-center text-muted py-8">Пока нет заказов</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {history.map(order => (
                     <div key={order.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span className="font-700 text-primary">Chek #{order.id}</span>
-                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleString()}</span>
+                        <span className="font-700 text-primary">Чек #{order.id}</span>
+                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleString('ru-RU')}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                        <span>Stol: <b>№{order.table_number || order.table_id || '-'}</b></span>
+                        <span>Стол: <b>№{order.table_number || order.table_id || '-'}</b></span>
                         <span className={`status-badge-small ${order.status}`}>
                           {STATUS_MAP[order.status] || order.status}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                        <span className="text-muted">To'lov: </span>
-                        {order.payment_method === 'cash' ? '💵 Naqd' :
-                         order.payment_method === 'card' ? '💳 Terminal (Karta)' :
+                        <span className="text-muted">Оплата: </span>
+                        {order.payment_method === 'cash' ? '💵 Наличные' :
+                         order.payment_method === 'card' ? '💳 Терминал (Карта)' :
                          order.payment_method === 'click' ? '📱 Click/Payme' :
-                         order.payment_method === 'nasiya' ? '📒 Qarzga' : (order.payment_method || '-')}
+                         order.payment_method === 'nasiya' ? '📒 В долг' : (order.payment_method || '-')}
                       </div>
                       <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-                        <span className="text-muted">Jami summasi:</span>
-                        <span className="font-700">{(order.total_price || 0).toLocaleString()} so'm</span>
+                        <span className="text-muted">Итоговая сумма:</span>
+                        <span className="font-700">{(order.total_price || 0).toLocaleString()} сум</span>
                       </div>
                     </div>
                   ))}

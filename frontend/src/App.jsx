@@ -23,7 +23,7 @@ import PrivacyConsent from './components/PrivacyConsent';
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
   
-  if (loading) return <div>Yuklanmoqda...</div>;
+  if (loading) return <div>Загрузка...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/" />;

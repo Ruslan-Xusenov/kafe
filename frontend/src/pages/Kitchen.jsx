@@ -6,9 +6,9 @@ import { ChefHat, Clock, CheckCircle2, RefreshCw, Flame, Zap } from 'lucide-reac
 import StatsSection from '../components/StatsSection';
 
 const STATUS_CONFIG = {
-  new:       { label: 'Yangi',          emoji: '🆕', color: '#818cf8', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.30)'  },
-  preparing: { label: 'Tayyorlanmoqda', emoji: '👨‍🍳', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.30)'  },
-  ready:     { label: 'Tayyor',         emoji: '✅', color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)'  },
+  new:       { label: 'Новый',          emoji: '🆕', color: '#818cf8', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.30)'  },
+  preparing: { label: 'Готовится', emoji: '👨‍🍳', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.30)'  },
+  ready:     { label: 'Готов',         emoji: '✅', color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)'  },
 };
 
 const Kitchen = () => {
@@ -49,7 +49,7 @@ const Kitchen = () => {
       fetchOrders();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Statusni yangilashda xatolik');
+      alert('Ошибка при обновлении статуса');
     }
   };
 
@@ -61,7 +61,7 @@ const Kitchen = () => {
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
-      <p>Buyurtmalar yuklanmoqda...</p>
+      <p>Загрузка заказов...</p>
     </div>
   );
 
@@ -74,16 +74,16 @@ const Kitchen = () => {
             <ChefHat size={24} />
           </div>
           <div>
-            <h1>Oshxona Paneli</h1>
+            <h1>Панель кухни</h1>
             <p className="kitchen-subtitle">
-              {orders.length} ta aktiv buyurtma
+              {orders.length} активных заказов
             </p>
           </div>
         </div>
         <button
           className={`refresh-btn ${refreshing ? 'refreshing' : ''}`}
           onClick={handleRefresh}
-          title="Yangilash"
+          title="Обновить"
         >
           <RefreshCw size={16} />
         </button>
@@ -122,7 +122,7 @@ const Kitchen = () => {
                       className="col-empty"
                     >
                       <span style={{ fontSize: '2rem', opacity: 0.3 }}>{cfg.emoji}</span>
-                      <p>Bo'sh</p>
+                      <p>Пусто</p>
                     </motion.div>
                   ) : (
                     colOrders.map(order => (
@@ -150,7 +150,7 @@ const Kitchen = () => {
                           {(order.items || []).map((item, idx) => (
                             <div key={idx} className="order-item-row">
                               <span className="item-qty">{item.quantity} {item.unit || 'x'}</span>
-                              <span className="item-name">{item.product_name || 'Noma\'lum'}</span>
+                              <span className="item-name">{item.product_name || 'Неизвестно'}</span>
                             </div>
                           ))}
                         </div>
@@ -168,7 +168,7 @@ const Kitchen = () => {
                               className="action-btn prepare-btn"
                               onClick={() => updateStatus(order.id, 'preparing')}
                             >
-                              <Flame size={14} /> Pishirishni boshlash
+                              <Flame size={14} /> Начать готовку
                             </button>
                           )}
                           {status === 'preparing' && (
@@ -176,13 +176,13 @@ const Kitchen = () => {
                               className="action-btn ready-btn"
                               onClick={() => updateStatus(order.id, 'ready')}
                             >
-                              <CheckCircle2 size={14} /> Tayyor!
+                              <CheckCircle2 size={14} /> Готово!
                             </button>
                           )}
                           {status === 'ready' && (
                             <div className="waiting-courier">
                               <Zap size={14} />
-                              Kuryerni kutmoqda
+                              Ожидает курьера
                             </div>
                           )}
                         </div>

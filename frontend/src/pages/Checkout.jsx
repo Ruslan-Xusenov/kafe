@@ -54,7 +54,7 @@ const Checkout = () => {
       }
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert(err.response?.data?.error || 'Buyurtma berishda xatolik yuz berdi');
+      alert(err.response?.data?.error || 'Произошла ошибка при оформлении заказа');
     } finally {
       setLoading(false);
     }
@@ -67,19 +67,19 @@ const Checkout = () => {
 
   return (
     <div className="checkout-page animate-fade">
-      <h1>Rasmiylashtirish</h1>
+      <h1>Оформление заказа</h1>
       
       <div className="checkout-content">
         <form onSubmit={handleSubmit} className="checkout-form">
           <div className="premium-card">
             <div className="section-title">
-              <MapPin size={24} /> <h2>Yetkazib berish</h2>
+              <MapPin size={24} /> <h2>Доставка</h2>
             </div>
             
             <div className={`input-group ${errors.address ? 'has-error' : ''}`}>
-              <label>Manzil</label>
+              <label>Адрес</label>
               <textarea 
-                placeholder="Shahar, tuman, ko'cha, uy raqami..." 
+                placeholder="Город, район, улица, номер дома..." 
                 value={address}
                 onChange={(e) => {
                   setAddress(e.target.value);
@@ -90,7 +90,7 @@ const Checkout = () => {
             </div>
 
             <div className={`input-group ${errors.phone ? 'has-error' : ''}`}>
-              <label><Phone size={16} /> Bog'lanish uchun telefon</label>
+              <label><Phone size={16} /> Телефон для связи</label>
               <input 
                 type="text" 
                 value={phone}
@@ -103,9 +103,9 @@ const Checkout = () => {
             </div>
 
             <div className="input-group">
-              <label>Izoh (ixtiyoriy)</label>
+              <label>Комментарий (необязательно)</label>
               <textarea 
-                placeholder="Podyezd kodi, mo'ljal..." 
+                placeholder="Код подъезда, ориентир..." 
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
@@ -114,41 +114,41 @@ const Checkout = () => {
 
           <div className="premium-card mt-2">
             <div className="section-title">
-              <CreditCard size={24} /> <h2>To'lov turi</h2>
+              <CreditCard size={24} /> <h2>Тип оплаты</h2>
             </div>
             <div className="payment-options">
               <label className="radio-group active">
                 <input type="radio" name="payment" defaultChecked />
-                <span>Naqd pul / Terminal</span>
+                <span>Наличные / Терминал</span>
               </label>
-              <p className="payment-hint">To'lov taom yetkazilganda amalga oshiriladi</p>
+              <p className="payment-hint">Оплата производится при доставке</p>
             </div>
           </div>
         </form>
 
         <div className="checkout-summary premium-card glass">
-          <h2>Xulosa</h2>
+          <h2>Итого</h2>
           <div className="summary-list">
             {items.map(item => (
               <div key={item.id} className="summary-item">
                 <span>{item.name} x {item.quantity}</span>
-                <span>{((item.price || 0) * (item.quantity || 0)).toLocaleString()} so'm</span>
+                <span>{((item.price || 0) * (item.quantity || 0)).toLocaleString()} сум</span>
               </div>
             ))}
           </div>
           
           <div className="total-breakdown">
             <div className="row">
-              <span>Mahsulotlar</span>
-              <span>{getTotal().toLocaleString()} so'm</span>
+              <span>Продукты</span>
+              <span>{getTotal().toLocaleString()} сум</span>
             </div>
             <div className="row">
-              <span>Yetkazib berish</span>
-              <span>15,000 so'm</span>
+              <span>Доставка</span>
+              <span>15,000 сум</span>
             </div>
             <div className="final-total">
-              <span>Jami</span>
-              <span>{(getTotal() + 15000).toLocaleString()} so'm</span>
+              <span>Всего</span>
+              <span>{(getTotal() + 15000).toLocaleString()} сум</span>
             </div>
           </div>
 
@@ -158,7 +158,7 @@ const Checkout = () => {
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? <Loader2 className="animate-spin" /> : <><Send size={20} /> Tasdiqlash</>}
+            {loading ? <Loader2 className="animate-spin" /> : <><Send size={20} /> Подтвердить</>}
           </button>
         </div>
       </div>

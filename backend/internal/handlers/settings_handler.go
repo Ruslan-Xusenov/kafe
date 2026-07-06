@@ -38,23 +38,22 @@ func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 	}
 	
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
 		return
 	}
 	
 	if body.ContainerPrice != "" {
 		if err := h.repo.Set("container_price", body.ContainerPrice); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update price"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении цены"})
 			return
 		}
 	}
 	
 	if body.ContainerProductID != "" {
 		if err := h.repo.Set("container_product_id", body.ContainerProductID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update ID"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении ID"})
 			return
 		}
 	}
-	
-	c.JSON(http.StatusOK, gin.H{"message": "Settings updated"})
+	c.JSON(http.StatusOK, gin.H{"message": "Настройки обновлены"})
 }

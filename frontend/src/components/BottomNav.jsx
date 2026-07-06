@@ -13,12 +13,12 @@ const BottomNav = () => {
   const isActive = (path) => location.pathname === path;
 
   const tabs = [
-    { to: '/', icon: <Utensils size={22} />, label: 'Menyu', always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
-    { to: '/cart', icon: <ShoppingCart size={22} />, label: 'Savat', badge: cartCount > 0 ? cartCount : null, always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
-    { to: '/my-orders', icon: <Package size={22} />, label: 'Buyurtmalar', auth: true, hideForRoles: ['cook', 'courier', 'waiter'] },
-    { to: '/kitchen', icon: <ChefHat size={22} />, label: 'Oshxona', roles: ['admin','cook'] },
-    { to: '/delivery', icon: <Truck size={22} />, label: 'Yetkazish', roles: ['admin','courier'] },
-    { to: '/waiter', icon: <ClipboardList size={22} />, label: 'Ofitsant', roles: ['admin','waiter'] },
+    { to: '/', icon: <Utensils size={22} />, label: 'Меню', always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/cart', icon: <ShoppingCart size={22} />, label: 'Корзина', badge: cartCount > 0 ? cartCount : null, always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/my-orders', icon: <Package size={22} />, label: 'Заказы', auth: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/kitchen', icon: <ChefHat size={22} />, label: 'Кухня', roles: ['admin','cook'] },
+    { to: '/delivery', icon: <Truck size={22} />, label: 'Доставка', roles: ['admin','courier'] },
+    { to: '/waiter', icon: <ClipboardList size={22} />, label: 'Официант', roles: ['admin','waiter'] },
     { to: '/admin', icon: <LayoutDashboard size={22} />, label: 'Admin', roles: ['admin'] },
   ].filter(tab => {
     if (tab.hideForRoles && user && tab.hideForRoles.includes(user.role)) return false;

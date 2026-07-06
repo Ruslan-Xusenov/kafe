@@ -35,7 +35,7 @@ const Courier = () => {
       fetchOrders();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Buyurtmani qabul qilishda xatolik');
+      alert('Ошибка при принятии заказа');
     }
   };
 
@@ -48,7 +48,7 @@ const Courier = () => {
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setOrders(prev);
-      alert('Statusni yangilashda xatolik');
+      alert('Ошибка при обновлении статуса');
     }
   };
 
@@ -58,7 +58,7 @@ const Courier = () => {
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
-      <p>Yuklanmoqda...</p>
+      <p>Загрузка...</p>
     </div>
   );
 
@@ -71,9 +71,9 @@ const Courier = () => {
             <Truck size={24} />
           </div>
           <div>
-            <h1>Kuryer Paneli</h1>
+            <h1>Панель курьера</h1>
             <p className="courier-subtitle">
-              {readyOrders.length} tayyor · {activeOrders.length} yo'lda
+              {readyOrders.length} готово · {activeOrders.length} в пути
             </p>
           </div>
         </div>
@@ -92,15 +92,15 @@ const Courier = () => {
         <div className="section-header">
           <div className="section-pill">
             <Package size={14} />
-            Olish mumkin
+            Можно забрать
           </div>
-          <span className="section-count">{readyOrders.length} ta</span>
+          <span className="section-count">{readyOrders.length} шт</span>
         </div>
 
         {readyOrders.length === 0 ? (
           <div className="empty-section">
             <span>📦</span>
-            <p>Hozircha tayyor buyurtmalar yo'q</p>
+            <p>На данный момент готовых заказов нет</p>
           </div>
         ) : (
           <div className="courier-grid">
@@ -116,14 +116,14 @@ const Courier = () => {
                 >
                   <div className="ccard-top">
                     <span className="ccard-id">#{order.id}</span>
-                    <span className="ccard-price">{order.total_price?.toLocaleString()} so'm</span>
+                    <span className="ccard-price">{order.total_price?.toLocaleString()} сум</span>
                   </div>
                   <div className="ccard-addr">
                     <MapPin size={15} />
                     <span>{order.address}</span>
                   </div>
                   <button className="btn-primary ccard-btn" onClick={() => pickUp(order.id)}>
-                    <Navigation size={16} /> Olib ketish
+                    <Navigation size={16} /> Забрать
                   </button>
                 </motion.div>
               ))}
@@ -137,15 +137,15 @@ const Courier = () => {
         <div className="section-header">
           <div className="section-pill" style={{ background: 'rgba(249,115,22,0.12)', borderColor: 'rgba(249,115,22,0.25)', color: 'var(--primary)' }}>
             <Truck size={14} />
-            Faol yetkazishlar
+            Активные доставки
           </div>
-          <span className="section-count">{activeOrders.length} ta</span>
+          <span className="section-count">{activeOrders.length} шт</span>
         </div>
 
         {activeOrders.length === 0 ? (
           <div className="empty-section">
             <span>🚴</span>
-            <p>Hozircha faol buyurtmalar yo'q</p>
+            <p>На данный момент активных доставок нет</p>
           </div>
         ) : (
           <div className="courier-grid">
@@ -160,7 +160,7 @@ const Courier = () => {
                 >
                   <div className="ccard-top">
                     <span className="ccard-id">#{order.id}</span>
-                    <span className="on-way-badge">🚴 Yo'lda</span>
+                    <span className="on-way-badge">🚴 В пути</span>
                   </div>
 
                   <div className="ccard-details">
@@ -185,7 +185,7 @@ const Courier = () => {
                   )}
 
                   <button className="ccard-delivered-btn ccard-btn" onClick={() => deliver(order.id)}>
-                    <CheckCircle size={16} /> Yetkazib berildi
+                    <CheckCircle size={16} /> Доставлено
                   </button>
                 </motion.div>
               ))}

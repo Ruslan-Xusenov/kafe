@@ -58,7 +58,7 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 		return
 	}
 	if order == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
 		return
 	}
 
@@ -113,7 +113,7 @@ func (h *OrderHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "status updated"})
+	c.JSON(http.StatusOK, gin.H{"message": "Статус обновлен"})
 }
 
 func (h *OrderHandler) SubmitRating(c *gin.Context) {
@@ -129,7 +129,7 @@ func (h *OrderHandler) SubmitRating(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "ratings submitted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Оценки отправлены"})
 }
 
 func (h *OrderHandler) GetStaffPerformance(c *gin.Context) {
@@ -151,7 +151,7 @@ func (h *OrderHandler) AssignCourier(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "courier assigned"})
+	c.JSON(http.StatusOK, gin.H{"message": "Курьер назначен"})
 }
 func (h *OrderHandler) GetStats(c *gin.Context) {
 	userID, _ := c.Get("user_id")
@@ -181,7 +181,7 @@ func (h *OrderHandler) TestPrinter(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "test sent"})
+	c.JSON(http.StatusOK, gin.H{"message": "Тест отправлен"})
 }
 
 func (h *OrderHandler) ReprintOrder(c *gin.Context) {
@@ -190,7 +190,7 @@ func (h *OrderHandler) ReprintOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "order sent to printer"})
+	c.JSON(http.StatusOK, gin.H{"message": "Заказ отправлен на печать"})
 }
 
 func (h *OrderHandler) SetServiceFee(c *gin.Context) {
@@ -224,7 +224,7 @@ func (h *OrderHandler) GetWaiterHistory(c *gin.Context) {
 func (h *OrderHandler) GetActiveOrdersByWaiter(c *gin.Context) {
 	waiterID, err := strconv.Atoi(c.Param("waiterID"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid waiter id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID официанта"})
 		return
 	}
 	orders, err := h.service.GetActiveOrdersByWaiter(waiterID)
@@ -238,7 +238,7 @@ func (h *OrderHandler) GetActiveOrdersByWaiter(c *gin.Context) {
 func (h *OrderHandler) GetOrderHistoryByWaiter(c *gin.Context) {
 	waiterID, err := strconv.Atoi(c.Param("waiterID"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid waiter id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID официанта"})
 		return
 	}
 	orders, err := h.service.GetOrderHistoryByWaiter(waiterID)

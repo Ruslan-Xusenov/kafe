@@ -6,12 +6,12 @@ import RatingModal from '../components/RatingModal';
 import { Link } from 'react-router-dom';
 
 const STATUS_MAP = {
-  new:       { label: 'Yangi',          icon: <Package size={18} />,     color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
-  preparing: { label: 'Tayyorlanmoqda', icon: <ChefHat size={18} />,     color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
-  ready:     { label: 'Tayyor',         icon: <CheckCircle2 size={18} />, color: '#34d399', bg: 'rgba(16,185,129,0.12)' },
-  on_way:    { label: 'Yo\'lda',        icon: <Truck size={18} />,        color: '#fb923c', bg: 'rgba(249,115,22,0.15)' },
-  delivered: { label: 'Yetkazildi',     icon: <CheckCircle2 size={18} />, color: '#a3e635', bg: 'rgba(163,230,53,0.12)' },
-  cancelled: { label: 'Bekor qilindi',  icon: <XCircle size={18} />,      color: '#fca5a5', bg: 'rgba(239,68,68,0.12)'  },
+  new:       { label: 'Новый',          icon: <Package size={18} />,     color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
+  preparing: { label: 'Готовится', icon: <ChefHat size={18} />,     color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  ready:     { label: 'Готов',         icon: <CheckCircle2 size={18} />, color: '#34d399', bg: 'rgba(16,185,129,0.12)' },
+  on_way:    { label: 'В пути',        icon: <Truck size={18} />,        color: '#fb923c', bg: 'rgba(249,115,22,0.15)' },
+  delivered: { label: 'Доставлен',     icon: <CheckCircle2 size={18} />, color: '#a3e635', bg: 'rgba(163,230,53,0.12)' },
+  cancelled: { label: 'Отменен',  icon: <XCircle size={18} />,      color: '#fca5a5', bg: 'rgba(239,68,68,0.12)'  },
 };
 
 const MyOrders = () => {
@@ -39,7 +39,7 @@ const MyOrders = () => {
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
-      <p style={{ color: 'var(--text-secondary)' }}>Yuklanmoqda...</p>
+      <p style={{ color: 'var(--text-secondary)' }}>Загрузка...</p>
     </div>
   );
 
@@ -48,11 +48,11 @@ const MyOrders = () => {
       {/* Header */}
       <div className="myorders-header">
         <div>
-          <h1>Buyurtmalar tarixi</h1>
-          <p className="myorders-sub">Sizning barcha buyurtmalaringiz va holati</p>
+          <h1>История заказов</h1>
+          <p className="myorders-sub">Все ваши заказы и их статус</p>
         </div>
         <button className="mo-refresh-btn" onClick={fetchOrders}>
-          <RefreshCcw size={16} /> Yangilash
+          <RefreshCcw size={16} /> Обновить
         </button>
       </div>
 
@@ -64,10 +64,10 @@ const MyOrders = () => {
           className="mo-empty"
         >
           <div className="mo-empty-icon">📦</div>
-          <h2>Buyurtmalar yo'q</h2>
-          <p>Hali birorta buyurtma bermagansiz. Menyudan o'zingizga yoqqan taomni tanlang!</p>
+          <h2>Заказов нет</h2>
+          <p>Вы еще не сделали ни одного заказа. Выберите любимое блюдо из меню!</p>
           <Link to="/" className="btn-primary mo-empty-btn">
-            Menyuga o'tish
+            Перейти в меню
           </Link>
         </motion.div>
       ) : (
@@ -90,9 +90,9 @@ const MyOrders = () => {
                         {cfg.icon}
                       </div>
                       <div>
-                        <h3 className="mo-order-id">Buyurtma #{order.id}</h3>
+                        <h3 className="mo-order-id">Заказ #{order.id}</h3>
                         <p className="mo-time">
-                          {new Date(order.created_at).toLocaleString('uz-UZ', {
+                          {new Date(order.created_at).toLocaleString('ru-RU', {
                             day: '2-digit', month: 'short', year: 'numeric',
                             hour: '2-digit', minute: '2-digit'
                           })}
@@ -104,7 +104,7 @@ const MyOrders = () => {
                       <span className="mo-badge" style={{ background: cfg.bg, color: cfg.color, borderColor: cfg.color + '55' }}>
                         {cfg.label}
                       </span>
-                      <div className="mo-price">{(order.total_price || 0).toLocaleString()} so'm</div>
+                      <div className="mo-price">{(order.total_price || 0).toLocaleString()} сум</div>
                     </div>
                   </div>
 
@@ -134,7 +134,7 @@ const MyOrders = () => {
                         className="mo-rate-btn"
                         onClick={() => { setSelectedOrder(order); setIsRatingOpen(true); }}
                       >
-                        <Star size={15} /> Baholash
+                        <Star size={15} /> Оценить
                       </button>
                     </div>
                   )}

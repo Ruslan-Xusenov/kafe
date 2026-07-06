@@ -47,11 +47,11 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
 
   const handleSubmit = async () => {
     if (order.cook_id && cookRating === 0) {
-      alert('Iltimos, oshpazga baho bering');
+      alert('Пожалуйста, оцените повара');
       return;
     }
     if (order.courier_id && courierRating === 0) {
-      alert('Iltimos, kuryerga baho bering');
+      alert('Пожалуйста, оцените курьера');
       return;
     }
 
@@ -85,8 +85,8 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error('Rating failed:', err);
-      const serverMsg = err.response?.data?.error || "Qaytadan urunib ko'ring.";
-      alert(`Baholashda xatolik yuz berdi: ${serverMsg}`);
+      const serverMsg = err.response?.data?.error || "Попробуйте еще раз.";
+      alert(`Ошибка при оценке: ${serverMsg}`);
     } finally {
       setLoading(false);
     }
@@ -107,12 +107,12 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
           {/* Drag handle (mobile) */}
           <div className="rm-handle" />
           <div className="modal-header">
-            <h3>Xizmat ko'rsatish sifatini baholang</h3>
+            <h3>Оцените качество обслуживания</h3>
             <button className="close-btn" onClick={onClose}><X size={20} /></button>
           </div>
 
           <div className="order-summary-mini">
-            <span>Buyurtma #{order.id}</span>
+            <span>Заказ #{order.id}</span>
             <span>{new Date(order.created_at).toLocaleDateString()}</span>
           </div>
 
@@ -126,7 +126,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
                 className="fetching-loader"
               >
                 <Loader2 className="spinner" size={40} />
-                <p>Baholarni yuklamoqda...</p>
+                <p>Загрузка оценок...</p>
               </motion.div>
             ) : (
               <motion.div 
@@ -140,8 +140,8 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
                   {order.cook_id && (
                     <div className="rating-group">
                       <div className="group-header">
-                        <span className="role-tag">Oshpaz</span>
-                        <h4>Taom sifati va tayyorlanishi</h4>
+                        <span className="role-tag">Повар</span>
+                        <h4>Качество и приготовление еды</h4>
                       </div>
                       <div className="stars">
                         {[1, 2, 3, 4, 5].map(star => (
@@ -155,7 +155,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
                         ))}
                       </div>
                       <textarea 
-                        placeholder="Oshpaz haqida izohingiz..."
+                        placeholder="Ваш отзыв о поваре..."
                         value={cookComment}
                         onChange={(e) => setCookComment(e.target.value)}
                       />
@@ -168,8 +168,8 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
                   {order.courier_id && (
                     <div className="rating-group">
                       <div className="group-header">
-                        <span className="role-tag courier">Kuryer</span>
-                        <h4>Yetkazib berish xizmati</h4>
+                        <span className="role-tag courier">Курьер</span>
+                        <h4>Служба доставки</h4>
                       </div>
                       <div className="stars">
                         {[1, 2, 3, 4, 5].map(star => (
@@ -183,7 +183,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
                         ))}
                       </div>
                       <textarea 
-                        placeholder="Kuryer haqida izohingiz..."
+                        placeholder="Ваш отзыв о курьере..."
                         value={courierComment}
                         onChange={(e) => setCourierComment(e.target.value)}
                       />
@@ -201,7 +201,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
                   ) : (
                     <>
                       <Send size={18} />
-                      Bahoni yuborish
+                      Отправить оценку
                     </>
                   )}
                 </button>

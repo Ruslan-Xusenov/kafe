@@ -50,7 +50,7 @@ const InventorySection = ({ products }) => {
 
   const handleCreateIngredient = async (e) => {
     e.preventDefault();
-    if (!newIngredient.name || !newIngredient.stock) return alert('Barcha maydonlarni to\'ldiring');
+    if (!newIngredient.name || !newIngredient.stock) return alert('Заполните все поля');
     try {
       await api.post('/inventory/ingredients', {
         name: newIngredient.name,
@@ -63,25 +63,25 @@ const InventorySection = ({ products }) => {
       fetchIngredients();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Xatolik: ' + (err.response?.data?.error || ''));
+      alert('Ошибка: ' + (err.response?.data?.error || ''));
     }
   };
 
   const handleDeleteIngredient = async (id) => {
-    if (!window.confirm("Rostdan o'chirmoqchimisiz?")) return;
+    if (!window.confirm("Вы действительно хотите удалить?")) return;
     try {
       await api.delete(`/inventory/ingredients/${id}`);
       fetchIngredients();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('O\'chirishda xatolik');
+      alert('Ошибка при удалении');
     }
   };
 
   const handleAddRecipe = async (e) => {
     e.preventDefault();
-    if (!selectedProduct) return alert('Avval mahsulot tanlang');
-    if (!newRecipe.ingredient_id || !newRecipe.quantity) return alert('Masalliq va miqdorini tanlang');
+    if (!selectedProduct) return alert('Сначала выберите продукт');
+    if (!newRecipe.ingredient_id || !newRecipe.quantity) return alert('Выберите ингредиент и количество');
     
     try {
       await api.post('/inventory/recipes', {
@@ -94,56 +94,56 @@ const InventorySection = ({ products }) => {
       fetchRecipes(selectedProduct);
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Xatolik: ' + (err.response?.data?.error || ''));
+      alert('Ошибка: ' + (err.response?.data?.error || ''));
     }
   };
 
   const handleDeleteRecipe = async (id) => {
-    if (!window.confirm("O'chirmoqchimisiz?")) return;
+    if (!window.confirm("Удалить?")) return;
     try {
       await api.delete(`/inventory/recipes/${id}`);
       fetchRecipes(selectedProduct);
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Xatolik');
+      alert('Ошибка');
     }
   };
 
   const handleRestock = async (ingId) => {
     const amount = parseFloat(restockAmounts[ingId] || 0);
-    if (!amount || amount <= 0) return alert("Miqdorni kiriting");
+    if (!amount || amount <= 0) return alert("Введите количество");
     try {
       await api.post(`/inventory/ingredients/${ingId}/restock`, { amount });
       setRestockAmounts(prev => ({ ...prev, [ingId]: '' }));
       fetchIngredients();
     } catch (err) {
-      alert('Zaxira qo\'shishda xatolik: ' + (err.response?.data?.error || err.message));
+      alert('Ошибка при пополнении запаса: ' + (err.response?.data?.error || err.message));
     }
   };
 
   return (
     <div className="inventory-section animate-fade">
       <div className="flex justify-between items-center mb-6">
-        <h2>Omborxona (Sklad)</h2>
+        <h2>Склад (Инвентарь)</h2>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
         
         {/* Ingredients Management */}
         <div className="premium-card">
-          <h3 className="mb-4">Masalliqlar Bazasi</h3>
+          <h3 className="mb-4">База ингредиентов</h3>
           <form onSubmit={handleCreateIngredient} className="flex gap-2 mb-4">
-            <input type="text" placeholder="Nomi (Masalan: Go'sht)" value={newIngredient.name} onChange={e=>setNewIngredient({...newIngredient, name: e.target.value})} className="flex-1" />
-            <input type="number" placeholder="Mavjud miqdor" value={newIngredient.stock} onChange={e=>setNewIngredient({...newIngredient, stock: e.target.value})} style={{width: '100px'}} />
+            <input type="text" placeholder="Название (Например: Мясо)" value={newIngredient.name} onChange={e=>setNewIngredient({...newIngredient, name: e.target.value})} className="flex-1" />
+            <input type="number" placeholder="Кол-во" value={newIngredient.stock} onChange={e=>setNewIngredient({...newIngredient, stock: e.target.value})} style={{width: '100px'}} />
             <select value={newIngredient.unit} onChange={e=>setNewIngredient({...newIngredient, unit: e.target.value})}>
               <option value="gr">gr</option>
               <option value="kg">kg</option>
               <option value="litr">litr</option>
               <option value="ml">ml</option>
-              <option value="dona">dona</option>
+              <option value="dona">шт</option>
             </select>
-            <input type="number" placeholder="Min. chegara" value={newIngredient.min_stock} onChange={e=>setNewIngredient({...newIngredient, min_stock: e.target.value})} style={{width: '100px'}} />
-            <input type="number" placeholder="Tannarxi so'm" value={newIngredient.cost_price} onChange={e=>setNewIngredient({...newIngredient, cost_price: e.target.value})} style={{width: '120px'}} />
+            <input type="number" placeholder="Мин. запас" value={newIngredient.min_stock} onChange={e=>setNewIngredient({...newIngredient, min_stock: e.target.value})} style={{width: '100px'}} />
+            <input type="number" placeholder="Себест-ть сум" value={newIngredient.cost_price} onChange={e=>setNewIngredient({...newIngredient, cost_price: e.target.value})} style={{width: '120px'}} />
             <button type="submit" className="btn-primary p-2"><Plus size={18}/></button>
           </form>
 
@@ -153,11 +153,11 @@ const InventorySection = ({ products }) => {
               {ingredients.filter(i => i.stock <= i.min_stock).length > 0 && (
                 <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
                   <AlertTriangle size={16} />
-                  <strong>{ingredients.filter(i => i.stock <= i.min_stock).length} ta masalliq kam qolgan!</strong>
+                  <strong>{ingredients.filter(i => i.stock <= i.min_stock).length} ингредиентов заканчиваются!</strong>
                 </div>
               )}
               <table className="admin-table">
-                <thead><tr><th>Nomi</th><th>Zahira</th><th>Tannarxi</th><th>Holat / Qo'shish</th><th></th></tr></thead>
+                <thead><tr><th>Название</th><th>Запас</th><th>Себестоимость</th><th>Статус / Добавить</th><th></th></tr></thead>
                 <tbody>
                   {ingredients.map(ing => {
                     const isLow = ing.min_stock > 0 && ing.stock <= ing.min_stock;
@@ -175,18 +175,18 @@ const InventorySection = ({ products }) => {
                           {isLow ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <span style={{ color: '#ef4444', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                <AlertTriangle size={12}/> Kam!
+                                <AlertTriangle size={12}/> Мало!
                               </span>
                               <input
                                 type="number" min="0" step="0.1"
-                                placeholder="+miqdor"
+                                placeholder="+кол-во"
                                 value={restockAmounts[ing.id] || ''}
                                 onChange={e => setRestockAmounts(prev => ({ ...prev, [ing.id]: e.target.value }))}
                                 style={{ width: '75px', padding: '0.25rem 0.4rem', borderRadius: '6px', background: 'var(--bg-surface)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
                               />
                               <button onClick={() => handleRestock(ing.id)} className="btn-primary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}>+</button>
                             </div>
-                          ) : <span className="text-success" style={{ fontSize: '0.85rem' }}>Yetarli</span>}
+                          ) : <span className="text-success" style={{ fontSize: '0.85rem' }}>Достаточно</span>}
                         </td>
                         <td>
                           <button onClick={() => handleDeleteIngredient(ing.id)} className="icon-btn text-danger"><Trash2 size={16}/></button>
@@ -202,12 +202,12 @@ const InventorySection = ({ products }) => {
 
         {/* Recipes Management */}
         <div className="premium-card">
-          <h3 className="mb-4">Retseptlar (Taom tarkibi)</h3>
+          <h3 className="mb-4">Рецепты (Состав блюда)</h3>
           
           <div className="input-group mb-4">
-            <label>Menyudan taomni tanlang:</label>
+            <label>Выберите блюдо из меню:</label>
             <select value={selectedProduct} onChange={e=>setSelectedProduct(e.target.value)}>
-              <option value="">-- Tanlang --</option>
+              <option value="">-- Выберите --</option>
               {products.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -222,13 +222,13 @@ const InventorySection = ({ products }) => {
                   onChange={e => setNewRecipe({...newRecipe, ingredient_id: e.target.value})}
                   className="flex-1"
                 >
-                  <option value="">Masalliqni tanlang...</option>
+                  <option value="">Выберите ингредиент...</option>
                   {ingredients.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
                 </select>
                 <input 
                   type="number" 
                   step="0.01"
-                  placeholder="Miqdori" 
+                  placeholder="Кол-во" 
                   value={newRecipe.quantity} 
                   onChange={e => setNewRecipe({...newRecipe, quantity: e.target.value})} 
                   style={{width: '90px'}} 
@@ -237,24 +237,24 @@ const InventorySection = ({ products }) => {
               </form>
 
               <table className="admin-table">
-                <thead><tr><th>Masalliq</th><th>Biriktirilgan miqdor</th><th></th></tr></thead>
+                <thead><tr><th>Ингредиент</th><th>Количество</th><th></th></tr></thead>
                 <tbody>
                   {recipes.length > 0 ? recipes.map(r => (
                     <tr key={r.id}>
                       <td>{r.ingredient_name}</td>
-                      <td className="font-bold">{r.quantity} {r.unit}</td>
+                      <td className="font-bold">{r.quantity} {r.unit === 'dona' ? 'шт' : r.unit}</td>
                       <td>
                         <button onClick={() => handleDeleteRecipe(r.id)} className="icon-btn text-danger"><Trash2 size={16}/></button>
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="3" className="text-center py-4 text-muted">Hali hech narsa biriktirilmagan</td></tr>
+                    <tr><td colSpan="3" className="text-center py-4 text-muted">Пока ничего не добавлено</td></tr>
                   )}
                 </tbody>
               </table>
               
               <div className="mt-4 hint-text" style={{fontSize: '0.8rem', color: 'var(--text-dim)'}}>
-                * Bitta pors (yoki bitta) taom buyurtma qilinganda avtomatik ravishda yuqoridagi miqdorlar ombordan ayriladi.
+                * При заказе одной порции (или штуки) вышеуказанные количества автоматически списываются со склада.
               </div>
             </div>
           )}

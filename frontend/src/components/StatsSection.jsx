@@ -28,19 +28,19 @@ const StatsSection = ({ role }) => {
 
   const getRoleTitle = () => {
     switch (role) {
-      case 'admin': return 'Umumiy Statistika';
-      case 'cook': return 'Oshxona Statistikasi';
-      case 'courier': return 'Sizning Statistikangiz';
-      default: return 'Statistika';
+      case 'admin': return 'Общая статистика';
+      case 'cook': return 'Статистика кухни';
+      case 'courier': return 'Ваша статистика';
+      default: return 'Статистика';
     }
   };
 
   const statItems = stats ? [
-    { label: 'Bugun', value: stats.today, icon: <Clock size={18} />, bg: 'rgba(99,102,241,0.15)', color: '#818cf8' },
-    { label: '3 kunlik', value: stats.three_day, icon: <Calendar size={18} />, bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
-    { label: 'Haftalik', value: stats.week, icon: <BarChart3 size={18} />, bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
-    { label: 'Oylik', value: stats.month, icon: <TrendingUp size={18} />, bg: 'rgba(249,115,22,0.15)', color: '#fb923c' },
-    { label: 'Yillik', value: stats.year, icon: <Award size={18} />, bg: 'rgba(239,68,68,0.15)', color: '#fca5a5' },
+    { label: 'Сегодня', value: stats.today, icon: <Clock size={18} />, bg: 'rgba(99,102,241,0.15)', color: '#818cf8' },
+    { label: 'За 3 дня', value: stats.three_day, icon: <Calendar size={18} />, bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+    { label: 'За неделю', value: stats.week, icon: <BarChart3 size={18} />, bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
+    { label: 'За месяц', value: stats.month, icon: <TrendingUp size={18} />, bg: 'rgba(249,115,22,0.15)', color: '#fb923c' },
+    { label: 'За год', value: stats.year, icon: <Award size={18} />, bg: 'rgba(239,68,68,0.15)', color: '#fca5a5' },
   ] : [];
 
   return (

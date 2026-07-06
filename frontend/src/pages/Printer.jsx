@@ -32,21 +32,21 @@ const Printer = () => {
       <div className="no-print printer-dashboard glass">
         <div className="dashboard-header">
           <PrinterIcon size={32} className="text-primary" />
-          <h1>Avtomatik Kassa Printeri</h1>
-          <p className="status-badge new">Kutmoqda...</p>
+          <h1>Автоматический кассовый принтер</h1>
+          <p className="status-badge new">Ожидание...</p>
         </div>
         
         <p className="help-text">
-          Yangi buyurtma tushganda chek avtomatik ravishda printerga yuboriladi. Ushbu sahifani yopmang.
+          При поступлении нового заказа чек автоматически отправляется на принтер. Не закрывайте эту страницу.
         </p>
 
         <div className="history-list">
-          <h3>Oxirgi buyurtmalar</h3>
-          {history.length === 0 ? <p className="text-dim">Hozircha buyurtma yo'q</p> : null}
+          <h3>Последние заказы</h3>
+          {history.length === 0 ? <p className="text-dim">Пока нет заказов</p> : null}
           {history.map(order => (
             <div key={order.id} className="history-item">
-              <span>Buyurtma #{order.id} - {new Date(order.created_at).toLocaleTimeString()}</span>
-              <button className="btn-primary-sm" onClick={() => printOrder(order)}>Qayta print qolish</button>
+              <span>Заказ #{order.id} - {new Date(order.created_at).toLocaleTimeString()}</span>
+              <button className="btn-primary-sm" onClick={() => printOrder(order)}>Распечатать снова</button>
             </div>
           ))}
         </div>
@@ -58,17 +58,17 @@ const Printer = () => {
           <div className="receipt">
             <h2 className="cafe-name">Mangal</h2>
             <div className="receipt-divider">======================</div>
-            <p className="receipt-text">Buyurtma #{latestOrder.id}</p>
-            <p className="receipt-text">Sana: {new Date(latestOrder.created_at).toLocaleString()}</p>
+            <p className="receipt-text">Заказ #{latestOrder.id}</p>
+            <p className="receipt-text">Дата: {new Date(latestOrder.created_at).toLocaleString()}</p>
             {latestOrder.table_number ? (
               <>
-                <p className="receipt-text" style={{fontSize: '16px', fontWeight: 'bold'}}>Stol: №{latestOrder.table_number}</p>
-                <p className="receipt-text">Ofitsant: {latestOrder.waiter_name}</p>
+                <p className="receipt-text" style={{fontSize: '16px', fontWeight: 'bold'}}>Стол: №{latestOrder.table_number}</p>
+                <p className="receipt-text">Официант: {latestOrder.waiter_name}</p>
               </>
             ) : (
               <>
-                <p className="receipt-text">Mijoz: {latestOrder.phone}</p>
-                {latestOrder.address && <p className="receipt-text">Manzil: {latestOrder.address}</p>}
+                <p className="receipt-text">Клиент: {latestOrder.phone}</p>
+                {latestOrder.address && <p className="receipt-text">Адрес: {latestOrder.address}</p>}
               </>
             )}
             <div className="receipt-divider">======================</div>
@@ -76,9 +76,9 @@ const Printer = () => {
             <table className="receipt-table">
               <thead>
                 <tr>
-                  <th align="left">Nomi</th>
-                  <th align="center">Miqdori</th>
-                  <th align="right">Narx</th>
+                  <th align="left">Название</th>
+                  <th align="center">Кол-во</th>
+                  <th align="right">Цена</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,10 +93,10 @@ const Printer = () => {
             </table>
             
             <div className="receipt-divider">======================</div>
-            <h3 className="receipt-total">JAMI: {latestOrder.total_price?.toLocaleString()} so'm</h3>
+            <h3 className="receipt-total">ИТОГО: {latestOrder.total_price?.toLocaleString()} сум</h3>
             <div className="receipt-divider">======================</div>
-            <p className="receipt-footer">Xaridingiz uchun rahmat!</p>
-            <p className="receipt-footer">Yoqimli ishtaha!</p>
+            <p className="receipt-footer">Спасибо за покупку!</p>
+            <p className="receipt-footer">Приятного аппетита!</p>
           </div>
         </div>
       )}

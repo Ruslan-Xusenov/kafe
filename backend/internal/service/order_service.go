@@ -395,6 +395,11 @@ func (s *OrderService) SetServiceFee(orderID int, percentage float64) (*models.O
 		return nil, fmt.Errorf("order %d not found", orderID)
 	}
 
+	// Only allow service fee for internal orders (those with a table)
+	if order.TableID == nil {
+		return nil, fmt.Errorf("плата за обслуживание применяется только к внутренним заказам")
+	}
+
 	// Calculate base price (total minus any previous service fee)
 	basePrice := order.TotalPrice - order.ServiceFee
 

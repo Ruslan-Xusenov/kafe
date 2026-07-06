@@ -26,12 +26,12 @@ const Layout = () => {
   const isActive = (path) => location.pathname === path;
 
   const navLinks = [
-    { to: '/', label: 'Menyu', icon: <Utensils size={16} />, always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
-    { to: '/my-orders', label: 'Buyurtmalarim', icon: <Package size={16} />, auth: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/', label: 'Меню', icon: <Utensils size={16} />, always: true, hideForRoles: ['cook', 'courier', 'waiter'] },
+    { to: '/my-orders', label: 'Мои заказы', icon: <Package size={16} />, auth: true, hideForRoles: ['cook', 'courier', 'waiter'] },
     { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={16} />, roles: ['admin'] },
-    { to: '/kitchen', label: 'Oshxona', icon: <ChefHat size={16} />, roles: ['admin','cook'] },
-    { to: '/delivery', label: 'Yetkazish', icon: <Truck size={16} />, roles: ['admin','courier'] },
-    { to: '/waiter', label: 'Ofitsant', icon: <ClipboardList size={16} />, roles: ['admin','waiter'] },
+    { to: '/kitchen', label: 'Кухня', icon: <ChefHat size={16} />, roles: ['admin','cook'] },
+    { to: '/delivery', label: 'Доставка', icon: <Truck size={16} />, roles: ['admin','courier'] },
+    { to: '/waiter', label: 'Официант', icon: <ClipboardList size={16} />, roles: ['admin','waiter'] },
   ].filter(link => {
     if (link.hideForRoles && user && link.hideForRoles.includes(user.role)) return false;
     if (link.always) return true;
@@ -84,12 +84,12 @@ const Layout = () => {
                   {(user?.full_name || 'U')[0].toUpperCase()}
                 </div>
                 <span className="user-chip-name">{user?.full_name?.split(' ')[0]}</span>
-                <button className="icon-btn logout-btn" onClick={handleLogout} title="Chiqish">
+                <button className="icon-btn logout-btn" onClick={handleLogout} title="Выйти">
                   <LogOut size={16} />
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="btn-primary nav-login-btn">Kirish</Link>
+              <Link to="/login" className="btn-primary nav-login-btn">Войти</Link>
             )}
 
             {/* Mobile burger */}

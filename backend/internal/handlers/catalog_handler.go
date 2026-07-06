@@ -65,7 +65,7 @@ func (h *CatalogHandler) DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "category deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Категория удалена"})
 }
 
 // Product Handlers
@@ -126,5 +126,5 @@ func (h *CatalogHandler) DeleteProduct(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт удален"})
 }

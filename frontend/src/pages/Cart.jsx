@@ -31,19 +31,19 @@ const Cart = () => {
             <span className="ec-emoji">🛒</span>
           </div>
 
-          <h2 className="ec-title">Savatingiz bo'sh</h2>
+          <h2 className="ec-title">Ваша корзина пуста</h2>
           <p className="ec-desc">
-            Hali hech narsa qo'shilmagan. <br />
-            Menyudan sevimli taomingizni tanlang!
+            Вы еще ничего не добавили. <br />
+            Выберите любимое блюдо из меню!
           </p>
 
           <Link to="/" className="ec-btn">
             <ArrowLeft size={18} />
-            <span>Menyuga o'tish</span>
+            <span>Перейти в меню</span>
           </Link>
 
           <div className="ec-hint">
-            🔥 Bugun maxsus taomlar bilan tanishing!
+            🔥 Ознакомьтесь с нашими специальными блюдами сегодня!
           </div>
         </motion.div>
 
@@ -199,11 +199,11 @@ const Cart = () => {
       {/* Header */}
       <div className="cart-head">
         <div>
-          <h1>Savat</h1>
-          <p className="cart-subtitle">{items.length} xil mahsulot</p>
+          <h1>Корзина</h1>
+          <p className="cart-subtitle">{items.length} видов продуктов</p>
         </div>
         <button className="clear-all-btn" onClick={() => navigate('/')}>
-          <ArrowLeft size={16} /> Davom etish
+          <ArrowLeft size={16} /> Продолжить
         </button>
       </div>
 
@@ -240,7 +240,7 @@ const Cart = () => {
                 <div className="cart-item-info">
                   <h3>{item.name}</h3>
                   <span className="cart-unit-price">
-                    {(item.price || 0).toLocaleString()} so'm / {item.unit || 'dona'}
+                    {(item.price || 0).toLocaleString()} сум / {item.unit || 'шт'}
                   </span>
                 </div>
 
@@ -268,11 +268,11 @@ const Cart = () => {
 
                 {/* Line total */}
                 <div className="line-total">
-                  {(item.price * item.quantity).toLocaleString()} <small>so'm</small>
+                  {(item.price * item.quantity).toLocaleString()} <small>сум</small>
                 </div>
 
                 {/* Remove */}
-                <button className="remove-btn" onClick={() => removeItem(item.id, item.unit)} title="O'chirish">
+                <button className="remove-btn" onClick={() => removeItem(item.id, item.unit)} title="Удалить">
                   <Trash2 size={16} />
                 </button>
               </motion.div>
@@ -283,40 +283,40 @@ const Cart = () => {
         {/* Summary */}
         <div className="cart-summary">
           <div className="summary-card">
-            <h2 className="summary-title">Buyurtma xulosasi</h2>
+            <h2 className="summary-title">Итого заказа</h2>
             
             <div className="divider" />
 
             {getTotal() < 40000 && (
               <div className="min-order-warning">
                 <span className="warning-icon">⚠️</span>
-                <span>Minimum buyurtma qiymati 40,000 so'm. <br/> Yana {(40000 - getTotal()).toLocaleString()} so'm qo'shing.</span>
+                <span>Минимальная сумма заказа 40,000 сум. <br/> Добавьте еще {(40000 - getTotal()).toLocaleString()} сум.</span>
               </div>
             )}
 
             {!localStorage.getItem('privacy-consent') && (
               <div className="min-order-warning consent">
                 <span className="warning-icon">🛡️</span>
-                <span>Davom etish uchun sayt shartlariga rozilik bildiring.</span>
+                <span>Пожалуйста, согласитесь с условиями сайта, чтобы продолжить.</span>
               </div>
             )}
 
             <div className="summary-rows">
               <div className="summary-row">
-                <span>Mahsulotlar ({items.reduce((s,i) => s + i.quantity, 0)} ta)</span>
-                <span>{getTotal().toLocaleString()} so'm</span>
+                <span>Продукты ({items.reduce((s,i) => s + i.quantity, 0)} шт)</span>
+                <span>{getTotal().toLocaleString()} сум</span>
               </div>
               <div className="summary-row">
-                <span>Yetkazib berish</span>
-                <span style={{ color: 'var(--success)' }}>15 000 so'm</span>
+                <span>Доставка</span>
+                <span style={{ color: 'var(--success)' }}>15 000 сум</span>
               </div>
             </div>
 
             <div className="divider" />
 
             <div className="summary-total">
-              <span>Jami</span>
-              <span className="total-price">{(getTotal() + 15000).toLocaleString()} so'm</span>
+              <span>Итого</span>
+              <span className="total-price">{(getTotal() + 15000).toLocaleString()} сум</span>
             </div>
 
             <button
@@ -324,11 +324,11 @@ const Cart = () => {
               disabled={getTotal() < 40000 || !localStorage.getItem('privacy-consent')}
               onClick={() => navigate('/checkout')}
             >
-              Buyurtma berish <ArrowRight size={18} />
+              Оформить заказ <ArrowRight size={18} />
             </button>
 
             <Link to="/" className="continue-btn">
-              ← Xarid qilishni davom eting
+              ← Продолжить покупки
             </Link>
           </div>
         </div>

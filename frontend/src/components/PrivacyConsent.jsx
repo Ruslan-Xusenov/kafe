@@ -34,16 +34,16 @@ const PrivacyConsent = () => {
               <Cookie size={24} className="cookie-icon" />
             </div>
             <div className="cookie-content">
-              <h3>Cookie-dan foydalanish</h3>
+              <h3>Использование Cookie</h3>
               <p>
-                Saytimizda eng yaxshi tajribani taqdim etish uchun cookie-fayllardan foydalanamiz. 
-                Davom etish orqali siz bizning shartlarimizga rozilik bildirasiz.
+                Мы используем файлы cookie, чтобы обеспечить вам наилучший опыт на нашем сайте. 
+                Продолжая, вы соглашаетесь с нашими условиями.
               </p>
             </div>
             <div className="cookie-actions">
               <button className="cookie-btn accept" onClick={handleAccept}>
                 <Check size={18} />
-                Tushunarli
+                Понятно
               </button>
             </div>
           </div>

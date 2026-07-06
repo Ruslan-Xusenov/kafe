@@ -19,7 +19,7 @@ func NewFinanceHandler(financeRepo repository.FinanceRepository) *FinanceHandler
 func (h *FinanceHandler) GetStats(c *gin.Context) {
 	stats, err := h.financeRepo.GetStats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate stats"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при расчете статистики"})
 		return
 	}
 	c.JSON(http.StatusOK, stats)
@@ -28,7 +28,7 @@ func (h *FinanceHandler) GetStats(c *gin.Context) {
 func (h *FinanceHandler) GetExpenses(c *gin.Context) {
 	expenses, err := h.financeRepo.GetExpenses()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get expenses"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении расходов"})
 		return
 	}
 	if expenses == nil {
@@ -45,7 +45,7 @@ func (h *FinanceHandler) CreateExpense(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *FinanceHandler) CreateExpense(c *gin.Context) {
 	}
 
 	if err := h.financeRepo.CreateExpense(expense); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create expense"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании расхода"})
 		return
 	}
 

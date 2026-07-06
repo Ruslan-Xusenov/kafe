@@ -10,12 +10,12 @@ import {
 } from 'lucide-react';
 
 const STATUS_MAP = {
-  new: 'Yangi',
-  preparing: 'Tayyorlanmoqda',
-  ready: 'Tayyor',
-  on_way: 'Yo\'lda',
-  delivered: 'Yetkazib berildi',
-  cancelled: 'Bekor qilingan'
+  new: 'Новый',
+  preparing: 'Готовится',
+  ready: 'Готов',
+  on_way: 'В пути',
+  delivered: 'Доставлен',
+  cancelled: 'Отменен'
 };
 
 const Admin = () => {
@@ -30,18 +30,16 @@ const Admin = () => {
   const [containerPrice, setContainerPrice] = useState('1000');
   const [containerId, setContainerId] = useState('7');
 
-  // Finance states
   const [expenses, setExpenses] = useState([]);
   const [financeStats, setFinanceStats] = useState({ total_revenue: 0, total_expenses: 0, net_profit: 0 });
   const [newExpense, setNewExpense] = useState({ amount: '', category: 'mahsulot', description: '' });
 
-  // States for Modals/Forms
   const [showCatModal, setShowCatModal] = useState(false);
   const [newCat, setNewCat] = useState({ name: '', image_url: '', is_user_controlled: false });
   const [showProdModal, setShowProdModal] = useState(false);
   const [newProd, setNewProd] = useState({ 
     name: '', description: '', price: '', category_id: '', image_url: '',
-    unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
+    unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
     is_active: true
   });
   const [editProdId, setEditProdId] = useState(null);
@@ -53,13 +51,12 @@ const Admin = () => {
   const [showTableModal, setShowTableModal] = useState(false);
   const [newTable, setNewTable] = useState({ number: '', capacity: '' });
 
-  // Waiter Management states
   const [selectedWaiter, setSelectedWaiter] = useState(null);
   const [waiterOrders, setWaiterOrders] = useState([]);
   const [waiterHistory, setWaiterHistory] = useState([]);
   const [showWaiterHistory, setShowWaiterHistory] = useState(false);
-  const [waiterDefaultFees, setWaiterDefaultFees] = useState({}); // {waiterId: percentage}
-  const [waiterOrderFees, setWaiterOrderFees] = useState({}); // {orderId: percentage}
+  const [waiterDefaultFees, setWaiterDefaultFees] = useState({}); 
+  const [waiterOrderFees, setWaiterOrderFees] = useState({});
   const [waiterOrdersLoading, setWaiterOrdersLoading] = useState(false);
 
   const [errors, setErrors] = useState({});
@@ -112,7 +109,6 @@ const Admin = () => {
         waiters.forEach(w => { defaults[w.id] = w.default_service_percentage || 0; });
         setWaiterDefaultFees(defaults);
       }
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {
@@ -130,12 +126,11 @@ const Admin = () => {
       const res = await api.get(`/orders/waiter-active/${waiter.id}`);
       const orders = res.data || [];
       setWaiterOrders(orders);
-      // Initialize fees from existing service_percentage
       const fees = {};
       orders.forEach(o => { fees[o.id] = o.service_percentage || 0; });
       setWaiterOrderFees(fees);
     } catch (err) {
-      alert("Ofitsant buyurtmalarini yuklashda xatolik");
+      alert("Ошибка при загрузке заказов официанта");
     } finally {
       setWaiterOrdersLoading(false);
     }
@@ -150,7 +145,7 @@ const Admin = () => {
       setWaiterHistory(res.data || []);
       setShowWaiterHistory(true);
     } catch (err) {
-      alert("Tarixni yuklashda xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка при загрузке истории: " + (err.response?.data?.error || err.message));
     } finally {
       setWaiterOrdersLoading(false);
     }
@@ -160,9 +155,9 @@ const Admin = () => {
     try {
       await api.put(`/catalog/staff/${waiterId}/default-fee`, { percentage: parseFloat(fee || 0) });
       setStaff(prev => prev.map(s => s.id === waiterId ? { ...s, default_service_percentage: parseFloat(fee || 0) } : s));
-      alert(`Ofitsant uchun default foiz saqlandi!`);
+      alert(`Процент по умолчанию для официанта сохранен!`);
     } catch (err) {
-      alert("Saqlashda xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка при сохранении: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -171,9 +166,9 @@ const Admin = () => {
     try {
       const res = await api.put(`/orders/${orderId}/service-fee`, { percentage: pct });
       setWaiterOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
-      alert(`Buyurtma #${orderId} ga ${pct}% xizmat haqi qo'shildi!`);
+      alert(`Заказ #${orderId} на ${pct}% плата за обслуживание добавлена!`);
     } catch (err) {
-      alert("Foiz qo'shishda xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка при добавлении процента: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -183,15 +178,15 @@ const Admin = () => {
       const res = await api.put(`/orders/${orderId}/service-fee`, { percentage: pct });
       setWaiterOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
       await api.post(`/orders/${orderId}/print`);
-      alert(`Chek #${orderId} printerga yuborildi!`);
+      alert(`Чек #${orderId} отправлен на принтер!`);
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
   const handleCreateCat = async (e) => {
     e.preventDefault();
-    const err = validateNotEmpty(newCat.name, 'Nomi');
+    const err = validateNotEmpty(newCat.name, 'Название');
     if (err) { setErrors({ cat: err }); return; }
 
     try {
@@ -200,16 +195,15 @@ const Admin = () => {
       setNewCat({ name: '', image_url: '', is_user_controlled: false });
       setErrors({});
       fetchData();
-      // eslint-disable-next-line no-unused-vars
-    } catch (err) { alert(err.response?.data?.error || 'Kategoriya qo\'shishda xatolik'); }
+    } catch (err) { alert(err.response?.data?.error || 'Ошибка при добавлении категории'); }
   };
 
   const handleCreateProd = async (e) => {
     e.preventDefault();
     const prodErrors = {
-      name: validateNotEmpty(newProd.name, 'Nomi'),
+      name: validateNotEmpty(newProd.name, 'Название'),
       price: validatePrice(newProd.price),
-      category: validateNotEmpty(newProd.category_id, 'Kategoriya')
+      category: validateNotEmpty(newProd.category_id, 'Категория')
     };
     if (prodErrors.name || prodErrors.price || prodErrors.category) {
       setErrors({ prod: prodErrors });
@@ -232,14 +226,13 @@ const Admin = () => {
       setShowProdModal(false);
       setNewProd({ 
         name: '', description: '', price: '', category_id: '', image_url: '',
-        unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
+        unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
         is_active: true
       });
       setEditProdId(null);
       setErrors({});
       fetchData();
-      // eslint-disable-next-line no-unused-vars
-    } catch (err) { alert(err.response?.data?.error || 'Mahsulot saqlashda xatolik'); }
+    } catch (err) { alert(err.response?.data?.error || 'Ошибка при сохранении продукта'); }
   };
 
   const openEditProd = (p) => {
@@ -250,7 +243,7 @@ const Admin = () => {
       price: p.price,
       category_id: p.category_id,
       image_url: p.image_url || '',
-      unit: p.unit || 'dona',
+      unit: p.unit || 'шт',
       min_quantity: p.min_quantity || 1,
       quantity_step: p.quantity_step || 1,
       has_mandatory_container: p.has_mandatory_container || false,
@@ -262,7 +255,7 @@ const Admin = () => {
   const handleCreateStaff = async (e) => {
     e.preventDefault();
     const staffErrors = {
-      name: validateNotEmpty(newStaff.full_name, 'Ism'),
+      name: validateNotEmpty(newStaff.full_name, 'Имя'),
       phone: validatePhone(newStaff.phone),
       password: validatePassword(newStaff.password)
     };
@@ -277,9 +270,8 @@ const Admin = () => {
       setNewStaff({ full_name: '', phone: '', password: '', role: 'cook' });
       setErrors({});
       fetchData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert(err.response?.data?.error || 'Xodim qo\'shishda xatolik');
+      alert(err.response?.data?.error || 'Ошибка при добавлении сотрудника');
     }
   };
 
@@ -296,7 +288,7 @@ const Admin = () => {
       setter(prev => ({ ...prev, image_url: res.data.url }));
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Rasm yuklashda xatolik');
+      alert('Ошибка при загрузке изображения');
     } finally {
       setLoading(false);
     }
@@ -309,7 +301,7 @@ const Admin = () => {
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert(err.response?.data?.error || 'Xodimni o\'chirishda xatolik');
+      alert(err.response?.data?.error || 'Ошибка при удалении сотрудника');
     }
   };
 
@@ -320,17 +312,17 @@ const Admin = () => {
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert(err.response?.data?.error || 'Kategoriyani o\'chirishda xatolik. Avval undagi mahsulotlarni o\'chirib ko\'ring.');
+      alert(err.response?.data?.error || 'Ошибка при удалении категории. Сначала удалите продукты в ней.');
     }
   };
 
   const deleteProd = async (id) => {
-    if (window.confirm('Olib tashlashga ishonchingiz komilmi?')) {
+    if (window.confirm('Вы уверены, что хотите удалить?')) {
       try {
         await api.delete(`/catalog/products/${id}`);
         fetchData();
       // eslint-disable-next-line no-unused-vars
-      } catch (err) { alert('Xatolik'); }
+      } catch (err) { alert('Ошибка'); }
     }
   };
 
@@ -342,10 +334,10 @@ const Admin = () => {
         container_price: containerPrice,
         container_product_id: containerId
       });
-      alert('Sozlamalar saqlandi');
+      alert('Настройки сохранены');
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Hatolik: ' + (err.response?.data?.error || 'Saqlab bo\'lmadi'));
+      alert('Ошибка: ' + (err.response?.data?.error || 'Не удалось сохранить'));
     } finally {
       setLoading(false);
     }
@@ -354,7 +346,7 @@ const Admin = () => {
   const handleCreateExpense = async (e) => {
     e.preventDefault();
     if (!newExpense.amount) {
-      setErrors({ expense: 'Summani kiritish majburiy' });
+      setErrors({ expense: 'Необходимо ввести сумму' });
       return;
     }
     try {
@@ -368,7 +360,7 @@ const Admin = () => {
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Xarajat qo\'shishda xatolik: ' + (err.response?.data?.error || ''));
+      alert('Ошибка при добавлении расхода: ' + (err.response?.data?.error || ''));
     }
   };
 
@@ -384,7 +376,7 @@ const Admin = () => {
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert(err.response?.data?.error || 'Stol qo\'shishda xatolik');
+      alert(err.response?.data?.error || 'Ошибка при добавлении стола');
     }
   };
 
@@ -394,7 +386,7 @@ const Admin = () => {
       await api.delete(`/tables/${id}`);
       fetchData();
       // eslint-disable-next-line no-unused-vars
-    } catch (err) { alert('Xatolik'); }
+    } catch (err) { alert('Ошибка'); }
   };
 
   const openOrderModal = async (order) => {
@@ -404,16 +396,16 @@ const Admin = () => {
       setShowOrderModal(true);
       setServiceFeePercent(res.data.service_percentage || 10);
     } catch (err) {
-      alert("Buyurtma ma'lumotlarini yuklashda xatolik");
+      alert("Ошибка при загрузке данных заказа");
     }
   };
 
   const handleReprintOrder = async (id) => {
     try {
       await api.post(`/orders/${id}/print`);
-      alert("Chek printerga yuborildi!");
+      alert("Chek отправлен на принтер!");
     } catch (err) {
-      alert("Chek chiqarishda xatolik");
+      alert("Ошибка при печати чека");
     }
   };
 
@@ -423,7 +415,7 @@ const Admin = () => {
       setSelectedOrderDetails(res.data);
       fetchData();
     } catch (err) {
-      alert("Xizmat haqini yangilashda xatolik: " + (err.response?.data?.error || err.message));
+      alert("Ошибка при обновлении платы за обслуживание: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -431,11 +423,11 @@ const Admin = () => {
     try {
       await api.put(`/orders/${id}/service-fee`, { percentage: parseFloat(serviceFeePercent) });
       await api.post(`/orders/${id}/print`);
-      alert("Xizmat haqi saqlandi va chek printerga yuborildi!");
+      alert("Плата за обслуживание сохранена и чек отправлен на принтер!");
       setShowOrderModal(false);
       fetchData();
     } catch (err) {
-      alert("Xatolik yuz berdi");
+      alert("Произошла ошибка");
     }
   };
 
@@ -446,35 +438,35 @@ const Admin = () => {
       <aside className="admin-sidebar glass">
         <div className="sidebar-header">
           <LayoutDashboard className="text-primary" />
-          <span>Admin Boshqaruvi</span>
+          <span>Панель Администратора</span>
         </div>
         <nav className="sidebar-nav">
           <button className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
-            <ShoppingBag size={20} /> Buyurtmalar
+            <ShoppingBag size={20} /> Заказы
           </button>
           <button className={activeTab === 'menu' ? 'active' : ''} onClick={() => setActiveTab('menu')}>
-            <Edit2 size={20} /> Menyu (CRUD)
+            <Edit2 size={20} /> Меню (CRUD)
           </button>
           <button className={activeTab === 'staff' ? 'active' : ''} onClick={() => setActiveTab('staff')}>
-            <Users size={20} /> Xodimlar
+            <Users size={20} /> Сотрудники
           </button>
           <button className={activeTab === 'tables' ? 'active' : ''} onClick={() => setActiveTab('tables')}>
-            <LayoutDashboard size={20} /> Stollar
+            <LayoutDashboard size={20} /> Столы
           </button>
           <button className={activeTab === 'performance' ? 'active' : ''} onClick={() => setActiveTab('performance')}>
-            <Star size={20} /> Reytinglar
+            <Star size={20} /> Рейтинги
           </button>
           <button className={activeTab === 'finance' ? 'active' : ''} onClick={() => setActiveTab('finance')}>
-            <Wallet size={20} /> Moliya (Foyda)
+            <Wallet size={20} /> Финансы (Прибыль)
           </button>
           <button className={activeTab === 'inventory' ? 'active' : ''} onClick={() => setActiveTab('inventory')}>
-            <Package size={20} /> Omborxona
+            <Package size={20} /> Склад
           </button>
           <button className={activeTab === 'waiterMgmt' ? 'active' : ''} onClick={() => setActiveTab('waiterMgmt')}>
-            <Users size={20} /> Ofitsant Foiz
+            <Users size={20} /> Процент официанта
           </button>
           <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
-            <Settings size={20} /> Sozlamalar
+            <Settings size={20} /> Настройки
           </button>
         </nav>
       </aside>
@@ -487,13 +479,13 @@ const Admin = () => {
         {activeTab === 'waiterMgmt' && (
           <div className="animate-fade">
             <div className="section-header mb-6">
-              <h2>Ofitsant Buyurtmalari va Foiz Boshqaruvi</h2>
+              <h2>Заказы официантов и управление процентами</h2>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem', alignItems: 'start' }}>
               {/* Waiters list */}
               <div className="premium-card">
-                <h3 className="mb-4">Ofitsantlar</h3>
-                {staff.length === 0 && <p className="text-muted">Ofitsant topilmadi</p>}
+                <h3 className="mb-4">Официанты</h3>
+                {staff.length === 0 && <p className="text-muted">Официант не найден</p>}
                 {staff.map(w => (
                   <div
                     key={w.id}
@@ -509,7 +501,7 @@ const Admin = () => {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{w.phone}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <span style={{ fontSize: '0.75rem' }}>Def %:</span>
+                        <span style={{ fontSize: '0.75rem' }}>По ум. %:</span>
                         <input
                           type="number" min="0" max="100" step="1"
                           value={waiterDefaultFees[w.id] ?? 0}
@@ -525,14 +517,14 @@ const Admin = () => {
                         style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem', flex: 1 }}
                         onClick={() => fetchWaiterOrders(w)}
                       >
-                        ⚡ Aktiv
+                        ⚡ Активные
                       </button>
                       <button
                         className="btn-secondary"
                         style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem', flex: 1 }}
                         onClick={() => fetchWaiterHistory(w)}
                       >
-                        📋 Tarix
+                        📋 История
                       </button>
                     </div>
                   </div>
@@ -543,15 +535,15 @@ const Admin = () => {
               <div>
                 {!selectedWaiter && (
                   <div className="premium-card flex-center" style={{ minHeight: '200px', color: 'var(--text-muted)' }}>
-                    Chap tomondagi ofitsantni tanlang
+                    Выберите официанта слева
                   </div>
                 )}
                 {selectedWaiter && !showWaiterHistory && (
                   <div className="premium-card">
-                    <h3 className="mb-4">{selectedWaiter.full_name} — Aktiv buyurtmalar</h3>
+                    <h3 className="mb-4">{selectedWaiter.full_name} — Активные заказы</h3>
                     {waiterOrdersLoading && <div className="flex-center"><Loader2 className="animate-spin" /></div>}
                     {!waiterOrdersLoading && waiterOrders.length === 0 && (
-                      <p className="text-muted">Hozircha aktiv buyurtma yo'q</p>
+                      <p className="text-muted">На данный момент активных заказов нет</p>
                     )}
                     {waiterOrders.map(order => (
                       <div key={order.id} style={{
@@ -560,10 +552,10 @@ const Admin = () => {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                           <div>
-                            <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>Chek #{order.id}</span>
-                            <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Stol №{order.table_number || order.table_id}</span>
+                            <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>Чек #{order.id}</span>
+                            <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Стол №{order.table_number || order.table_id}</span>
                           </div>
-                          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{(order.total_price || 0).toLocaleString()} so'm</span>
+                          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{(order.total_price || 0).toLocaleString()} сум</span>
                         </div>
 
                         {/* Items summary */}
@@ -573,19 +565,19 @@ const Admin = () => {
                               {item.product_name} ×{item.quantity}{item.unit};
                             </span>
                           ))}
-                          {(order.items?.length || 0) > 3 && <span>+{order.items.length - 3} ta boshqa</span>}
+                          {(order.items?.length || 0) > 3 && <span>+{order.items.length - 3} других</span>}
                         </div>
 
                         {/* Service fee control */}
                         <div style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '10px', padding: '1rem' }}>
                           {order.service_percentage > 0 && (
                             <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                              Hozirgi foiz: <strong style={{ color: 'var(--primary)' }}>{order.service_percentage}%</strong>
-                              {' '}(+{(order.service_fee || 0).toLocaleString()} so'm)
+                              Текущий процент: <strong style={{ color: 'var(--primary)' }}>{order.service_percentage}%</strong>
+                              {' '}(+{(order.service_fee || 0).toLocaleString()} сум)
                             </div>
                           )}
                           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <label style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap' }}>Xizmat haqi %:</label>
+                            <label style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap' }}>Обслуживание %:</label>
                             <input
                               type="number" min="0" max="100" step="1"
                               value={waiterOrderFees[order.id] ?? 0}
@@ -593,13 +585,13 @@ const Admin = () => {
                               style={{ width: '80px', padding: '0.4rem 0.6rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', textAlign: 'center', fontSize: '1rem', fontWeight: 700 }}
                             />
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                              = {((order.total_price || 0) * (1 + (parseFloat(waiterOrderFees[order.id]) || 0) / 100)).toLocaleString()} so'm
+                              = {((order.total_price || 0) * (1 + (parseFloat(waiterOrderFees[order.id]) || 0) / 100)).toLocaleString()} сум
                             </span>
                             <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => handleWaiterOrderFee(order.id)}>
-                              Saqlash
+                              Сохранить
                             </button>
                             <button className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => handleWaiterOrderFeeAndPrint(order.id)}>
-                              <Printer size={14} /> Saqlash + Chek
+                              <Printer size={14} /> Сохранить + Чек
                             </button>
                           </div>
                         </div>
@@ -612,31 +604,31 @@ const Admin = () => {
                 {selectedWaiter && showWaiterHistory && (
                   <div className="premium-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h3>{selectedWaiter.full_name} — Buyurtmalar Tarixi</h3>
+                      <h3>{selectedWaiter.full_name} — История заказов</h3>
                       <button className="btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setShowWaiterHistory(false)}>
-                        ← Aktiv ko'rish
+                        ← К активным
                       </button>
                     </div>
                     {waiterOrdersLoading && <div className="flex-center"><Loader2 className="animate-spin" /></div>}
                     {!waiterOrdersLoading && waiterHistory.length === 0 && (
-                      <p className="text-muted">Tarix bo'sh</p>
+                      <p className="text-muted">История пуста</p>
                     )}
 
                     {/* Summary row */}
                     {waiterHistory.length > 0 && (
                       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                         <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', padding: '0.75rem 1.25rem' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Umumiy buyurtmalar</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Всего заказов</div>
                           <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{waiterHistory.length}</div>
                         </div>
                         <div style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '10px', padding: '0.75rem 1.25rem' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Jami tushum</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Общая выручка</div>
                           <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary)' }}>
-                            {waiterHistory.reduce((acc, o) => acc + (o.total_price || 0), 0).toLocaleString()} so'm
+                            {waiterHistory.reduce((acc, o) => acc + (o.total_price || 0), 0).toLocaleString()} сум
                           </div>
                         </div>
                         <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', padding: '0.75rem 1.25rem' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Yopilgan (delivered)</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Закрытые (доставлен)</div>
                           <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{waiterHistory.filter(o => o.status === 'delivered').length}</div>
                         </div>
                       </div>
@@ -650,20 +642,20 @@ const Admin = () => {
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                             <span style={{ fontWeight: 700, color: 'var(--primary)' }}>#{order.id}</span>
-                            <span style={{ fontWeight: 800 }}>{(order.total_price || 0).toLocaleString()} so'm</span>
+                            <span style={{ fontWeight: 800 }}>{(order.total_price || 0).toLocaleString()} сум</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.3rem' }}>
-                            <span className="text-muted">Stol №{order.table_number || order.table_id}</span>
+                            <span className="text-muted">Стол №{order.table_number || order.table_id}</span>
                             <span className={`status-badge ${order.status}`}>{STATUS_MAP[order.status] || order.status}</span>
                           </div>
                           <div style={{ fontSize: '0.85rem' }}>
-                            <span className="text-muted">To'lov: </span>
-                            {order.payment_method === 'cash' ? '💵 Naqd' :
-                             order.payment_method === 'card' ? '💳 Karta' :
+                            <span className="text-muted">Оплата: </span>
+                            {order.payment_method === 'cash' ? '💵 Наличные' :
+                             order.payment_method === 'card' ? '💳 Карта' :
                              order.payment_method === 'click' ? '📱 Click/Payme' :
-                             order.payment_method === 'nasiya' ? '📒 Nasiya' : (order.payment_method || '—')}
+                             order.payment_method === 'nasiya' ? '📒 В долг' : (order.payment_method || '—')}
                             {order.service_percentage > 0 && (
-                              <span className="text-muted" style={{ marginLeft: '1rem' }}>Xizmat haqi: {order.service_percentage}%</span>
+                              <span className="text-muted" style={{ marginLeft: '1rem' }}>Плата за обслуживание: {order.service_percentage}%</span>
                             )}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
@@ -682,8 +674,8 @@ const Admin = () => {
         {activeTab === 'finance' && (
           <div className="finance-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
-              <h2>Moliya va Xarajatlar</h2>
-              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Yangilash</button>
+              <h2>Финансы и Расходы</h2>
+              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Новыйlash</button>
             </div>
 
             {/* Stats Cards */}
@@ -693,7 +685,7 @@ const Admin = () => {
                   <TrendingUp size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Umumiy Tushum</span>
+                  <span className="stat-label">Общая выручка</span>
                   <span className="stat-value">{financeStats.total_revenue.toLocaleString()} <small>so'm</small></span>
                 </div>
               </div>
@@ -702,7 +694,7 @@ const Admin = () => {
                   <Wallet size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Umumiy Xarajat</span>
+                  <span className="stat-label">Общие расходы</span>
                   <span className="stat-value">{financeStats.total_expenses.toLocaleString()} <small>so'm</small></span>
                 </div>
               </div>
@@ -711,23 +703,23 @@ const Admin = () => {
                   <LayoutDashboard size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Sof Foyda</span>
+                  <span className="stat-label">Чистая прибыль</span>
                   <span className="stat-value">{financeStats.net_profit.toLocaleString()} <small>so'm</small></span>
                 </div>
               </div>
             </div>
 
-            <h3 className="mb-4">To'lov turlari bo'yicha tushum</h3>
+            <h3 className="mb-4">Выручка по видам оплат</h3>
             <div className="stats-grid mb-6">
               <div className="stat-card" style={{ background: 'linear-gradient(to right, #10b98122, #10b98111)', borderColor: '#10b98155' }}>
                 <div className="stat-info">
-                  <span className="stat-label">💵 Naqd pul</span>
+                  <span className="stat-label">💵 Наличные pul</span>
                   <span className="stat-value text-success" style={{ fontSize: '1.25rem' }}>{financeStats.cash_revenue?.toLocaleString() || 0} <small>so'm</small></span>
                 </div>
               </div>
               <div className="stat-card" style={{ background: 'linear-gradient(to right, #3b82f622, #3b82f611)', borderColor: '#3b82f655' }}>
                 <div className="stat-info">
-                  <span className="stat-label">💳 Terminal (Karta)</span>
+                  <span className="stat-label">💳 Терминал (Карта)</span>
                   <span className="stat-value text-primary" style={{ fontSize: '1.25rem' }}>{financeStats.card_revenue?.toLocaleString() || 0} <small>so'm</small></span>
                 </div>
               </div>
@@ -739,7 +731,7 @@ const Admin = () => {
               </div>
               <div className="stat-card" style={{ background: 'linear-gradient(to right, #f59e0b22, #f59e0b11)', borderColor: '#f59e0b55' }}>
                 <div className="stat-info">
-                  <span className="stat-label">📒 Qarzga (Nasiya)</span>
+                  <span className="stat-label">📒 В долг</span>
                   <span className="stat-value" style={{ color: '#f59e0b', fontSize: '1.25rem' }}>{financeStats.nasiya_revenue?.toLocaleString() || 0} <small>so'm</small></span>
                 </div>
               </div>
@@ -748,10 +740,10 @@ const Admin = () => {
             <div className="grid" style={{ gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
               {/* Add Expense Form */}
               <div className="premium-card">
-                <h3 className="mb-4">Xarajat qo'shish</h3>
+                <h3 className="mb-4">Добавить расход</h3>
                 <form onSubmit={handleCreateExpense}>
                   <div className="input-group mb-4">
-                    <label>Summa (so'm)</label>
+                    <label>Сумма (сум)</label>
                     <input 
                       type="number" 
                       value={newExpense.amount} 
@@ -761,44 +753,44 @@ const Admin = () => {
                     {errors.expense && <span className="error-text">{errors.expense}</span>}
                   </div>
                   <div className="input-group mb-4">
-                    <label>Kategoriya</label>
+                    <label>Категория</label>
                     <select 
                       value={newExpense.category} 
                       onChange={e => setNewExpense({...newExpense, category: e.target.value})}
                     >
-                      <option value="mahsulot">Mahsulot (Sklad)</option>
-                      <option value="oylik">Oylik maosh</option>
-                      <option value="arenda">Arenda (Ijara)</option>
-                      <option value="kommunal">Kommunal to'lovlar</option>
-                      <option value="boshqa">Boshqa xarajat</option>
+                      <option value="mahsulot">Продукт (Склад)</option>
+                      <option value="oylik">Зарплата</option>
+                      <option value="arenda">Аренда</option>
+                      <option value="kommunal">Коммунальные платежи</option>
+                      <option value="boshqa">Другие расходы</option>
                     </select>
                   </div>
                   <div className="input-group mb-4">
-                    <label>Izoh</label>
+                    <label>Комментарий</label>
                     <textarea 
                       value={newExpense.description} 
                       onChange={e => setNewExpense({...newExpense, description: e.target.value})}
-                      placeholder="Nima uchun ishlatildi?"
+                      placeholder="Для чего использовалось?"
                       rows="2"
                     ></textarea>
                   </div>
                   <button type="submit" className="btn-primary w-full">
-                    <Plus size={18} /> Qo'shish
+                    <Plus size={18} /> Добавить
                   </button>
                 </form>
               </div>
 
               {/* Expenses List */}
               <div className="premium-card">
-                <h3 className="mb-4">Xarajatlar tarixi</h3>
+                <h3 className="mb-4">История расходов</h3>
                 <div className="orders-table-wrapper" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>Sana</th>
-                        <th>Kategoriya</th>
+                        <th>Дата</th>
+                        <th>Категория</th>
                         <th>Summa</th>
-                        <th>Izoh</th>
+                        <th>Комментарий</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -809,12 +801,12 @@ const Admin = () => {
                             <span className="status-badge preparing">{exp.category}</span>
                           </td>
                           <td style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
-                            -{exp.amount.toLocaleString()} so'm
+                            -{exp.amount.toLocaleString()} сум
                           </td>
                           <td>{exp.description || '-'}</td>
                         </tr>
                       )) : (
-                        <tr><td colSpan="4" className="text-center text-muted py-4">Xarajatlar yo'q</td></tr>
+                        <tr><td colSpan="4" className="text-center text-muted py-4">Нет расходов</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -827,12 +819,12 @@ const Admin = () => {
         {activeTab === 'settings' && (
           <div className="settings-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
-              <h2>Tizim Sozlamalari</h2>
+              <h2>Tizim Настройкиi</h2>
             </div>
             <div className="premium-card" style={{ maxWidth: '400px' }}>
               <form onSubmit={handleUpdateSettings}>
                 <div className="input-group">
-                  <label>Bir martalik idish narxi (so'm)</label>
+                  <label>Цена одноразовой посуды (сум)</label>
                   <input 
                     type="number" 
                     value={containerPrice} 
@@ -840,18 +832,18 @@ const Admin = () => {
                   />
                 </div>
                 <div className="input-group mt-4">
-                  <label>Bir martalik idish mahsulot ID (ma'lumot uchun)</label>
+                  <label>ID продукта одноразовой посуды (для информации)</label>
                   <input 
                     type="number" 
                     value={containerId} 
                     onChange={e => setContainerId(e.target.value)} 
                   />
                   <p className="hint-text" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '5px' }}>
-                    * Agar bazada idish uchun yangi mahsulot yaratsangiz, uning ID sini shu yerga yozing.
+                    * Если вы создаете новый продукт для посуды в базе данных, введите его ID здесь.
                   </p>
                 </div>
                 <button type="submit" className="btn-primary w-full mt-4">
-                  <Save size={18} /> Sozlamalarni Saqlash
+                  <Save size={18} /> Настройкиni Сохранить
                 </button>
               </form>
             </div>
@@ -862,19 +854,19 @@ const Admin = () => {
           <div className="orders-mgmt">
             <StatsSection role="admin" />
             <div className="flex justify-between items-center mb-4">
-              <h2>Buyurtmalar Monitoringi</h2>
-              <button className="refresh-btn" onClick={fetchData}><Clock size={18} /> Yangilash</button>
+              <h2>Заказы Monitoringi</h2>
+              <button className="refresh-btn" onClick={fetchData}><Clock size={18} /> Новыйlash</button>
             </div>
             <div className="orders-table-wrapper premium-card">
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Mijoz</th>
-                    <th>Jami</th>
-                    <th>Holat</th>
-                    <th>Sana</th>
-                    <th>Amallar</th>
+                    <th>Клиент</th>
+                    <th>Итого</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -886,7 +878,7 @@ const Admin = () => {
                       <td><span className={`status-badge ${o.status}`}>{o.status}</span></td>
                       <td>{new Date(o.created_at).toLocaleDateString()}</td>
                       <td>
-                        <button className="action-btn-small" onClick={() => openOrderModal(o)}>Ko'rish</button>
+                        <button className="action-btn-small" onClick={() => openOrderModal(o)}>Просмотр</button>
                       </td>
                     </tr>
                   ))}
@@ -899,8 +891,8 @@ const Admin = () => {
         {activeTab === 'performance' && (
           <div className="performance-mgmt animate-fade">
              <div className="flex justify-between items-center mb-6">
-                <h2>Xodimlar Reytingi va Ish Sifati</h2>
-                <button className="refresh-btn" onClick={fetchData}><RefreshCw size={18} /> Yangilash</button>
+                <h2>Сотрудники Reytingi va Ish Sifati</h2>
+                <button className="refresh-btn" onClick={fetchData}><RefreshCw size={18} /> Новыйlash</button>
              </div>
              <div className="performance-grid">
                {performance.map(p => (
@@ -910,7 +902,7 @@ const Admin = () => {
                           <ChefHat className={p.role === 'cook' ? 'text-primary' : 'text-secondary'} size={32} />
                           <div>
                              <h3>{p.full_name}</h3>
-                             <span className="role-chip">{p.role === 'cook' ? 'Oshpaz' : 'Kuryer'}</span>
+                             <span className="role-chip">{p.role === 'cook' ? 'Повар' : 'Курьер'}</span>
                           </div>
                        </div>
                        <div className="perf-score">
@@ -921,15 +913,15 @@ const Admin = () => {
                     
                     <div className="perf-stats">
                        <div className="stat-item">
-                          <label>Jami baholar</label>
+                          <label>Итого baholar</label>
                           <span>{p.total_reviews}</span>
                        </div>
                        <div className="stat-item positive">
-                          <label>Yaxshi (4-5)</label>
+                          <label>Хорошо (4-5)</label>
                           <span>{p.good_reviews}</span>
                        </div>
                        <div className="stat-item negative">
-                          <label>Yomon (1-2)</label>
+                          <label>Плохо (1-2)</label>
                           <span>{p.bad_reviews}</span>
                        </div>
                     </div>
@@ -939,7 +931,7 @@ const Admin = () => {
              
              {performance.length === 0 && (
                <div className="empty-state">
-                 <p>Hali birorta ham xodimga baho berilmagan.</p>
+                 <p>Пока ни одному сотруднику не была выставлена оценка.</p>
                </div>
              )}
           </div>
@@ -948,16 +940,16 @@ const Admin = () => {
         {activeTab === 'menu' && (
           <div className="menu-mgmt">
             <div className="flex-header">
-              <h2>Menyu Boshqaruvi</h2>
+              <h2>Управление меню</h2>
               <div className="actions">
-                <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '', is_user_controlled: false }); setShowCatModal(true); }}><Plus size={18} /> Kategoriya</button>
-                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'dona', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true }); setShowProdModal(true); }}><Plus size={18} /> Mahsulot</button>
+                <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '', is_user_controlled: false }); setShowCatModal(true); }}><Plus size={18} /> Категория</button>
+                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true }); setShowProdModal(true); }}><Plus size={18} /> Продукт</button>
               </div>
             </div>
 
             <div className="menu-sections">
               <section className="cat-section mb-4">
-                <h3>Kategoriyalar</h3>
+                <h3>Категорияlar</h3>
                 <div className="cat-grid">
                   {categories.map(c => (
                     <div key={c.id} className="premium-card cat-card-admin">
@@ -969,19 +961,19 @@ const Admin = () => {
               </section>
 
               <section className="prod-section">
-                <h3>Mahsulotlar</h3>
+                <h3>Продуктlar</h3>
                 <div className="admin-table-wrapper premium-card">
                   <table className="admin-table">
                     <thead>
                       <tr>
                         <th>ID</th>
-                        <th>Nomi</th>
-                        <th>Kategoriya</th>
-                        <th>Narxi</th>
-                        <th>Tannarxi</th>
-                        <th>Foyda</th>
-                        <th>Holat</th>
-                        <th>Amallar</th>
+                        <th>Название</th>
+                        <th>Категория</th>
+                        <th>Цена</th>
+                        <th>Себестоимость</th>
+                        <th>Прибыль</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -989,11 +981,11 @@ const Admin = () => {
                         <tr key={p.id}>
                           <td>{p.id}</td>
                           <td>{p.name}</td>
-                          <td>{categories.find(c => c.id === p.category_id)?.name || 'Kategoriya topilmadi'}</td>
-                          <td className="font-700">{p.price.toLocaleString()} so'm</td>
-                          <td style={{ color: 'var(--danger)' }}>{p.cost_price ? p.cost_price.toLocaleString() : 0} so'm</td>
-                          <td style={{ color: 'var(--success)' }}>{p.profit_margin ? p.profit_margin.toLocaleString() : p.price.toLocaleString()} so'm</td>
-                          <td>{p.is_active ? 'Faol' : 'Nofaol'}</td>
+                          <td>{categories.find(c => c.id === p.category_id)?.name || 'Категория topilmadi'}</td>
+                          <td className="font-700">{p.price.toLocaleString()} сум</td>
+                          <td style={{ color: 'var(--danger)' }}>{p.cost_price ? p.cost_price.toLocaleString() : 0} сум</td>
+                          <td style={{ color: 'var(--success)' }}>{p.profit_margin ? p.profit_margin.toLocaleString() : p.price.toLocaleString()} сум</td>
+                          <td>{p.is_active ? 'Активен' : 'Неактивен'}</td>
                           <td>
                             <div className="flex gap-2">
                               <button className="edit-btn" onClick={() => openEditProd(p)}><Edit2 size={16} /></button>
@@ -1002,7 +994,7 @@ const Admin = () => {
                                   <Trash2 size={16} />
                                 </button>
                               ) : (
-                                <span className="locked-badge" title="Tizim mahsuloti, o'chirib bo'lmaydi">🔒</span>
+                                <span className="locked-badge" title="Системный продукт, удаление невозможно">🔒</span>
                               )}
                             </div>
                           </td>
@@ -1019,19 +1011,19 @@ const Admin = () => {
         {activeTab === 'staff' && (
           <div className="staff-mgmt">
             <div className="flex-header">
-              <h2>Xodimlar Boshqaruvi</h2>
+              <h2>Сотрудники Boshqaruvi</h2>
               <button className="btn-primary" onClick={() => setShowStaffModal(true)}>
-                <Plus size={18} /> Xodim qo'shish
+                <Plus size={18} /> Добавить сотрудника
               </button>
             </div>
             <div className="premium-card">
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Ism</th>
-                    <th>Telefon</th>
-                    <th>Vazifa (Role)</th>
-                    <th>Amallar</th>
+                    <th>Имя</th>
+                    <th>Телефон</th>
+                    <th>Роль</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1054,29 +1046,29 @@ const Admin = () => {
         {activeTab === 'tables' && (
           <div className="tables-mgmt animate-fade">
             <div className="flex-header">
-              <h2>Stollar Boshqaruvi</h2>
+              <h2>Столы Boshqaruvi</h2>
               <button className="btn-primary" onClick={() => setShowTableModal(true)}>
-                <Plus size={18} /> Stol qo'shish
+                <Plus size={18} /> Добавить стол
               </button>
             </div>
             <div className="premium-card">
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Stol Raqami</th>
-                    <th>Odam soni (Capacity)</th>
-                    <th>Holat</th>
-                    <th>Amallar</th>
+                    <th>Номер стола</th>
+                    <th>Кол-во человек (Capacity)</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tables.map(t => (
                     <tr key={t.id}>
                       <td>№{t.number}</td>
-                      <td>{t.capacity || 4} kishi</td>
+                      <td>{t.capacity || 4} чел.</td>
                       <td>
                         <span className={`status-badge ${t.status === 'free' ? 'ready' : 'cancelled'}`}>
-                          {t.status === 'free' ? 'Bo\'sh' : 'Band'}
+                          {t.status === 'free' ? 'Bo\'sh' : 'Занят'}
                         </span>
                       </td>
                       <td>
@@ -1086,7 +1078,7 @@ const Admin = () => {
                   ))}
                 </tbody>
               </table>
-              {tables.length === 0 && <div className="text-center p-4">Stollar yo'q</div>}
+              {tables.length === 0 && <div className="text-center p-4">Столы yo'q</div>}
             </div>
           </div>
         )}
@@ -1097,12 +1089,12 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>Yangi Xodim</h3>
+              <h3>Новый Xodim</h3>
               <button onClick={() => setShowStaffModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateStaff}>
               <div className={`input-group ${errors.staff?.name ? 'has-error' : ''}`}>
-                <label>Ismi Sharif</label>
+                <label>Имяi Sharif</label>
                 <input 
                   value={newStaff.full_name} 
                   onChange={e => {
@@ -1113,7 +1105,7 @@ const Admin = () => {
                 {errors.staff?.name && <span className="field-error">{errors.staff.name}</span>}
               </div>
               <div className={`input-group ${errors.staff?.phone ? 'has-error' : ''}`}>
-                <label>Telefon</label>
+                <label>Телефон</label>
                 <input 
                   value={newStaff.phone} 
                   onChange={e => {
@@ -1124,7 +1116,7 @@ const Admin = () => {
                 {errors.staff?.phone && <span className="field-error">{errors.staff.phone}</span>}
               </div>
               <div className={`input-group ${errors.staff?.password ? 'has-error' : ''}`}>
-                <label>Parol</label>
+                <label>Пароль</label>
                 <input 
                   type="password" 
                   value={newStaff.password} 
@@ -1136,15 +1128,15 @@ const Admin = () => {
                 {errors.staff?.password && <span className="field-error">{errors.staff.password}</span>}
               </div>
               <div className="input-group">
-                <label>Vazifasi</label>
+                <label>Роль</label>
                 <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})}>
-                  <option value="cook">Oshpaz (Cook)</option>
-                  <option value="courier">Kuryer (Courier)</option>
-                  <option value="waiter">Ofitsant (Waiter)</option>
+                  <option value="cook">Повар (Cook)</option>
+                  <option value="courier">Курьер (Courier)</option>
+                  <option value="waiter">Официант (Waiter)</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
+              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Сохранить</button>
             </form>
           </motion.div>
         </div>
@@ -1155,12 +1147,12 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>Yangi Kategoriya</h3>
+              <h3>Новый Категория</h3>
               <button onClick={() => setShowCatModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateCat}>
               <div className={`input-group ${errors.cat ? 'has-error' : ''}`}>
-                <label>Nomi</label>
+                <label>Название</label>
                 <input 
                   value={newCat.name} 
                   onChange={e => {
@@ -1171,7 +1163,7 @@ const Admin = () => {
                 {errors.cat && <span className="field-error">{errors.cat}</span>}
               </div>
               <div className="input-group">
-                <label>Rasm yuklash yoki URL</label>
+                <label>Загрузить изображение или URL</label>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -1181,7 +1173,7 @@ const Admin = () => {
                 <input 
                   value={newCat.image_url} 
                   onChange={e => setNewCat({...newCat, image_url: e.target.value})} 
-                  placeholder="Yoki to'g'ridan-to'g'ri URL kiriting"
+                  placeholder="Или введите прямой URL"
                 />
                 {newCat.image_url && (
                   <div style={{marginTop: 10}}>
@@ -1197,10 +1189,10 @@ const Admin = () => {
                   checked={newCat.is_user_controlled} 
                   onChange={e => setNewCat({...newCat, is_user_controlled: e.target.checked})} 
                 />
-                <label htmlFor="cat_user_controlled" style={{ cursor: 'pointer' }}>Foydalanuvchi boshqaruvi (Pors/Dona tanlash)</label>
+                <label htmlFor="cat_user_controlled" style={{ cursor: 'pointer' }}>Прибыльlanuvchi boshqaruvi (Pors/Dona tanlash)</label>
               </div>
 
-              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
+              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Сохранить</button>
             </form>
           </motion.div>
         </div>
@@ -1211,12 +1203,12 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>{editProdId ? 'Mahsulotni tahrirlash' : 'Yangi Mahsulot'}</h3>
+              <h3>{editProdId ? 'Продуктni tahrirlash' : 'Новый Продукт'}</h3>
               <button onClick={() => { setShowProdModal(false); setEditProdId(null); }}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateProd}>
               <div className={`input-group ${errors.prod?.name ? 'has-error' : ''}`}>
-                <label>Nomi</label>
+                <label>Название</label>
                 <input 
                   value={newProd.name} 
                   onChange={e => {
@@ -1227,11 +1219,11 @@ const Admin = () => {
                 {errors.prod?.name && <span className="field-error">{errors.prod.name}</span>}
               </div>
               <div className="input-group">
-                <label>Tavsif</label>
+                <label>Описание</label>
                 <input value={newProd.description} onChange={e => setNewProd({...newProd, description: e.target.value})} />
               </div>
               <div className="input-group">
-                <label>Rasm yuklash yoki URL</label>
+                <label>Загрузить изображение или URL</label>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -1241,7 +1233,7 @@ const Admin = () => {
                 <input 
                   value={newProd.image_url} 
                   onChange={e => setNewProd({...newProd, image_url: e.target.value})} 
-                  placeholder="Yoki to'g'ridan-to'g'ri URL kiriting"
+                  placeholder="Или введите прямой URL"
                 />
                 {newProd.image_url && (
                   <div style={{marginTop: 10}}>
@@ -1250,7 +1242,7 @@ const Admin = () => {
                 )}
               </div>
               <div className={`input-group ${errors.prod?.price ? 'has-error' : ''}`}>
-                <label>Narxi</label>
+                <label>Цена</label>
                 <input 
                   type="number" 
                   value={newProd.price} 
@@ -1262,7 +1254,7 @@ const Admin = () => {
                 {errors.prod?.price && <span className="field-error">{errors.prod.price}</span>}
               </div>
               <div className={`input-group ${errors.prod?.category ? 'has-error' : ''}`}>
-                <label>Kategoriya</label>
+                <label>Категория</label>
                 <select 
                   value={newProd.category_id} 
                   onChange={e => {
@@ -1270,7 +1262,7 @@ const Admin = () => {
                     if (errors.prod?.category) setErrors({...errors, prod: {...errors.prod, category: null}});
                   }}
                 >
-                  <option value="">Tanlang...</option>
+                  <option value="">Выберите...</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 {errors.prod?.category && <span className="field-error">{errors.prod.category}</span>}
@@ -1278,23 +1270,23 @@ const Admin = () => {
 
               <div className="admin-form-row">
                 <div className="input-group">
-                  <label>O'lchov birligi</label>
+                  <label>Единица измерения</label>
                   <select value={newProd.unit} onChange={e => setNewProd({...newProd, unit: e.target.value})}>
-                    <option value="dona">dona</option>
-                    <option value="pors">pors</option>
+                    <option value="шт">шт</option>
+                    <option value="порц">порц</option>
                     <option value="kg">kg</option>
                     <option value="gr">gr</option>
                   </select>
                 </div>
                 <div className="input-group">
-                  <label>Minimum miqdor</label>
+                  <label>Мин. количество</label>
                   <input type="number" step="0.1" value={newProd.min_quantity} onChange={e => setNewProd({...newProd, min_quantity: e.target.value})} />
                 </div>
               </div>
 
               <div className="admin-form-row">
                 <div className="input-group">
-                  <label>Qadam (Step)</label>
+                  <label>Шаг (Step)</label>
                   <input type="number" step="0.1" value={newProd.quantity_step} onChange={e => setNewProd({...newProd, quantity_step: e.target.value})} />
                 </div>
                 <div className="input-group flex-row gap-2 mt-4">
@@ -1304,10 +1296,10 @@ const Admin = () => {
                     checked={newProd.has_mandatory_container} 
                     onChange={e => setNewProd({...newProd, has_mandatory_container: e.target.checked})} 
                   />
-                  <label htmlFor="mandatory_container" style={{ cursor: 'pointer' }}>Majburiy idish qo'shish</label>
+                  <label htmlFor="mandatory_container" style={{ cursor: 'pointer' }}>Обязательное добавление посуды</label>
                 </div>
               </div>
-              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
+              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Сохранить</button>
             </form>
           </motion.div>
         </div>
@@ -1318,12 +1310,12 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '400px'}}>
             <div className="modal-header">
-              <h3>Yangi Stol</h3>
+              <h3>Новый Stol</h3>
               <button onClick={() => setShowTableModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateTable}>
               <div className="input-group mb-4">
-                <label>Stol Raqami</label>
+                <label>Номер стола</label>
                 <input 
                   type="number"
                   required
@@ -1332,14 +1324,14 @@ const Admin = () => {
                 />
               </div>
               <div className="input-group mb-4">
-                <label>Odam soni (Ixtiyoriy)</label>
+                <label>Количество человек (Необязательно)</label>
                 <input 
                   type="number"
                   value={newTable.capacity} 
                   onChange={e => setNewTable({...newTable, capacity: e.target.value})} 
                 />
               </div>
-              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Saqlash</button>
+              <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Сохранить</button>
             </form>
           </motion.div>
         </div>
@@ -1351,50 +1343,50 @@ const Admin = () => {
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '600px', background: '#121212'}}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h3>Buyurtma tafsilotlari #{selectedOrderDetails.id}</h3>
+                <h3>Детали заказа #{selectedOrderDetails.id}</h3>
                 <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }} onClick={() => handleReprintOrder(selectedOrderDetails.id)}>
-                  <Printer size={16} /> Chekni chiqarish
+                  <Printer size={16} /> Распечатать чек
                 </button>
               </div>
               <button onClick={() => setShowOrderModal(false)}><X size={20} /></button>
             </div>
             <div className="order-details-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="text-muted">Holat:</span>
+                <span className="text-muted">Статус:</span>
                 <span className={`status-badge ${selectedOrderDetails.status}`}>{STATUS_MAP[selectedOrderDetails.status] || selectedOrderDetails.status}</span>
               </div>
               {selectedOrderDetails.payment_method && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-muted">To'lov turi:</span>
+                  <span className="text-muted">Тип оплаты:</span>
                   <span className="font-700">
-                    {selectedOrderDetails.payment_method === 'cash' ? '💵 Naqd' :
-                     selectedOrderDetails.payment_method === 'card' ? '💳 Terminal (Karta)' :
+                    {selectedOrderDetails.payment_method === 'cash' ? '💵 Наличные' :
+                     selectedOrderDetails.payment_method === 'card' ? '💳 Терминал (Карта)' :
                      selectedOrderDetails.payment_method === 'click' ? '📱 Click/Payme' :
-                     selectedOrderDetails.payment_method === 'nasiya' ? '📒 Qarzga (Nasiya)' : selectedOrderDetails.payment_method}
+                     selectedOrderDetails.payment_method === 'nasiya' ? '📒 В долг' : selectedOrderDetails.payment_method}
                   </span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="text-muted">Mijoz:</span>
+                <span className="text-muted">Клиент:</span>
                 <span className="font-700">{selectedOrderDetails.phone}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="text-muted">Manzil / Stol:</span>
-                <span className="font-700">{selectedOrderDetails.table_id ? `Stol №${tables.find(t => t.id === selectedOrderDetails.table_id)?.number || selectedOrderDetails.table_id}` : selectedOrderDetails.address || '-'}</span>
+                <span className="text-muted">Адрес / Стол:</span>
+                <span className="font-700">{selectedOrderDetails.table_id ? `Стол №${tables.find(t => t.id === selectedOrderDetails.table_id)?.number || selectedOrderDetails.table_id}` : selectedOrderDetails.address || '-'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="text-muted">Ofitsiant:</span>
+                <span className="text-muted">Официант:</span>
                 <span className="font-700">{selectedOrderDetails.waiter_name || '-'}</span>
               </div>
               {selectedOrderDetails.comment && (
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px' }}>
-                  <span className="text-muted">Izoh:</span>
+                  <span className="text-muted">Комментарий:</span>
                   <p style={{ marginTop: '0.25rem' }}>{selectedOrderDetails.comment}</p>
                 </div>
               )}
               
               <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                <h4 style={{ marginBottom: '0.75rem' }}>Mahsulotlar ro'yxati</h4>
+                <h4 style={{ marginBottom: '0.75rem' }}>Список продуктов</h4>
                 <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                   {(selectedOrderDetails.items || []).map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -1402,7 +1394,7 @@ const Admin = () => {
                         <div className="font-700">{item.product_name || 'Noma\'lum'}</div>
                         <div className="text-muted" style={{ fontSize: '0.85rem' }}>{item.quantity} {item.unit || 'x'}</div>
                       </div>
-                      <div className="font-700 text-primary">{(item.price || 0).toLocaleString()} so'm</div>
+                      <div className="font-700 text-primary">{(item.price || 0).toLocaleString()} сум</div>
                     </div>
                   ))}
                 </div>
@@ -1410,38 +1402,40 @@ const Admin = () => {
               
               {selectedOrderDetails.service_fee > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', color: '#f59e0b' }}>
-                  <span className="text-muted">Xizmat haqi ({selectedOrderDetails.service_percentage}%):</span>
-                  <span className="font-700">{selectedOrderDetails.service_fee?.toLocaleString()} so'm</span>
+                  <span className="text-muted">Плата за обслуживание ({selectedOrderDetails.service_percentage}%):</span>
+                  <span className="font-700">{selectedOrderDetails.service_fee?.toLocaleString()} сум</span>
                 </div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-                <span className="font-700" style={{ fontSize: '1.2rem' }}>Jami:</span>
-                <span className="font-800 text-primary" style={{ fontSize: '1.4rem' }}>{selectedOrderDetails.total_price?.toLocaleString()} so'm</span>
+                <span className="font-700" style={{ fontSize: '1.2rem' }}>Итого:</span>
+                <span className="font-800 text-primary" style={{ fontSize: '1.4rem' }}>{selectedOrderDetails.total_price?.toLocaleString()} сум</span>
               </div>
 
               {/* Service Fee Controls */}
-              <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-                <h4 style={{ marginBottom: '0.75rem', color: '#f59e0b' }}>Xizmat haqi foizi (%)</h4>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={serviceFeePercent}
-                    onChange={e => setServiceFeePercent(e.target.value)}
-                    style={{ width: '80px', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
-                  />
-                  <span className="text-muted">%</span>
-                  <button className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => handleSetServiceFee(selectedOrderDetails.id)}>
-                    Qo'llash
-                  </button>
-                  <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => handleSetServiceFeeAndPrint(selectedOrderDetails.id)}>
-                    <Printer size={14} /> Saqlash va Chek
-                  </button>
+              {(selectedOrderDetails.table_id || selectedOrderDetails.delivery_method === 'dine_in') && (
+                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                  <h4 style={{ marginBottom: '0.75rem', color: '#f59e0b' }}>Процент обслуживания (%)</h4>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={serviceFeePercent}
+                      onChange={e => setServiceFeePercent(e.target.value)}
+                      style={{ width: '80px', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+                    />
+                    <span className="text-muted">%</span>
+                    <button className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => handleSetServiceFee(selectedOrderDetails.id)}>
+                      Применить
+                    </button>
+                    <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => handleSetServiceFeeAndPrint(selectedOrderDetails.id)}>
+                      <Printer size={14} /> Сохранить и распечатать чек
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </motion.div>
         </div>

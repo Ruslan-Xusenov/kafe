@@ -64,7 +64,7 @@ const Home = () => {
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
-      <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Yuklanmoqda...</p>
+      <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Загрузка...</p>
     </div>
   );
 
@@ -82,14 +82,14 @@ const Home = () => {
       <section className="hero-section animate-fade">
         <div className="hero-badge">
           <span>🔥</span>
-          <span>Eng mashhur taomlar</span>
+          <span>Самые популярные блюда</span>
         </div>
         <h1 className="hero-title">
-          Mazali taomlar<br />
-          <span className="text-gradient">yetkazib beramiz</span>
+          Вкусная еда<br />
+          <span className="text-gradient">с доставкой</span>
         </h1>
         <p className="hero-sub">
-          Sevimli kafengizdan eng sara taomlar — tez, issiq va ajoyib!
+          Лучшие блюда из вашего любимого кафе — быстро, горячо и невероятно вкусно!
         </p>
 
         {/* Search */}
@@ -98,7 +98,7 @@ const Home = () => {
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Taom qidiring..."
+              placeholder="Поиск блюд..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="search-input"
@@ -114,7 +114,7 @@ const Home = () => {
             className={`cat-chip ${!selectedCat ? 'active' : ''}`}
             onClick={() => setSelectedCat(null)}
           >
-            🍽 Barchasi
+            🍽 Все
           </button>
           {categories.map(cat => (
             <button
@@ -167,7 +167,7 @@ const Home = () => {
                       <div className="prod-img-overlay">
                         <div className="view-details">
                           <Eye size={18} />
-                          <span>Batafsil</span>
+                          <span>Подробнее</span>
                         </div>
                       </div>
                     </div>
@@ -189,26 +189,26 @@ const Home = () => {
                             className={currentUnit === 'pors' ? 'active' : ''} 
                             onClick={() => setSelectedUnits(prev => ({...prev, [prod.id]: 'pors'}))}
                           >
-                            Pors
+                            Порц
                           </button>
                           <button 
                             className={currentUnit === 'dona' ? 'active' : ''} 
                             onClick={() => setSelectedUnits(prev => ({...prev, [prod.id]: 'dona'}))}
                           >
-                            Dona
+                            Шт
                           </button>
                         </div>
                       )}
 
                       <div className="prod-footer">
                         <span className="prod-price">
-                          {currentPrice.toLocaleString()} so'm 
+                          {currentPrice.toLocaleString()} сум 
                           <span className="prod-unit"> / {currentUnit}</span>
                         </span>
                         
                         {currentUnit === 'pors' && (
                           <div className="portion-info">
-                            (1 pors = 4 dona)
+                            (1 порц = 4 шт)
                           </div>
                         )}
                         
@@ -224,7 +224,7 @@ const Home = () => {
                               unit: currentUnit
                             });
                           }}
-                          title="Savatga qo'shish"
+                          title="В корзину"
                         >
                           <Plus size={20} />
                         </button>
@@ -237,14 +237,14 @@ const Home = () => {
           ) : (
             <div className="empty-products">
               <div className="empty-emoji">🍳</div>
-              <h3>Mahsulot topilmadi</h3>
-              <p>Boshqa kategoriya yoki qidiruvni sinab ko'ring.</p>
+              <h3>Продукты не найдены</h3>
+              <p>Попробуйте другую категорию или поиск.</p>
               {user?.role === 'admin' && (
                 <button
                   className="btn-primary mt-2"
                   onClick={() => window.location.href='/admin'}
                 >
-                  Mahsulot qo'shish
+                  Добавить продукт
                 </button>
               )}
             </div>

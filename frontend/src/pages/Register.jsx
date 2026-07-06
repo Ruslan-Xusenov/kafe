@@ -46,8 +46,8 @@ const Register = () => {
           <div className="auth-brand-icon">
             <ChefHat size={28} />
           </div>
-          <h1 className="auth-title">Hisob yaratish</h1>
-          <p className="auth-subtitle">Tezkor buyurtma uchun ro'yxatdan o'ting</p>
+          <h1 className="auth-title">Создать аккаунт</h1>
+          <p className="auth-subtitle">Зарегистрируйтесь для быстрого заказа</p>
         </div>
 
         {/* Error */}
@@ -65,7 +65,7 @@ const Register = () => {
           {/* Full Name */}
           <div className={`auth-field ${errors.fullName ? 'has-error' : ''}`}>
             <label>
-              <User size={15} /> To'liq ismingiz
+              <User size={15} /> Полное имя
             </label>
             <div className="field-input-wrap">
               <input
@@ -84,7 +84,7 @@ const Register = () => {
           {/* Phone */}
           <div className={`auth-field ${errors.phone ? 'has-error' : ''}`}>
             <label>
-              <Phone size={15} /> Telefon raqami
+              <Phone size={15} /> Номер телефона
             </label>
             <div className="field-input-wrap">
               <input
@@ -103,7 +103,7 @@ const Register = () => {
           {/* Password */}
           <div className={`auth-field ${errors.password ? 'has-error' : ''}`}>
             <label>
-              <Lock size={15} /> Parol
+              <Lock size={15} /> Пароль
             </label>
             <div className="field-input-wrap pass-wrap">
               <input
@@ -125,19 +125,19 @@ const Register = () => {
           <button type="submit" className="auth-submit btn-primary" disabled={loading}>
             {loading ? (
               <span className="btn-loading">
-                <span className="spinner-sm" /> Yaratilmoqda...
+                <span className="spinner-sm" /> Создание...
               </span>
             ) : (
               <>
-                <UserPlus size={18} /> Ro'yxatdan o'tish
+                <UserPlus size={18} /> Зарегистрироваться
               </>
             )}
           </button>
         </form>
 
         <p className="auth-footer-text">
-          Akkauntingiz bormi?{' '}
-          <Link to="/login" className="auth-link">Tizimga kiring</Link>
+          Уже есть аккаунт?{' '}
+          <Link to="/login" className="auth-link">Войти</Link>
         </p>
       </motion.div>
 

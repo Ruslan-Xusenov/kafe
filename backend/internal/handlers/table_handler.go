@@ -50,7 +50,7 @@ func (h *TableHandler) Create(c *gin.Context) {
 func (h *TableHandler) Update(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *TableHandler) Update(c *gin.Context) {
 func (h *TableHandler) Delete(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
@@ -131,5 +131,5 @@ func (h *TableHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Удалено"})
 }

@@ -93,12 +93,12 @@ const ProductDetail = () => {
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
-      <p>Yuklanmoqda...</p>
+      <p>Загрузка...</p>
     </div>
   );
 
   const catObj = categories.find(c => c.id === product?.category_id);
-  const categoryName = catObj?.name || 'Kategoriya';
+  const categoryName = catObj?.name || 'Категория';
   const isUserControlled = catObj?.is_user_controlled;
 
   return (
@@ -108,7 +108,7 @@ const ProductDetail = () => {
         <button className="back-btn" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <span className="header-title">Mahsulot tafsilotlari</span>
+        <span className="header-title">Детали продукта</span>
         <div style={{ width: 40 }} /> {/* Spacer */}
       </div>
 
@@ -137,15 +137,15 @@ const ProductDetail = () => {
             <div className="stars-mini">
               {[1, 2, 3, 4, 5].map(s => <Star key={s} size={14} fill="#fbbf24" color="#fbbf24" />)}
             </div>
-            <span className="rating-count">4.9 (120+ baholar)</span>
+            <span className="rating-count">4.9 (120+ оценок)</span>
           </div>
 
           <div className="pd-price-row">
             <div>
-              <span className="pd-price">{getPrice().toLocaleString()} so'm</span>
-              <span className="pd-unit-sub"> / {selectedUnit}</span>
+              <span className="pd-price">{getPrice().toLocaleString()} сум</span>
+              <span className="pd-unit-sub"> / {selectedUnit === 'pors' ? 'порц' : 'шт'}</span>
               {selectedUnit === 'pors' && (
-                <div className="pd-conversion">(1 pors = 4 dona)</div>
+                <div className="pd-conversion">(1 порц = 4 шт)</div>
               )}
             </div>
             <div className="qty-control">
@@ -177,37 +177,37 @@ const ProductDetail = () => {
           {/* Unit Selector if User Controlled */}
           {isUserControlled && product.unit === 'pors' && (
             <div className="pd-unit-selector mb-4">
-              <p className="font-700 mb-2" style={{ fontSize: '0.9rem' }}>O'lchov birligini tanlang:</p>
+              <p className="font-700 mb-2" style={{ fontSize: '0.9rem' }}>Выберите единицу измерения:</p>
               <div className="unit-selector-btn-group">
                 <button 
                   className={selectedUnit === 'pors' ? 'active' : ''} 
                   onClick={() => setSelectedUnit('pors')}
                 >
-                  Porsiya (Pors)
+                  Порция (Порц)
                 </button>
                 <button 
                   className={selectedUnit === 'dona' ? 'active' : ''} 
                   onClick={() => setSelectedUnit('dona')}
                 >
-                  Dona (1/4 pors)
+                  Шт (1/4 порц)
                 </button>
               </div>
             </div>
           )}
 
           <div className="pd-description">
-            <h3>Tavsif</h3>
-            <p>{product.description || "Ushbu mahsulot uchun hozircha tavsif qo'shilmagan. Lekin u juda mazali ekanligiga shubha yo'q!"}</p>
+            <h3>Описание</h3>
+            <p>{product.description || "Для этого продукта пока не добавлено описание. Но нет сомнений, что это очень вкусно!"}</p>
           </div>
 
           <div className="pd-features">
             <div className="feature-item">
               <CheckCircle2 size={18} color="var(--success)" />
-              <span>Yangi mahsulotlar</span>
+              <span>Свежие продукты</span>
             </div>
             <div className="feature-item">
               <CheckCircle2 size={18} color="var(--success)" />
-              <span>Tez yetkazib berish</span>
+              <span>Быстрая доставка</span>
             </div>
           </div>
 
@@ -217,9 +217,9 @@ const ProductDetail = () => {
             disabled={added}
           >
             {added ? (
-              <><CheckCircle2 size={20} /> Savatga qo'shildi</>
+              <><CheckCircle2 size={20} /> Добавлено в корзину</>
             ) : (
-              <><ShoppingCart size={20} /> Savatga qo'shish</>
+              <><ShoppingCart size={20} /> В корзину</>
             )}
           </button>
         </div>
@@ -229,8 +229,8 @@ const ProductDetail = () => {
       {relatedProducts.length > 0 && (
         <section className="related-section">
           <div className="section-header">
-            <div className="section-pill">O'xshash</div>
-            <h2>Boshqa mahsulotlar</h2>
+            <div className="section-pill">Похожие</div>
+            <h2>Другие продукты</h2>
           </div>
           
           <div className="related-grid">
@@ -245,7 +245,7 @@ const ProductDetail = () => {
                 </div>
                 <div className="rel-body">
                   <h4>{item.name}</h4>
-                  <p>{item.price.toLocaleString()} so'm</p>
+                  <p>{item.price.toLocaleString()} сум</p>
                 </div>
               </Link>
             ))}

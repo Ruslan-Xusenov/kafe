@@ -13,7 +13,7 @@ import (
 func UploadImage(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file provided"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл не предоставлен"})
 		return
 	}
 
@@ -22,7 +22,7 @@ func UploadImage(c *gin.Context) {
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
 		err = os.Mkdir(uploadDir, 0755)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create upload directory"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать директорию для загрузки"})
 			return
 		}
 	}
@@ -33,7 +33,7 @@ func UploadImage(c *gin.Context) {
 	dst := filepath.Join(uploadDir, newFilename)
 
 	if err := c.SaveUploadedFile(file, dst); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сохранить файл"})
 		return
 	}
 

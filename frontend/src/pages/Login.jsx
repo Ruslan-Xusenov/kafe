@@ -50,8 +50,8 @@ const Login = () => {
           <div className="auth-brand-icon">
             <Utensils size={28} />
           </div>
-          <h1 className="auth-title">Xush kelibsiz!</h1>
-          <p className="auth-subtitle">Tizimga kirish uchun ma'lumotlarni kiriting</p>
+          <h1 className="auth-title">Добро пожаловать!</h1>
+          <p className="auth-subtitle">Введите данные для входа в систему</p>
         </div>
 
         {/* Error */}
@@ -68,7 +68,7 @@ const Login = () => {
         <form onSubmit={handleSubmit} className="auth-form">
           {/* Phone */}
           <div className={`auth-field ${errors.phone ? 'has-error' : ''}`}>
-            <label><Phone size={14} /> Telefon raqami</label>
+            <label><Phone size={14} /> Номер телефона</label>
             <input
               type="text"
               placeholder="+998 90 123 45 67"
@@ -83,7 +83,7 @@ const Login = () => {
 
           {/* Password */}
           <div className={`auth-field ${errors.password ? 'has-error' : ''}`}>
-            <label><Lock size={14} /> Parol</label>
+            <label><Lock size={14} /> Пароль</label>
             <div className="field-input-wrap pass-wrap">
               <input
                 type={showPass ? 'text' : 'password'}
@@ -104,17 +104,17 @@ const Login = () => {
           <button type="submit" className="auth-submit btn-primary" disabled={loading}>
             {loading ? (
               <span className="btn-loading">
-                <span className="spinner-sm" /> Kirilmoqda...
+                <span className="spinner-sm" /> Вход...
               </span>
             ) : (
-              <><LogIn size={18} /> Tizimga kirish</>
+              <><LogIn size={18} /> Войти</>
             )}
           </button>
         </form>
 
         <p className="auth-footer-text">
-          Akkauntingiz yo'qmi?{' '}
-          <Link to="/register" className="auth-link">Ro'yxatdan o'ting</Link>
+          Нет аккаунта?{' '}
+          <Link to="/register" className="auth-link">Зарегистрироваться</Link>
         </p>
       </motion.div>
 

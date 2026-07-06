@@ -16,30 +16,30 @@ const Success = () => {
       >
         <div className="success-header">
           <CheckCircle size={80} className="success-icon" />
-          <h1>Buyurtma qabul qilindi!</h1>
-          <p>Sizning buyurtmangiz muvaffaqiyatli rasmiylashtirildi.</p>
+          <h1>Заказ принят!</h1>
+          <p>Ваш заказ успешно оформлен.</p>
         </div>
 
         <div className="order-details glass">
           <div className="detail-item">
-            <span className="label">Buyurtma ID</span>
+            <span className="label">ID заказа</span>
             <span className="value">#{orderId}</span>
           </div>
           <div className="detail-item">
-            <span className="label">Holat</span>
-            <span className="value status-badge">Yangi</span>
+            <span className="label">Статус</span>
+            <span className="value status-badge">Новый</span>
           </div>
         </div>
 
         <div className="success-actions">
           <Link to="/" className="btn-primary home-btn">
-            <ArrowLeft size={20} /> Menyuga qaytish
+            <ArrowLeft size={20} /> Вернуться в меню
           </Link>
         </div>
 
         <div className="success-footer">
           <Package size={20} />
-          <span>Oshpazlarimiz taomingizni tayyorlashni boshladilar!</span>
+          <span>Наши повара уже начали готовить ваше блюдо!</span>
         </div>
       </motion.div>
 
