@@ -436,7 +436,7 @@ func (s *OrderService) GetOrderHistoryByWaiter(waiterID int) ([]models.Order, er
 	return s.orderRepo.GetHistoryByWaiterID(waiterID)
 }
 
-func (s *OrderService) RemoveOrderItem(orderID, itemID int) error {
+func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) error {
 	// First fetch the order and item to know what we are cancelling for the printer
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil || order == nil {
@@ -446,20 +446,31 @@ func (s *OrderService) RemoveOrderItem(orderID, itemID int) error {
 	var cancelledItem *models.OrderItem
 	for _, it := range order.Items {
 		if it.ID == itemID {
-			cancelledItem = &it
+			// Copy the item so we don't modify the original array by reference just in case
+			itemCopy := it
+			cancelledItem = &itemCopy
 			break
 		}
 	}
 	if cancelledItem == nil {
 		return fmt.Errorf("item not found in order")
 	}
+	
+	// Validate quantity
+	if cancelQty <= 0 {
+		return fmt.Errorf("quantity must be greater than 0")
+	}
+	if cancelQty > cancelledItem.Quantity {
+		cancelQty = cancelledItem.Quantity
+	}
 
-	// Delete from DB
-	if err := s.orderRepo.RemoveItem(orderID, itemID); err != nil {
+	// Update DB
+	if err := s.orderRepo.CancelItem(orderID, itemID, cancelQty); err != nil {
 		return err
 	}
 
-	// Broadcast cancellation to printer
+	// Broadcast cancellation to printer with the specific cancelled quantity
+	cancelledItem.Quantity = cancelQty
 	cancelPayload := map[string]interface{}{
 		"type": "cancel_item",
 		"order_id": orderID,

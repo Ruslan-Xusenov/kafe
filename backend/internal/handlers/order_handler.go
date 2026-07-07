@@ -249,7 +249,7 @@ func (h *OrderHandler) GetOrderHistoryByWaiter(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 
-func (h *OrderHandler) RemoveOrderItem(c *gin.Context) {
+func (h *OrderHandler) CancelOrderItem(c *gin.Context) {
 	orderID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
@@ -261,10 +261,18 @@ func (h *OrderHandler) RemoveOrderItem(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.RemoveOrderItem(orderID, itemID); err != nil {
+	var req struct {
+		Quantity float64 `json:"quantity"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if err := h.service.CancelOrderItem(orderID, itemID, req.Quantity); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Продукт удален из заказа"})
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт отменен из заказа"})
 }

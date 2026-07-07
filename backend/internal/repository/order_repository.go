@@ -511,22 +511,33 @@ func (r *OrderRepository) GetHistoryByWaiterID(waiterID int) ([]models.Order, er
 	return orders, nil
 }
 
-// RemoveItem deletes an item from an order and recalculates the total price and service fee
-func (r *OrderRepository) RemoveItem(orderID, itemID int) error {
+// CancelItem cancels a specific quantity of an item. If cancelQty >= current qty, it deletes the item.
+func (r *OrderRepository) CancelItem(orderID, itemID int, cancelQty float64) error {
 	tx, err := r.db.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	// Delete item
-	res, err := tx.Exec(`DELETE FROM order_items WHERE id = $1 AND order_id = $2`, itemID, orderID)
+	// Get current quantity
+	var currentQty float64
+	err = tx.Get(&currentQty, `SELECT quantity FROM order_items WHERE id = $1 AND order_id = $2`, itemID, orderID)
 	if err != nil {
-		return err
-	}
-	rowsAffected, _ := res.RowsAffected()
-	if rowsAffected == 0 {
 		return errors.New("item not found")
+	}
+
+	if cancelQty >= currentQty {
+		// Delete item
+		_, err := tx.Exec(`DELETE FROM order_items WHERE id = $1`, itemID)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Update item
+		_, err := tx.Exec(`UPDATE order_items SET quantity = quantity - $1 WHERE id = $2`, cancelQty, itemID)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Recalculate order total price

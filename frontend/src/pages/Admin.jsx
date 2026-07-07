@@ -409,10 +409,22 @@ const Admin = () => {
     }
   };
 
-  const handleRemoveOrderItem = async (orderId, itemId) => {
-    if (!window.confirm('Rostdan ham bu mahsulotni buyurtmadan bekor qilmoqchimisiz?')) return;
+  const handleRemoveOrderItem = async (orderId, item) => {
+    const qtyInput = window.prompt(`Qancha miqdorni bekor qilmoqchisiz?\nMaksimal: ${item.quantity}`, item.quantity);
+    if (qtyInput === null) return; // User cancelled
+    
+    const qty = parseFloat(qtyInput);
+    if (isNaN(qty) || qty <= 0) {
+      alert("Iltimos, to'g'ri raqam kiriting!");
+      return;
+    }
+    if (qty > item.quantity) {
+      alert(`Kiritilgan miqdor joriy miqdordan oshmasligi kerak (Maks: ${item.quantity})!`);
+      return;
+    }
+
     try {
-      await api.delete(`/orders/${orderId}/items/${itemId}`);
+      await api.post(`/orders/${orderId}/items/${item.id}/cancel`, { quantity: qty });
       // Refresh order details
       const res = await api.get(`/orders/${orderId}`);
       setSelectedOrderDetails(res.data);
@@ -1426,7 +1438,7 @@ const Admin = () => {
                         <button 
                           className="delete-btn-ico" 
                           style={{ padding: '0.2rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                          onClick={() => handleRemoveOrderItem(selectedOrderDetails.id, item.id)}
+                          onClick={() => handleRemoveOrderItem(selectedOrderDetails.id, item)}
                           title="Bekor qilish"
                         >
                           <Trash2 size={16} />
