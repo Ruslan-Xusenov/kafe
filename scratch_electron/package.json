@@ -1,0 +1,21 @@
+{
+  "name": "kafeplat",
+  "version": "1.0.0",
+  "description": "KafePlat POS System",
+  "main": "main.js",
+  "scripts": {
+    "build": "electron-builder --win"
+  },
+  "build": {
+    "appId": "uz.securehub.kafeplat",
+    "win": {
+      "target": "dir"
+    }
+  },
+  "author": "KafePlat",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
