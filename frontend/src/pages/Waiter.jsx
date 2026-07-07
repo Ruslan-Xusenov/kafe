@@ -630,12 +630,12 @@ const Waiter = () => {
           right: 1.5rem;
           width: 450px;
           max-width: calc(100vw - 3rem);
-          background: rgba(13,13,15,0.95) !important;
+          background: #111111 !important; /* solid to prevent bleeding */
           border: 1px solid rgba(255,255,255,0.1);
           border-radius: 24px;
           padding: 1.5rem;
-          box-shadow: 0 10px 50px rgba(0,0,0,0.6);
-          z-index: 50;
+          box-shadow: 0 10px 50px rgba(0,0,0,0.9);
+          z-index: 100;
           max-height: calc(100vh - 3rem);
           display: flex; flex-direction: column;
         }
@@ -698,36 +698,47 @@ const Waiter = () => {
 
         @media (max-width: 600px) {
           .waiter-header { flex-direction: column; align-items: flex-start; }
-          .table-stats { width: 100%; justify-content: space-between; }
-          .stat-pill { flex: 1; justify-content: center; }
+          .table-stats { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+          .stat-pill { flex: 1; justify-content: center; min-width: 120px; }
           
-          .order-header { padding: 1rem; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-          .header-right { width: 100%; justify-content: space-between; }
-          .back-button { position: absolute; left: 1rem; top: 1rem; }
+          .order-header { padding: 1rem; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; }
+          .header-right { width: 100%; justify-content: space-between; margin-top: 0.5rem; }
+          .back-button { position: relative; left: 0; top: 0; padding: 0.4rem; }
           .back-button span { display: none; }
           .order-total-pill { font-size: 1.1rem; padding: 0.5rem 1rem; }
           .btn-free-table { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
           
-          .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-          .menu-card-img { height: 110px; }
-          .menu-card-info { padding: 0.75rem; }
-          .menu-card-info h4 { font-size: 0.9rem; }
-          .price-row .price { font-size: 1rem; }
+          .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; padding-bottom: 350px; }
+          .menu-card-img { height: 100px; }
+          .menu-card-info { padding: 0.6rem; }
+          .menu-card-info h4 { font-size: 0.85rem; }
+          .price-row .price { font-size: 0.95rem; }
           
           .smart-cart-panel { 
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            bottom: 72px; /* Hover above bottom nav */
+            left: 0; 
+            right: 0;
             width: 100%;
-            max-width: none;
-            border-radius: 0;
-            border-top-left-radius: 20px; 
-            border-top-right-radius: 20px; 
-            padding: 1.25rem 1rem; 
-            max-height: 80vh;
+            max-width: 100vw;
+            border-radius: 24px 24px 0 0;
+            padding: 1.25rem 1rem 1.5rem; 
+            max-height: 60vh;
+            background: #111111 !important;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.9);
+            border-bottom: none;
+            z-index: 800; /* below BottomNav (999) but above content */
           }
-          .item-actions { gap: 0.5rem; }
-          .item-actions button { width: 28px; height: 28px; }
-          .item-actions .qty { width: 30px; }
+          
+          .cart-panel-header { margin-bottom: 0.75rem; padding-bottom: 0.75rem; }
+          .smart-cart-item { padding: 0.6rem 0.75rem; }
+          .item-details .name { font-size: 0.95rem; }
+          
+          .item-actions { gap: 0.5rem; padding: 0.2rem; }
+          .item-actions button { width: 32px; height: 32px; }
+          .item-actions .qty { width: 30px; font-size: 0.95rem; }
+          
+          .submit-order-btn { padding: 1rem; font-size: 1rem; }
         }
       `}</style>
     </div>
