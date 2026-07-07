@@ -409,6 +409,19 @@ const Admin = () => {
     }
   };
 
+  const handleRemoveOrderItem = async (orderId, itemId) => {
+    if (!window.confirm('Rostdan ham bu mahsulotni buyurtmadan bekor qilmoqchimisiz?')) return;
+    try {
+      await api.delete(`/orders/${orderId}/items/${itemId}`);
+      // Refresh order details
+      const res = await api.get(`/orders/${orderId}`);
+      setSelectedOrderDetails(res.data);
+      fetchData();
+    } catch (err) {
+      alert("Xatolik yuz berdi: " + (err.response?.data?.error || err.message));
+    }
+  };
+
   const handleSetServiceFee = async (id) => {
     try {
       const res = await api.put(`/orders/${id}/service-fee`, { percentage: parseFloat(serviceFeePercent) });
@@ -1408,7 +1421,17 @@ const Admin = () => {
                         <div className="font-700">{item.product_name || 'Noma\'lum'}</div>
                         <div className="text-muted" style={{ fontSize: '0.85rem' }}>{item.quantity} {item.unit || 'x'}</div>
                       </div>
-                      <div className="font-700 text-primary">{(item.price || 0).toLocaleString()} сум</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className="font-700 text-primary">{(item.price || 0).toLocaleString()} сум</div>
+                        <button 
+                          className="delete-btn-ico" 
+                          style={{ padding: '0.2rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                          onClick={() => handleRemoveOrderItem(selectedOrderDetails.id, item.id)}
+                          title="Bekor qilish"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -248,3 +248,23 @@ func (h *OrderHandler) GetOrderHistoryByWaiter(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, orders)
 }
+
+func (h *OrderHandler) RemoveOrderItem(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
+		return
+	}
+	itemID, err := strconv.Atoi(c.Param("item_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID продукта"})
+		return
+	}
+
+	if err := h.service.RemoveOrderItem(orderID, itemID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Продукт удален из заказа"})
+}

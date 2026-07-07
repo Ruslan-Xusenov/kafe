@@ -100,6 +100,17 @@ func handleMessages(c *websocket.Conn) {
 			continue
 		}
 
+		if m["type"] == "cancel_item" {
+			orderID := int(m["order_id"].(float64))
+			item := m["item"].(map[string]interface{})
+			waiterName, _ := m["waiter_name"].(string)
+			tableNumber, _ := m["table_number"].(string)
+
+			log.Printf("🔔 MASTER v8.5: BEKOR QILISH (#%d buyurtmadan) qabul qilindi!\n", orderID)
+			printCancelItem(orderID, item, waiterName, tableNumber)
+			continue
+		}
+
 		if m["type"] == "new_order" || m["type"] == "close_order" || m["type"] == "reprint_order" {
 			orderData, _ := m["order"].(map[string]interface{})
 			id := int(orderData["id"].(float64))
@@ -123,6 +134,79 @@ func handleMessages(c *websocket.Conn) {
 			}
 			
 			printOrder(orderData, isReprint)
+		}
+	}
+}
+
+func printCancelItem(orderID int, item map[string]interface{}, waiterName string, tableNumber string) {
+	targetVal, _ := item["printer_target"].(string)
+	if targetVal == "" {
+		targetVal = "ALL"
+	}
+
+	targets := []string{"USB"}
+	targets = append(targets, networkPrinters...)
+
+	for _, target := range targets {
+		if targetVal == "ALL" || targetVal == target {
+			generateAndPrintCancelReceipt(target, orderID, item, waiterName, tableNumber)
+		}
+	}
+}
+
+func generateAndPrintCancelReceipt(target string, orderID int, item map[string]interface{}, waiterName string, tableNumber string) {
+	f, err := os.CreateTemp("", fmt.Sprintf("cancel_%d_*.bin", orderID))
+	if err != nil {
+		return
+	}
+	defer os.Remove(f.Name())
+
+	// Build Binary Sequence
+	f.Write(ESC_INIT)
+	f.Write(DISABLE_CHINESE)
+	f.Write(CODE_PAGE)
+	f.Write(BEEP)
+	f.Write(BEEP)
+
+	f.Write(ALIGN_CENTER)
+	f.Write(FONT_BIG)
+	f.Write(toCP866("ОТМЕНА / БЕКОР\n"))
+	f.Write(FONT_NORMAL)
+	f.Write(toCP866("------------------------------------------------\n"))
+	
+	f.Write(ALIGN_LEFT)
+	f.Write(toCP866(fmt.Sprintf("Чек №: %d\n", orderID)))
+	f.Write(toCP866(fmt.Sprintf("Стол: %s\n", tableNumber)))
+	f.Write(toCP866(fmt.Sprintf("Официант: %s\n", waiterName)))
+	f.Write(toCP866(fmt.Sprintf("Время: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
+	f.Write(toCP866("------------------------------------------------\n"))
+
+	name := item["product_name"].(string)
+	qty := item["quantity"].(float64)
+	
+	f.Write(FONT_DOUBLE_H)
+	f.Write(toCP866(fmt.Sprintf("- %s x %.1f\n", name, qty)))
+	
+	if comment, ok := item["comment"].(string); ok && comment != "" {
+		f.Write(FONT_NORMAL)
+		f.Write(toCP866(fmt.Sprintf("  * %s\n", comment)))
+	}
+	
+	f.Write(FONT_NORMAL)
+	f.Write(toCP866("------------------------------------------------\n\n\n\n"))
+	f.Write(PAPER_CUT)
+	f.Close()
+
+	if target == "USB" {
+		exec.Command("cmd", "/c", "copy", "/b", f.Name(), printerDevice).Run()
+	} else {
+		data, err := os.ReadFile(f.Name())
+		if err == nil {
+			conn, err := net.DialTimeout("tcp", target, 5*time.Second)
+			if err == nil {
+				defer conn.Close()
+				conn.Write(data)
+			}
 		}
 	}
 }

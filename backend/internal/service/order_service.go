@@ -435,3 +435,39 @@ func (s *OrderService) GetActiveOrdersByWaiter(waiterID int) ([]models.Order, er
 func (s *OrderService) GetOrderHistoryByWaiter(waiterID int) ([]models.Order, error) {
 	return s.orderRepo.GetHistoryByWaiterID(waiterID)
 }
+
+func (s *OrderService) RemoveOrderItem(orderID, itemID int) error {
+	// First fetch the order and item to know what we are cancelling for the printer
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil || order == nil {
+		return fmt.Errorf("order not found")
+	}
+
+	var cancelledItem *models.OrderItem
+	for _, it := range order.Items {
+		if it.ID == itemID {
+			cancelledItem = &it
+			break
+		}
+	}
+	if cancelledItem == nil {
+		return fmt.Errorf("item not found in order")
+	}
+
+	// Delete from DB
+	if err := s.orderRepo.RemoveItem(orderID, itemID); err != nil {
+		return err
+	}
+
+	// Broadcast cancellation to printer
+	cancelPayload := map[string]interface{}{
+		"type": "cancel_item",
+		"order_id": orderID,
+		"item": cancelledItem,
+		"waiter_name": order.WaiterName,
+		"table_number": order.TableNumber,
+	}
+	s.wsService.BroadcastToRole("printer", cancelPayload)
+
+	return nil
+}

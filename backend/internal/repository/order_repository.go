@@ -510,3 +510,46 @@ func (r *OrderRepository) GetHistoryByWaiterID(waiterID int) ([]models.Order, er
 	}
 	return orders, nil
 }
+
+// RemoveItem deletes an item from an order and recalculates the total price and service fee
+func (r *OrderRepository) RemoveItem(orderID, itemID int) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete item
+	res, err := tx.Exec(`DELETE FROM order_items WHERE id = $1 AND order_id = $2`, itemID, orderID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("item not found")
+	}
+
+	// Recalculate order total price
+	var newTotal float64
+	err = tx.Get(&newTotal, `SELECT COALESCE(SUM(price * quantity), 0) FROM order_items WHERE order_id = $1`, orderID)
+	if err != nil {
+		return err
+	}
+
+	// Fetch current order to recalculate service fee
+	var servicePercentage float64
+	err = tx.Get(&servicePercentage, `SELECT COALESCE(service_percentage, 0) FROM orders WHERE id = $1`, orderID)
+	if err != nil {
+		return err
+	}
+
+	serviceFee := newTotal * servicePercentage / 100
+	finalTotal := newTotal + serviceFee
+
+	_, err = tx.Exec(`UPDATE orders SET total_price = $1, service_fee = $2, updated_at = NOW() WHERE id = $3`, finalTotal, serviceFee, orderID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}

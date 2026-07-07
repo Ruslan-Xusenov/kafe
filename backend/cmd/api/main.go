@@ -172,6 +172,7 @@ func main() {
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
 				staff.POST("/:id/print", orderHandler.ReprintOrder)
 				staff.PUT("/:id/service-fee", orderHandler.SetServiceFee)
+				staff.DELETE("/:id/items/:item_id", orderHandler.RemoveOrderItem)
 			}
 
 			// Parameterized routes must be at the end to avoid shadowing
