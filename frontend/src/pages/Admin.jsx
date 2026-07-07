@@ -36,6 +36,7 @@ const Admin = () => {
 
   const [showCatModal, setShowCatModal] = useState(false);
   const [newCat, setNewCat] = useState({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' });
+  const [editCatId, setEditCatId] = useState(null);
   const [showProdModal, setShowProdModal] = useState(false);
   const [newProd, setNewProd] = useState({ 
     name: '', description: '', price: '', category_id: '', image_url: '',
@@ -190,12 +191,28 @@ const Admin = () => {
     if (err) { setErrors({ cat: err }); return; }
 
     try {
-      await api.post('/catalog/categories', newCat);
+      if (editCatId) {
+        await api.put(`/catalog/categories/${editCatId}`, newCat);
+      } else {
+        await api.post('/catalog/categories', newCat);
+      }
       setShowCatModal(false);
       setNewCat({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' });
+      setEditCatId(null);
       setErrors({});
       fetchData();
-    } catch (err) { alert(err.response?.data?.error || 'Ошибка при добавлении категории'); }
+    } catch (err) { alert(err.response?.data?.error || 'Ошибка при сохранении категории'); }
+  };
+
+  const openEditCat = (cat) => {
+    setNewCat({
+      name: cat.name,
+      image_url: cat.image_url || '',
+      is_user_controlled: cat.is_user_controlled || false,
+      printer_target: cat.printer_target || 'ALL'
+    });
+    setEditCatId(cat.id);
+    setShowCatModal(true);
   };
 
   const handleCreateProd = async (e) => {
@@ -967,7 +984,7 @@ const Admin = () => {
             <div className="flex-header">
               <h2>Управление меню</h2>
               <div className="actions">
-                <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' }); setShowCatModal(true); }}><Plus size={18} /> Категория</button>
+                <button className="btn-primary" onClick={() => { setEditCatId(null); setNewCat({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' }); setShowCatModal(true); }}><Plus size={18} /> Категория</button>
                 <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true }); setShowProdModal(true); }}><Plus size={18} /> Продукт</button>
               </div>
             </div>
@@ -979,7 +996,10 @@ const Admin = () => {
                   {categories.map(c => (
                     <div key={c.id} className="premium-card cat-card-admin">
                       <span>{c.name}</span>
-                      <button className="delete-btn-ico" onClick={() => deleteCat(c.id)}><Trash2 size={16} /></button>
+                      <div className="flex gap-2">
+                        <button className="edit-btn" onClick={() => openEditCat(c)}><Edit2 size={16} /></button>
+                        <button className="delete-btn-ico" onClick={() => deleteCat(c.id)}><Trash2 size={16} /></button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1172,8 +1192,8 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>Новый Категория</h3>
-              <button onClick={() => setShowCatModal(false)}><X size={20} /></button>
+              <h3>{editCatId ? 'Категорию tahrirlash' : 'Новый Категория'}</h3>
+              <button onClick={() => { setShowCatModal(false); setEditCatId(null); }}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateCat}>
               <div className={`input-group ${errors.cat ? 'has-error' : ''}`}>
