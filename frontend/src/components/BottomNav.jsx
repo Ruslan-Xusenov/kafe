@@ -66,11 +66,16 @@ const BottomNav = () => {
           align-items: center;
           box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
           overflow-x: auto;
+          flex-wrap: nowrap;
           -webkit-overflow-scrolling: touch;
         }
         
         .bottom-nav::-webkit-scrollbar {
-          display: none;
+          height: 4px; /* small visible scrollbar for non-touch devices */
+        }
+        .bottom-nav::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
         }
 
         .bnav-item {
