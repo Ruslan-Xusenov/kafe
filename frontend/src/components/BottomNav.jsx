@@ -27,7 +27,7 @@ const BottomNav = () => {
     if (tab.roles && (!user || !tab.roles.includes(user.role))) return false;
     if (tab.auth) return isAuthenticated;
     return true;
-  }).slice(0, 5); // max 5 tab
+  }); // Removed slice(0, 5) to show all tabs
 
   return (
     <>
@@ -62,9 +62,15 @@ const BottomNav = () => {
           -webkit-backdrop-filter: blur(24px) saturate(180%);
           border-top: 1px solid rgba(255,255,255,0.08);
           padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
-          justify-content: space-around;
+          justify-content: flex-start; /* Changed to flex-start for scrolling */
           align-items: center;
           box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        .bottom-nav::-webkit-scrollbar {
+          display: none;
         }
 
         .bnav-item {
@@ -79,8 +85,8 @@ const BottomNav = () => {
           color: var(--text-muted);
           transition: var(--transition);
           flex: 1;
+          min-width: 60px; /* Ensure minimum width for touch targets */
           position: relative;
-          min-width: 0;
         }
 
         .bnav-item:hover {
