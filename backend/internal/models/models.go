@@ -38,6 +38,7 @@ type Category struct {
 	Name             string    `json:"name" db:"name"`
 	ImageURL         *string   `json:"image_url" db:"image_url"`
 	IsUserControlled bool      `json:"is_user_controlled" db:"is_user_controlled"`
+	PrinterTarget    string    `json:"printer_target" db:"printer_target"`
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -98,15 +99,16 @@ type Order struct {
 }
 
 type OrderItem struct {
-	ID          int       `json:"id" db:"id"`
-	OrderID     int       `json:"order_id" db:"order_id"`
-	ProductID   int       `json:"product_id" db:"product_id"`
-	ProductName string    `json:"product_name" db:"product_name"` // Joined field
-	Quantity    float64   `json:"quantity" db:"quantity"`
-	Price       float64   `json:"price" db:"price"`
-	Unit        string    `json:"unit" db:"unit"`
-	Comment     string    `json:"comment" db:"comment"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	ID            int       `json:"id" db:"id"`
+	OrderID       int       `json:"order_id" db:"order_id"`
+	ProductID     int       `json:"product_id" db:"product_id"`
+	ProductName   string    `json:"product_name" db:"product_name"` // Joined field
+	Quantity      float64   `json:"quantity" db:"quantity"`
+	Price         float64   `json:"price" db:"price"`
+	Unit          string    `json:"unit" db:"unit"`
+	Comment       string    `json:"comment" db:"comment"`
+	PrinterTarget string    `json:"printer_target" db:"printer_target"` // Joined field from category
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
 type DeliveryStats struct {

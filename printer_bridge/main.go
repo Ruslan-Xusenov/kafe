@@ -46,7 +46,7 @@ func main() {
 
 	apiHost := os.Getenv("API_HOST")
 	if apiHost == "" {
-		apiHost = "kafe.ruslandev.uz"
+		apiHost = "kafe.securehub.uz"
 	}
 	printerKey := os.Getenv("PRINTER_KEY")
 	if printerKey == "" {
@@ -57,7 +57,7 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt)
 
 	scheme := "ws"
-	if strings.Contains(apiHost, "ruslandev.uz") {
+	if strings.Contains(apiHost, "securehub.uz") {
 		scheme = "wss"
 	}
 	u := url.URL{Scheme: scheme, Host: apiHost, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}

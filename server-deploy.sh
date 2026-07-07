@@ -40,13 +40,13 @@ if ! command -v docker &> /dev/null; then
     apt-get update -qq && apt-get install -y docker.io docker-compose-v2 -qq
 fi
 
-if [ ! -f "/etc/nginx/sites-enabled/kafe.ruslandev.uz" ]; then
-    info "Nginx sozlanyapti..."
-    cp "$APP_DIR/nginx.conf" /etc/nginx/sites-available/kafe.ruslandev.uz
-    ln -sf /etc/nginx/sites-available/kafe.ruslandev.uz /etc/nginx/sites-enabled/kafe.ruslandev.uz
-    rm -f /etc/nginx/sites-enabled/default
-    nginx -t && systemctl reload nginx
-fi
+    if [ ! -f "/etc/nginx/sites-enabled/kafe.securehub.uz" ]; then
+        info "Nginx sozlanyapti..."
+        cp "$APP_DIR/nginx.conf" /etc/nginx/sites-available/kafe.securehub.uz
+        ln -sf /etc/nginx/sites-available/kafe.securehub.uz /etc/nginx/sites-enabled/kafe.securehub.uz
+        rm -f /etc/nginx/sites-enabled/default
+        nginx -t && systemctl reload nginx
+    fi
 
 info "5. Docker konteynerlar build qilinmoqda..."
 docker compose up -d --build --remove-orphans

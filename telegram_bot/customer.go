@@ -15,7 +15,7 @@ import (
 func (b *Bot) handleStart(chatID int64) {
 	text := "🍽 <b>Добро пожаловать в Kafe Bot!</b>\n\nИспользуйте кнопки ниже для заказа или связи с нами."
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Онлайн заказ", tgbotapi.WebAppInfo{URL: "https://kafe.ruslandev.uz"})),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Онлайн заказ", tgbotapi.WebAppInfo{URL: "https://kafe.securehub.uz"})),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("📞 Связаться", "contact_info"),
 			tgbotapi.NewInlineKeyboardButtonData("📖 Как пользоваться", "how_to_use"),

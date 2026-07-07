@@ -173,11 +173,9 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
 
-	// Print Cafe orders (since they don't trigger the bot's notifyAPI)
-	if order.TableID != nil {
-		s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
-		go s.printerService.PrintOrder(order)
-	}
+	// Always print orders created via API (both cafe and delivery)
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
+	go s.printerService.PrintOrder(order)
 
 	return nil
 }
@@ -379,7 +377,7 @@ func (s *OrderService) ReprintOrder(orderID int) error {
 	}
 	
 	// Notify WS bridge just in case they use it instead of TCP
-	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "reprint_order", "order": order})
 	
 	// Direct TCP print
 	go s.printerService.PrintOrder(order)

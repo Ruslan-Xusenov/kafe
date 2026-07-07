@@ -94,9 +94,11 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	itemQuery := `
 		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 			   COALESCE(oi.comment, '') as comment, oi.created_at,
-			   COALESCE(p.name, 'Noma''lum') as product_name 
+			   COALESCE(p.name, 'Noma''lum') as product_name,
+			   COALESCE(c.printer_target, 'ALL') as printer_target
 		FROM order_items oi
 		LEFT JOIN products p ON oi.product_id = p.id
+		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE oi.order_id = $1
 	`
 	err = r.db.Select(&items, itemQuery, id)
@@ -138,9 +140,11 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 		itemQuery := `
 			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
-				   COALESCE(p.name, 'Noma''lum') as product_name 
+				   COALESCE(p.name, 'Noma''lum') as product_name,
+				   COALESCE(c.printer_target, 'ALL') as printer_target
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
+			LEFT JOIN categories c ON p.category_id = c.id
 			WHERE oi.order_id = $1
 		`
 		_ = r.db.Select(&items, itemQuery, orders[i].ID)
@@ -182,9 +186,11 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 		itemQuery := `
 			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
-				   COALESCE(p.name, 'Noma''lum') as product_name 
+				   COALESCE(p.name, 'Noma''lum') as product_name,
+				   COALESCE(c.printer_target, 'ALL') as printer_target
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
+			LEFT JOIN categories c ON p.category_id = c.id
 			WHERE oi.order_id = $1
 		`
 		_ = r.db.Select(&items, itemQuery, orders[i].ID)
@@ -222,11 +228,13 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, 
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
-				   COALESCE(p.name, 'Noma''lum') as product_name 
+				   COALESCE(p.name, 'Noma''lum') as product_name,
+				   COALESCE(c.printer_target, 'ALL') as printer_target
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
+			LEFT JOIN categories c ON p.category_id = c.id
 			WHERE oi.order_id = $1
 		`
 		r.db.Select(&items, itemQuery, orders[i].ID)
@@ -399,9 +407,11 @@ func (r *OrderRepository) GetWaiterHistory() ([]models.Order, error) {
 		itemQuery := `
 			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
-				   COALESCE(p.name, 'Noma''lum') as product_name 
+				   COALESCE(p.name, 'Noma''lum') as product_name,
+				   COALESCE(c.printer_target, 'ALL') as printer_target
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
+			LEFT JOIN categories c ON p.category_id = c.id
 			WHERE oi.order_id = $1
 		`
 		_ = r.db.Select(&items, itemQuery, orders[i].ID)
@@ -443,9 +453,11 @@ func (r *OrderRepository) GetActiveByWaiterID(waiterID int) ([]models.Order, err
 		itemQuery := `
 			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
-				   COALESCE(p.name, 'Noma''lum') as product_name
+				   COALESCE(p.name, 'Noma''lum') as product_name,
+				   COALESCE(c.printer_target, 'ALL') as printer_target
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
+			LEFT JOIN categories c ON p.category_id = c.id
 			WHERE oi.order_id = $1
 		`
 		_ = r.db.Select(&items, itemQuery, orders[i].ID)
@@ -486,9 +498,11 @@ func (r *OrderRepository) GetHistoryByWaiterID(waiterID int) ([]models.Order, er
 		itemQuery := `
 			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
-				   COALESCE(p.name, 'Noma''lum') as product_name
+				   COALESCE(p.name, 'Noma''lum') as product_name,
+				   COALESCE(c.printer_target, 'ALL') as printer_target
 			FROM order_items oi
 			LEFT JOIN products p ON oi.product_id = p.id
+			LEFT JOIN categories c ON p.category_id = c.id
 			WHERE oi.order_id = $1
 		`
 		_ = r.db.Select(&items, itemQuery, orders[i].ID)

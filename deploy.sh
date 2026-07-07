@@ -44,7 +44,7 @@ nohup go run . > bot.log 2>&1 &
 echo "✅ Bot yoqildi."
 
 echo "✨ FINAL: Tizim Production rejimida!"
-echo "📍 Sayt: kafe.ruslandev.uz"
+echo "📍 Sayt: kafe.securehub.uz"
 echo "📍 Loglar: backend/backend.log, telegram_bot/bot.log"
 
 # Diagnostic Check

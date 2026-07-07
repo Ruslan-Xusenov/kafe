@@ -35,7 +35,7 @@ const Admin = () => {
   const [newExpense, setNewExpense] = useState({ amount: '', category: 'mahsulot', description: '' });
 
   const [showCatModal, setShowCatModal] = useState(false);
-  const [newCat, setNewCat] = useState({ name: '', image_url: '', is_user_controlled: false });
+  const [newCat, setNewCat] = useState({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' });
   const [showProdModal, setShowProdModal] = useState(false);
   const [newProd, setNewProd] = useState({ 
     name: '', description: '', price: '', category_id: '', image_url: '',
@@ -192,7 +192,7 @@ const Admin = () => {
     try {
       await api.post('/catalog/categories', newCat);
       setShowCatModal(false);
-      setNewCat({ name: '', image_url: '', is_user_controlled: false });
+      setNewCat({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' });
       setErrors({});
       fetchData();
     } catch (err) { alert(err.response?.data?.error || 'Ошибка при добавлении категории'); }
@@ -942,7 +942,7 @@ const Admin = () => {
             <div className="flex-header">
               <h2>Управление меню</h2>
               <div className="actions">
-                <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '', is_user_controlled: false }); setShowCatModal(true); }}><Plus size={18} /> Категория</button>
+                <button className="btn-primary" onClick={() => { setNewCat({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' }); setShowCatModal(true); }}><Plus size={18} /> Категория</button>
                 <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true }); setShowProdModal(true); }}><Plus size={18} /> Продукт</button>
               </div>
             </div>
@@ -1190,6 +1190,20 @@ const Admin = () => {
                   onChange={e => setNewCat({...newCat, is_user_controlled: e.target.checked})} 
                 />
                 <label htmlFor="cat_user_controlled" style={{ cursor: 'pointer' }}>Прибыльlanuvchi boshqaruvi (Pors/Dona tanlash)</label>
+              </div>
+
+              <div className="input-group mb-4">
+                <label>Маршрутизация принтера (Chek qayerdan chiqadi?)</label>
+                <select 
+                  style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '100%', outline: 'none' }}
+                  value={newCat.printer_target}
+                  onChange={e => setNewCat({...newCat, printer_target: e.target.value})}
+                >
+                  <option value="ALL">Барча принтерлардан (По умолчанию)</option>
+                  <option value="USB">Kassa printeri (USB)</option>
+                  <option value="192.168.1.10:9100">Oshxona (LAN 192.168.1.10)</option>
+                  <option value="192.168.1.11:9100">Bar/Ichimliklar (LAN 192.168.1.11)</option>
+                </select>
               </div>
 
               <button type="submit" className="btn-primary w-full mt-2"><Save size={18} /> Сохранить</button>

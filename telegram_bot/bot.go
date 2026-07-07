@@ -351,7 +351,7 @@ func (b *Bot) handleCallback(cb *tgbotapi.CallbackQuery) {
 	case data == "admin_add_courier": b.startAddCourier(chatID)
 	case data == "admin_remove_courier": b.startRemoveCourier(chatID)
 	case data == "contact_info":
-		b.sendMessage(chatID, "📞 <b>Свяжитесь с нами:</b>\n\n📍 Адрес: г. Ташкент, Чиланзар\n☎️ Телефон: +998 90 123 45 67\n🌐 Сайт: kafe.ruslandev.uz")
+		b.sendMessage(chatID, "📞 <b>Свяжитесь с нами:</b>\n\n📍 Адрес: г. Ташкент, Чиланзар\n☎️ Телефон: +998 90 123 45 67\n🌐 Сайт: kafe.securehub.uz")
 	case data == "how_to_use":
 		b.sendMessage(chatID, "📖 <b>Как пользоваться:</b>\n\n1. Нажмите кнопку '🌐 Онлайн заказ'.\n2. Выберите блюда и добавьте в корзину.\n3. Перейдите в корзину и подтвердите заказ.\n4. Наш курьер скоро свяжется с вами!")
 	case data == "skip_product_image": session := b.getSession(chatID); if session.AdminProductEdit != nil { session.AdminProductEdit.ImageURL = ""; session.State = ""; b.saveProduct(chatID) }

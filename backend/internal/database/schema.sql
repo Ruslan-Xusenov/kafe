@@ -21,6 +21,7 @@ CREATE TABLE categories (
     name VARCHAR(100) NOT NULL,
     image_url TEXT,
     is_user_controlled BOOLEAN DEFAULT FALSE,
+    printer_target VARCHAR(50) DEFAULT 'ALL',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
