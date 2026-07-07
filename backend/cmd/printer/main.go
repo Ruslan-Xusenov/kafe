@@ -226,14 +226,22 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	f.Write(toCP866("------------------------------------------------\n"))
 
 	// Footer Summary (Calculate based on routed items only)
+	var servicePercentage float64 = 0
+	if sp, ok := order["service_percentage"].(float64); ok {
+		servicePercentage = sp
+	}
+	
+	serviceFee := targetTotal * servicePercentage / 100
+	finalTotal := targetTotal + serviceFee
+
 	f.Write(ALIGN_RIGHT)
 	f.Write(toCP866(fmt.Sprintf("Подитог: %.0f\n", targetTotal)))
-	f.Write(toCP866("Обслуживание (0.0%): 0\n"))
+	f.Write(toCP866(fmt.Sprintf("Обслуживание (%.1f%%): %.0f\n", servicePercentage, serviceFee)))
 	f.Write(toCP866("Скидка (0%): 0\n"))
 	f.Write([]byte("\n"))
 	
 	f.Write(FONT_DOUBLE_W)
-	f.Write(toCP866(fmt.Sprintf("  ИТОГО: %.0f\n", targetTotal)))
+	f.Write(toCP866(fmt.Sprintf("  ИТОГО: %.0f\n", finalTotal)))
 	f.Write(FONT_NORMAL)
 	f.Write([]byte("\n\n\n\n"))
 
