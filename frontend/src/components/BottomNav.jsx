@@ -27,7 +27,7 @@ const BottomNav = () => {
     if (tab.roles && (!user || !tab.roles.includes(user.role))) return false;
     if (tab.auth) return isAuthenticated;
     return true;
-  }); // Removed slice(0, 5) to show all tabs
+  }).slice(0, 5); // Max 5 items to prevent squishing, use Side Drawer for the rest
 
   return (
     <>
