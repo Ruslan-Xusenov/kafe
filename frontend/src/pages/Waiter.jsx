@@ -11,6 +11,7 @@ const Waiter = () => {
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
   const [cart, setCart] = useState([]);
+  const [isCartExpanded, setIsCartExpanded] = useState(false);
   
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -67,6 +68,7 @@ const Waiter = () => {
   const handleTableSelect = (table) => {
     setSelectedTable(table);
     setCart([]);
+    setIsCartExpanded(false);
     setActiveCategory(categories.length > 0 ? categories[0].id : null);
   };
 
@@ -132,6 +134,7 @@ const Waiter = () => {
       alert('Заказ отправлен на кухню!');
       setSelectedTable(null);
       setCart([]);
+      setIsCartExpanded(false);
       fetchInitialData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
@@ -166,6 +169,7 @@ const Waiter = () => {
       await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'free', payment_method: method });
       alert("Стол освобожден!");
       setSelectedTable(null);
+      setIsCartExpanded(false);
       fetchInitialData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
@@ -330,7 +334,28 @@ const Waiter = () => {
             </div>
 
             <AnimatePresence>
-              {cart.length > 0 && (
+              {cart.length > 0 && !isCartExpanded && (
+                <motion.div 
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  className="compact-cart-bar"
+                  onClick={() => setIsCartExpanded(true)}
+                >
+                  <div className="compact-left">
+                    <div className="cart-icon-wrapper">
+                      <ShoppingCart size={20} />
+                      <span className="badge">{cart.length}</span>
+                    </div>
+                    <span className="compact-total">{cartTotal.toLocaleString()} сум</span>
+                  </div>
+                  <div className="compact-right">
+                    <span>Корзина</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {cart.length > 0 && isCartExpanded && (
                 <motion.div 
                   initial={{ y: 100, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -338,7 +363,12 @@ const Waiter = () => {
                   className="smart-cart-panel glass"
                 >
                   <div className="cart-panel-header">
-                    <h3>Корзина ({cart.length})</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <button className="btn-close-cart" onClick={() => setIsCartExpanded(false)}>
+                        <X size={20} />
+                      </button>
+                      <h3>Корзина ({cart.length})</h3>
+                    </div>
                     <span>Итого: {cartTotal.toLocaleString()} сум</span>
                   </div>
                   <div className="smart-cart-items no-scrollbar">
@@ -623,7 +653,44 @@ const Waiter = () => {
         .price-row { display: flex; justify-content: space-between; align-items: center; }
         .price-row .price { color: var(--primary); font-weight: 800; font-size: 1.1rem; }
 
-        /* ── Smart Cart Panel ── */
+        /* ── Smart Cart Panel & Compact Bar ── */
+        .compact-cart-bar {
+          position: fixed;
+          bottom: 1.5rem;
+          right: 1.5rem;
+          background: var(--grad-brand);
+          color: white;
+          padding: 1rem 1.5rem;
+          border-radius: 99px;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          cursor: pointer;
+          box-shadow: 0 8px 24px rgba(249,115,22,0.4);
+          z-index: 100;
+          transition: all 0.2s;
+        }
+        .compact-cart-bar:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(249,115,22,0.5); }
+        .compact-cart-bar:active { transform: scale(0.98); }
+
+        .compact-left { display: flex; align-items: center; gap: 1rem; }
+        .cart-icon-wrapper { position: relative; display: flex; align-items: center; }
+        .cart-icon-wrapper .badge {
+          position: absolute; top: -10px; right: -12px;
+          background: #fff; color: var(--primary); font-size: 0.75rem; font-weight: 800;
+          min-width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+        .compact-total { font-weight: 800; font-size: 1.15rem; }
+        .compact-right { font-weight: 700; font-size: 0.95rem; border-left: 1px solid rgba(255,255,255,0.4); padding-left: 1rem; }
+
+        .btn-close-cart {
+          background: rgba(255,255,255,0.1); border: none; color: white;
+          width: 32px; height: 32px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
+          transition: var(--transition);
+        }
+        .btn-close-cart:hover { background: rgba(255,255,255,0.2); transform: rotate(90deg); }
+
         .smart-cart-panel {
           position: fixed;
           bottom: 1.5rem; 
@@ -708,15 +775,21 @@ const Waiter = () => {
           .order-total-pill { font-size: 1.1rem; padding: 0.5rem 1rem; }
           .btn-free-table { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
           
-          .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; padding-bottom: 350px; }
+          .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; padding-bottom: 180px; }
           .menu-card-img { height: 100px; }
           .menu-card-info { padding: 0.6rem; }
           .menu-card-info h4 { font-size: 0.85rem; }
           .price-row .price { font-size: 0.95rem; }
           
+          .compact-cart-bar {
+            bottom: 85px; /* Above bottom nav */
+            left: 1rem; right: 1rem;
+            justify-content: space-between;
+          }
+
           .smart-cart-panel { 
             position: fixed;
-            bottom: 72px; /* Hover above bottom nav */
+            bottom: 85px; /* Safely above bottom nav */
             left: 0; 
             right: 0;
             width: 100%;
