@@ -1806,9 +1806,10 @@ const Admin = () => {
           .admin-main { flex: 1; }
           .flex-header { flex-wrap: wrap; gap: 0.75rem; }
           .actions { flex-wrap: wrap; gap: 0.5rem; }
-          .orders-table-wrapper, .admin-table-wrapper { overflow-x: auto; }
-          .admin-table { min-width: 520px; }
+          .orders-table-wrapper, .admin-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .admin-table { min-width: 700px; }
           .performance-grid { grid-template-columns: 1fr !important; }
+          .admin-form-row { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 600px) {

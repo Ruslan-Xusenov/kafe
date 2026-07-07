@@ -434,15 +434,41 @@ input:focus, textarea:focus, select:focus {
   .premium-card { padding: 1rem; }
 
   .ss-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: 1fr !important; /* Stack stats on mobile */
     gap: 0.6rem !important;
   }
 
   .ss-value { font-size: 1.25rem !important; }
 
   .main-content {
-    padding: 1rem 0.85rem 3rem !important;
+    padding: 1rem 0.5rem 3rem !important;
     margin-top: 68px !important;
+  }
+
+  .modal-content {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 1rem !important;
+    margin: 1rem auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .admin-table {
+    min-width: 700px; /* Ensure table doesn't shrink to unusable width */
+  }
+
+  .input-group.flex-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
 }
 
