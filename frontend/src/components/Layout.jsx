@@ -322,6 +322,8 @@ const Layout = () => {
 
         /* Mobile */
         /* Mobile Drawer Styling */
+        .mobile-menu-btn { display: none; }
+        
         .mobile-drawer-overlay {
           position: fixed;
           inset: 0;
@@ -436,7 +438,7 @@ const Layout = () => {
 
         @media (max-width: 900px) {
           .navbar-links { display: none; }
-          .user-chip { display: none; } /* Hide user chip in top nav on mobile, moved to drawer */
+          .navbar-actions .user-chip { display: none; } /* Hide user chip in top nav on mobile, moved to drawer */
           .mobile-menu-btn { display: flex !important; }
         }
 
