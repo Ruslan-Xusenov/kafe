@@ -99,22 +99,50 @@ const Layout = () => {
           </div>
         </div>
 
-        {/* Mobile nav — only show on desktop (BottomNav handles mobile) */}
-        {mobileOpen && (
-          <nav className="mobile-nav desktop-only-nav">
+        {/* Mobile Nav Overlay & Drawer */}
+        <div className={`mobile-drawer-overlay ${mobileOpen ? 'open' : ''}`} onClick={() => setMobileOpen(false)} />
+        
+        <nav className={`mobile-drawer ${mobileOpen ? 'open' : ''}`}>
+          <div className="drawer-header">
+            <Link to="/" className="navbar-logo" onClick={() => setMobileOpen(false)}>
+              <div className="logo-icon"><Utensils size={18} /></div>
+              <span className="logo-text">Kafe<span>Plat</span></span>
+            </Link>
+            <button className="icon-btn" onClick={() => setMobileOpen(false)}>
+              <X size={22} />
+            </button>
+          </div>
+
+          <div className="drawer-links">
             {navLinks.map(link => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`mobile-nav-link ${isActive(link.to) ? 'active' : ''}`}
+                className={`drawer-link ${isActive(link.to) ? 'active' : ''}`}
                 onClick={() => setMobileOpen(false)}
               >
-                {link.icon}
+                <div className="drawer-link-icon">{link.icon}</div>
                 {link.label}
               </Link>
             ))}
-          </nav>
-        )}
+          </div>
+
+          {isAuthenticated && (
+            <div className="drawer-footer">
+              <div className="user-chip" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div className="user-avatar">
+                    {(user?.full_name || 'U')[0].toUpperCase()}
+                  </div>
+                  <span className="user-chip-name" style={{ display: 'block' }}>{user?.full_name}</span>
+                </div>
+                <button className="icon-btn logout-btn" onClick={() => { handleLogout(); setMobileOpen(false); }} title="Выйти">
+                  <LogOut size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+        </nav>
       </header>
 
       {/* ── MAIN ── */}
@@ -293,33 +321,106 @@ const Layout = () => {
         }
 
         /* Mobile */
-        .mobile-menu-btn { display: none; }
+        /* Mobile Drawer Styling */
+        .mobile-drawer-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          z-index: 1001;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s ease;
+        }
+        
+        .mobile-drawer-overlay.open {
+          opacity: 1;
+          visibility: visible;
+        }
 
-        .mobile-nav {
+        .mobile-drawer {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 85%;
+          max-width: 320px;
+          background: rgba(18, 18, 20, 0.95);
+          backdrop-filter: blur(24px) saturate(180%);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
+          border-left: 1px solid rgba(255,255,255,0.08);
+          z-index: 1002;
+          transform: translateX(100%);
+          transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
-          padding: 0.75rem 1rem 1rem;
-          border-top: 1px solid var(--border);
-          animation: fadeUp 0.25s ease;
+          box-shadow: -10px 0 40px rgba(0,0,0,0.5);
         }
 
-        .mobile-nav-link {
+        .mobile-drawer.open {
+          transform: translateX(0);
+        }
+
+        .drawer-header {
+          padding: 1.5rem;
           display: flex;
           align-items: center;
-          gap: 0.6rem;
-          padding: 0.7rem 0.9rem;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          color: var(--text-secondary);
-          transition: var(--transition);
+          justify-content: space-between;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .mobile-nav-link:hover,
-        .mobile-nav-link.active {
-          color: var(--primary);
-          background: rgba(249,115,22,0.10);
+        .drawer-links {
+          flex: 1;
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          overflow-y: auto;
+        }
+
+        .drawer-link {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem 1.25rem;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 1.05rem;
+          color: var(--text-secondary);
+          text-decoration: none;
+          transition: all 0.2s ease;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid transparent;
+        }
+
+        .drawer-link:hover, .drawer-link:active {
+          background: rgba(255,255,255,0.05);
+          color: var(--text-primary);
+        }
+
+        .drawer-link.active {
+          color: white;
+          background: var(--grad-brand);
+          box-shadow: 0 4px 15px rgba(249,115,22,0.3);
+          border-color: rgba(249,115,22,0.5);
+        }
+
+        .drawer-link-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.8;
+        }
+
+        .drawer-link.active .drawer-link-icon {
+          opacity: 1;
+        }
+
+        .drawer-footer {
+          padding: 1.5rem;
+          border-top: 1px solid rgba(255,255,255,0.05);
+          background: rgba(0,0,0,0.2);
         }
 
         /* Main content */
@@ -333,13 +434,10 @@ const Layout = () => {
           padding: 2rem 1.5rem 4rem;
         }
 
-        /* ── Mobile: hide hamburger + dropdown, use BottomNav instead ── */
         @media (max-width: 900px) {
           .navbar-links { display: none; }
-          .user-chip-name { display: none; }
-          /* Hide hamburger — BottomNav handles mobile nav */
-          .mobile-menu-btn { display: none !important; }
-          .desktop-only-nav { display: none !important; }
+          .user-chip { display: none; } /* Hide user chip in top nav on mobile, moved to drawer */
+          .mobile-menu-btn { display: flex !important; }
         }
 
         @media (max-width: 640px) {
