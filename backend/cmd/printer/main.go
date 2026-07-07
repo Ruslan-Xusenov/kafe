@@ -34,17 +34,18 @@ func init() {
 
 // ESC/POS Commands
 var (
-	ESC_INIT      = []byte{0x1B, 0x40}           // ESC @
-	CODE_PAGE     = []byte{0x1B, 0x74, 0x11}      // ESC t 17 (PC866)
-	ALIGN_LEFT    = []byte{0x1B, 0x61, 0x00}      // ESC a 0
-	ALIGN_CENTER  = []byte{0x1B, 0x61, 0x01}      // ESC a 1
-	ALIGN_RIGHT   = []byte{0x1B, 0x61, 0x02}      // ESC a 2
-	FONT_NORMAL   = []byte{0x1D, 0x21, 0x00}      // GS ! 0
-	FONT_DOUBLE_H = []byte{0x1D, 0x21, 0x01}      // GS ! 1
-	FONT_DOUBLE_W = []byte{0x1D, 0x21, 0x10}      // GS ! 16
-	FONT_BIG      = []byte{0x1D, 0x21, 0x11}      // GS ! 17 (Double width + height)
-	PAPER_CUT     = []byte{0x1D, 0x56, 0x42, 0x00} // GS V B 0
-	BEEP          = []byte{0x1B, 0x42, 0x02, 0x02} // ESC B n t (Beep 2 times)
+	ESC_INIT        = []byte{0x1B, 0x40}           // ESC @
+	DISABLE_CHINESE = []byte{0x1C, 0x2E}           // FS . (Disable Chinese character mode)
+	CODE_PAGE       = []byte{0x1B, 0x74, 0x11}      // ESC t 17 (PC866)
+	ALIGN_LEFT      = []byte{0x1B, 0x61, 0x00}      // ESC a 0
+	ALIGN_CENTER    = []byte{0x1B, 0x61, 0x01}      // ESC a 1
+	ALIGN_RIGHT     = []byte{0x1B, 0x61, 0x02}      // ESC a 2
+	FONT_NORMAL     = []byte{0x1D, 0x21, 0x00}      // GS ! 0
+	FONT_DOUBLE_H   = []byte{0x1D, 0x21, 0x01}      // GS ! 1
+	FONT_DOUBLE_W   = []byte{0x1D, 0x21, 0x10}      // GS ! 16
+	FONT_BIG        = []byte{0x1D, 0x21, 0x11}      // GS ! 17 (Double width + height)
+	PAPER_CUT       = []byte{0x1D, 0x56, 0x42, 0x00} // GS V B 0
+	BEEP            = []byte{0x1B, 0x42, 0x02, 0x02} // ESC B n t (Beep 2 times)
 )
 
 func main() {
@@ -168,22 +169,23 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 
 	// Build Binary Sequence
 	f.Write(ESC_INIT)
+	f.Write(DISABLE_CHINESE)
 	f.Write(CODE_PAGE)
 	f.Write(BEEP)
 
-	// Header - MANGAL ОНЛАЙН ЗАКАЗ
+	// Header
 	f.Write(ALIGN_CENTER)
 	f.Write(FONT_BIG)
-	f.Write(toCP866("MANGAL ОНЛАЙН ЗАКАЗ\n"))
+	f.Write(toCP866("Mangal kafe\n"))
 	f.Write(FONT_NORMAL)
 	f.Write(toCP866("------------------------------------------------\n"))
 	
 	// Details
 	f.Write(ALIGN_LEFT)
 	f.Write(toCP866(fmt.Sprintf("Чек №: %d\n", id)))
-	f.Write(toCP866(fmt.Sprintf("Тип: Доставка %d\n", id)))
-	f.Write(toCP866("Стол: онлайн\n"))
-	f.Write(toCP866("Обслужил: MANGAL онлайн\n"))
+	f.Write(toCP866("Тип: В заведении\n"))
+	f.Write(toCP866("Стол: -\n"))
+	f.Write(toCP866("Обслужил: Mangal kafe\n"))
 	
 	f.Write(toCP866(fmt.Sprintf("Время: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
 	f.Write(toCP866("Закрытие: -\n"))
