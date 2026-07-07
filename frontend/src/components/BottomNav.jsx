@@ -27,7 +27,7 @@ const BottomNav = () => {
     if (tab.roles && (!user || !tab.roles.includes(user.role))) return false;
     if (tab.auth) return isAuthenticated;
     return true;
-  }).slice(0, 5); // Max 5 items to prevent squishing, use Side Drawer for the rest
+  }); // Show all tabs, CSS will handle horizontal scrolling without squishing
 
   return (
     <>
@@ -79,13 +79,13 @@ const BottomNav = () => {
           align-items: center;
           justify-content: center;
           gap: 0.25rem;
-          padding: 0.4rem 0.6rem;
+          padding: 0.4rem 0.2rem;
           border-radius: 10px;
           text-decoration: none;
           color: var(--text-muted);
           transition: var(--transition);
-          flex: 1;
-          min-width: 60px; /* Ensure minimum width for touch targets */
+          flex: 0 0 72px; /* Fixed width, do not shrink */
+          min-width: 72px;
           position: relative;
         }
 
