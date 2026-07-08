@@ -22,21 +22,23 @@ func (r *OrderRepository) GetDB() *sqlx.DB {
 }
 
 func (r *OrderRepository) Create(order *models.Order) error {
-	tx, err := r.db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
+	// Query default service percentage BEFORE starting transaction.
+	// Doing this inside the transaction causes 25P02 (aborted transaction) if the query fails.
 	var defaultPercentage float64
 	if order.WaiterID != nil && order.TableID != nil {
-		_ = tx.Get(&defaultPercentage, `SELECT COALESCE(default_service_percentage, 0) FROM users WHERE id = $1`, *order.WaiterID)
+		_ = r.db.Get(&defaultPercentage, `SELECT COALESCE(default_service_percentage, 0) FROM users WHERE id = $1`, *order.WaiterID)
 	}
 	if defaultPercentage > 0 {
 		order.ServicePercentage = defaultPercentage
 		order.ServiceFee = order.TotalPrice * defaultPercentage / 100
 		order.TotalPrice += order.ServiceFee
 	}
+
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
 	// Insert Order
 	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment, table_id, waiter_id, service_percentage, service_fee) 
