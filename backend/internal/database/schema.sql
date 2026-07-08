@@ -11,6 +11,7 @@ CREATE TABLE users (
     phone VARCHAR(20) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role user_role NOT NULL DEFAULT 'customer',
+    default_service_percentage NUMERIC(5,2) DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

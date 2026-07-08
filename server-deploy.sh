@@ -94,6 +94,7 @@ ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'dona';
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_user_controlled BOOLEAN DEFAULT FALSE;
 ALTER TABLE products DROP CONSTRAINT IF EXISTS products_category_id_fkey;
 ALTER TABLE products ADD CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS default_service_percentage NUMERIC(5,2) DEFAULT 0;
 INSERT INTO settings (key, value) VALUES ('container_price', '1000') ON CONFLICT (key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('container_product_id', '7') ON CONFLICT (key) DO NOTHING;"
 
