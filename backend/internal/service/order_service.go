@@ -288,12 +288,7 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 				s.botService.SendOrderStatusNotification(order, "ГОТОВО - Курьеры могут забрать")
 			} else if status == models.StatusDelivered {
 				s.botService.SendOrderStatusNotification(order, "ДОСТАВЛЕНО")
-				
-				// Print Final Receipt for Cafe orders when closed
-				if order.TableID != nil {
-					s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": order})
-					go s.printerService.PrintOrder(order)
-				}
+				// NOTE: For cafe/table orders, printing is handled by CloseTable() to produce ONE combined receipt.
 			}
 		}
 	}
@@ -479,6 +474,85 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 		"table_number": order.TableNumber,
 	}
 	s.wsService.BroadcastToRole("printer", cancelPayload)
+
+	return nil
+}
+
+// CloseTable marks all active orders for a table as delivered and prints ONE combined receipt.
+func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int, role string) error {
+	activeOrders, err := s.orderRepo.GetAll()
+	if err != nil {
+		return err
+	}
+
+	// Filter orders belonging to this table that are still active
+	var tableOrders []*models.Order
+	for i := range activeOrders {
+		o := &activeOrders[i]
+		if o.TableID != nil && *o.TableID == tableID &&
+			o.Status != models.StatusDelivered && o.Status != models.StatusCancelled {
+			tableOrders = append(tableOrders, o)
+		}
+	}
+
+	if len(tableOrders) == 0 {
+		return nil // Nothing to close
+	}
+
+	// Mark all orders as delivered
+	for _, o := range tableOrders {
+		if paymentMethod != "" {
+			_ = s.orderRepo.SetPaymentMethod(o.ID, paymentMethod)
+		}
+		_ = s.orderRepo.UpdateStatus(o.ID, models.StatusDelivered, nil)
+	}
+
+	// Build ONE combined receipt from the first order's metadata + all items merged
+	firstOrder := tableOrders[0]
+
+	// Re-fetch first order to get full waiter/table info
+	populated, err := s.orderRepo.GetByID(firstOrder.ID)
+	if err != nil || populated == nil {
+		populated = firstOrder
+	}
+
+	// Merge all items and sum totals
+	var allItems []models.OrderItem
+	var grandTotal float64
+	var grandServiceFee float64
+	var servicePercentage float64
+
+	for _, o := range tableOrders {
+		full, err := s.orderRepo.GetByID(o.ID)
+		if err != nil || full == nil {
+			continue
+		}
+		allItems = append(allItems, full.Items...)
+		grandTotal += full.TotalPrice
+		grandServiceFee += full.ServiceFee
+		if full.ServicePercentage > 0 {
+			servicePercentage = full.ServicePercentage
+		}
+	}
+
+	// Create combined order struct for printing
+	combinedOrder := &models.Order{
+		ID:                populated.ID,
+		TableID:           populated.TableID,
+		TableNumber:       populated.TableNumber,
+		WaiterID:         populated.WaiterID,
+		WaiterName:       populated.WaiterName,
+		TotalPrice:       grandTotal,
+		ServiceFee:       grandServiceFee,
+		ServicePercentage: servicePercentage,
+		Items:             allItems,
+		CreatedAt:        populated.CreatedAt,
+		Status:           models.StatusDelivered,
+	}
+
+	// Broadcast ONE combined receipt to printer
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": combinedOrder})
+	go s.printerService.PrintOrder(combinedOrder)
 
 	return nil
 }

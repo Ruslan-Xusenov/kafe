@@ -96,24 +96,14 @@ func (h *TableHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// Post-update: Close the order now that we confirmed permission
+	// Post-update: Close all active orders for this table in ONE operation → ONE combined receipt
 	if table.Status == "free" && h.orderService != nil {
-		activeOrders, _ := h.orderService.GetActiveOrders()
-		for _, o := range activeOrders {
-			if o.TableID != nil && *o.TableID == table.ID {
-				userID, _ := c.Get("user_id")
-				role, _ := c.Get("role")
-				if userID == nil { userID = 0 }
-				if role == nil { role = "admin" }
-				
-				// Set Payment Method if provided
-				if payload.PaymentMethod != "" {
-					_ = h.orderService.SetPaymentMethod(o.ID, payload.PaymentMethod)
-				}
-				
-				_ = h.orderService.UpdateOrderStatus(o.ID, models.StatusDelivered, userID.(int), role.(string))
-			}
-		}
+		userID, _ := c.Get("user_id")
+		role, _ := c.Get("role")
+		if userID == nil { userID = 0 }
+		if role == nil { role = "admin" }
+
+		_ = h.orderService.CloseTable(table.ID, payload.PaymentMethod, userID.(int), role.(string))
 	}
 
 	c.JSON(http.StatusOK, table)
