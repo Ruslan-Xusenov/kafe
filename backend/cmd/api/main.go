@@ -198,6 +198,7 @@ func main() {
 			finance.GET("/stats", financeHandler.GetStats)
 			finance.GET("/expenses", financeHandler.GetExpenses)
 			finance.POST("/expenses", financeHandler.CreateExpense)
+			finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
 		}
 
 		// Inventory (Admin only)

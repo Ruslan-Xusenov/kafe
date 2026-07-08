@@ -6,7 +6,7 @@ import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
-  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer
+  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer, CreditCard
 } from 'lucide-react';
 
 const STATUS_MAP = {
@@ -60,6 +60,11 @@ const Admin = () => {
   const [waiterOrderFees, setWaiterOrderFees] = useState({});
   const [waiterOrdersLoading, setWaiterOrdersLoading] = useState(false);
 
+  const [waiterSalaries, setWaiterSalaries] = useState([]);
+  const [salaryStartDate, setSalaryStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [salaryEndDate, setSalaryEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [salariesLoading, setSalariesLoading] = useState(false);
+
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -109,11 +114,25 @@ const Admin = () => {
         const defaults = {};
         waiters.forEach(w => { defaults[w.id] = w.default_service_percentage || 0; });
         setWaiterDefaultFees(defaults);
+      } else if (activeTab === 'salary') {
+        fetchWaiterSalaries();
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWaiterSalaries = async () => {
+    setSalariesLoading(true);
+    try {
+      const res = await api.get(`/finance/waiter-salaries?start_date=${salaryStartDate}&end_date=${salaryEndDate}`);
+      setWaiterSalaries(res.data || []);
+    } catch (err) {
+      alert("Ошибка при загрузке зарплат: " + (err.response?.data?.error || err.message));
+    } finally {
+      setSalariesLoading(false);
     }
   };
 
@@ -507,6 +526,9 @@ const Admin = () => {
           <button className={activeTab === 'waiterMgmt' ? 'active' : ''} onClick={() => setActiveTab('waiterMgmt')}>
             <Users size={20} /> Процент официанта
           </button>
+          <button className={activeTab === 'salary' ? 'active' : ''} onClick={() => setActiveTab('salary')}>
+            <CreditCard size={20} /> Зарплата (Ойлик)
+          </button>
           <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
             <Settings size={20} /> Настройки
           </button>
@@ -709,6 +731,81 @@ const Admin = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'salary' && (
+          <div className="animate-fade">
+            <div className="section-header mb-6">
+              <h2>Зарплата официантов</h2>
+              <button className="btn-primary" onClick={fetchWaiterSalaries} disabled={salariesLoading}>
+                {salariesLoading ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                Обновить
+              </button>
+            </div>
+
+            <div className="premium-card mb-6" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="input-group">
+                <label>От (Start Date)</label>
+                <input 
+                  type="date" 
+                  value={salaryStartDate}
+                  onChange={e => setSalaryStartDate(e.target.value)}
+                  style={{ width: 'auto', background: 'var(--bg-main)' }}
+                />
+              </div>
+              <div className="input-group">
+                <label>До (End Date)</label>
+                <input 
+                  type="date" 
+                  value={salaryEndDate}
+                  onChange={e => setSalaryEndDate(e.target.value)}
+                  style={{ width: 'auto', background: 'var(--bg-main)' }}
+                />
+              </div>
+              <button className="btn-primary" onClick={fetchWaiterSalaries} style={{ padding: '0.8rem 1.5rem' }}>
+                Показать
+              </button>
+            </div>
+
+            <div className="premium-card">
+              <h3 className="mb-4">Начислено за выбранный период</h3>
+              {salariesLoading ? (
+                <div className="flex-center py-8"><Loader2 className="animate-spin" /></div>
+              ) : waiterSalaries.length === 0 ? (
+                <p className="text-muted text-center py-8">Нет данных для отображения</p>
+              ) : (
+                <div className="table-container">
+                  <table className="modern-table">
+                    <thead>
+                      <tr>
+                        <th>Официант</th>
+                        <th>Кол-во заказов</th>
+                        <th>Начисленная зарплата (Сумма %)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {waiterSalaries.map(s => (
+                        <tr key={s.waiter_id}>
+                          <td style={{ fontWeight: 600 }}>{s.waiter_name}</td>
+                          <td>{s.total_orders}</td>
+                          <td style={{ fontWeight: 800, color: 'var(--primary)' }}>
+                            {s.total_salary.toLocaleString()} сум
+                          </td>
+                        </tr>
+                      ))}
+                      <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <td style={{ fontWeight: 800 }}>ИТОГО</td>
+                        <td style={{ fontWeight: 800 }}>{waiterSalaries.reduce((acc, s) => acc + s.total_orders, 0)}</td>
+                        <td style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem' }}>
+                          {waiterSalaries.reduce((acc, s) => acc + s.total_salary, 0).toLocaleString()} сум
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -19,3 +19,10 @@ type FinanceStats struct {
 	ClickRevenue  float64 `json:"click_revenue"`
 	NasiyaRevenue float64 `json:"nasiya_revenue"`
 }
+
+type WaiterSalary struct {
+	WaiterID    int     `json:"waiter_id"`
+	WaiterName  string  `json:"waiter_name"`
+	TotalOrders int     `json:"total_orders"`
+	TotalSalary float64 `json:"total_salary"`
+}

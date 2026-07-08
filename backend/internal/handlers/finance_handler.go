@@ -62,3 +62,21 @@ func (h *FinanceHandler) CreateExpense(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, expense)
 }
+
+func (h *FinanceHandler) GetWaiterSalaries(c *gin.Context) {
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+
+	if startDate == "" || endDate == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Необходимо указать start_date и end_date"})
+		return
+	}
+
+	salaries, err := h.financeRepo.GetWaiterSalaries(startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении зарплат официантов"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, salaries)
+}

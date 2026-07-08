@@ -11,6 +11,7 @@ type FinanceRepository interface {
 	CreateExpense(expense *models.Expense) error
 	GetExpenses() ([]models.Expense, error)
 	GetStats() (*models.FinanceStats, error)
+	GetWaiterSalaries(startDate, endDate string) ([]models.WaiterSalary, error)
 }
 
 type financeRepository struct {
@@ -89,4 +90,43 @@ func (r *financeRepository) GetStats() (*models.FinanceStats, error) {
 	}
 
 	return stats, nil
+}
+
+func (r *financeRepository) GetWaiterSalaries(startDate, endDate string) ([]models.WaiterSalary, error) {
+	query := `
+		SELECT 
+			u.id as waiter_id,
+			u.full_name as waiter_name,
+			COUNT(o.id) as total_orders,
+			COALESCE(SUM(o.service_fee), 0) as total_salary
+		FROM users u
+		LEFT JOIN orders o ON u.id = o.waiter_id 
+			AND o.status = 'delivered' 
+			AND o.table_id IS NOT NULL
+			AND DATE(o.created_at) >= $1 
+			AND DATE(o.created_at) <= $2
+		WHERE u.role = 'waiter'
+		GROUP BY u.id, u.full_name
+		ORDER BY total_salary DESC
+	`
+	rows, err := r.db.Query(query, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var salaries []models.WaiterSalary
+	for rows.Next() {
+		var s models.WaiterSalary
+		if err := rows.Scan(&s.WaiterID, &s.WaiterName, &s.TotalOrders, &s.TotalSalary); err != nil {
+			return nil, err
+		}
+		salaries = append(salaries, s)
+	}
+	
+	if salaries == nil {
+		salaries = []models.WaiterSalary{}
+	}
+	
+	return salaries, nil
 }
