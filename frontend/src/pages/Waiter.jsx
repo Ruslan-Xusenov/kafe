@@ -139,7 +139,7 @@ const Waiter = () => {
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
-      alert('Ошибка при отправке заказа');
+      alert('Ошибка при отправке заказа: ' + (err.response?.data?.error || err.message));
     }
   };
 
