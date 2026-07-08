@@ -19,6 +19,7 @@ import Waiter from './pages/Waiter';
 import MyOrders from './pages/MyOrders';
 import ProductDetail from './pages/ProductDetail';
 import PrivacyConsent from './components/PrivacyConsent';
+import PwaPrompt from './components/PwaPrompt';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
@@ -44,6 +45,7 @@ function App() {
   return (
     <BrowserRouter>
       <PrivacyConsent />
+      <PwaPrompt />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
