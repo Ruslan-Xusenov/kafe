@@ -267,9 +267,41 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	// Details
 	f.Write(ALIGN_LEFT)
 	f.Write(toCP866(fmt.Sprintf("Чек №: %d\n", id)))
-	f.Write(toCP866("Тип: В заведении\n"))
-	f.Write(toCP866("Стол: -\n"))
-	f.Write(toCP866("Обслужил: Mangal kafe\n"))
+
+	// Determine order type
+	tableID, hasTable := order["table_id"]
+	isTableOrder := hasTable && tableID != nil
+
+	if isTableOrder {
+		f.Write(toCP866("Тип: В заведении\n"))
+	} else {
+		f.Write(toCP866("Тип: Доставка\n"))
+	}
+
+	// Table number
+	tableNumber := "-"
+	if tn, ok := order["table_number"]; ok && tn != nil {
+		switch v := tn.(type) {
+		case float64:
+			if v > 0 {
+				tableNumber = fmt.Sprintf("%.0f", v)
+			}
+		case string:
+			if v != "" && v != "0" {
+				tableNumber = v
+			}
+		}
+	}
+	f.Write(toCP866(fmt.Sprintf("Стол: %s\n", tableNumber)))
+
+	// Waiter name
+	waiterName := "Mangal kafe"
+	if wn, ok := order["waiter_name"]; ok && wn != nil {
+		if s, ok := wn.(string); ok && s != "" {
+			waiterName = s
+		}
+	}
+	f.Write(toCP866(fmt.Sprintf("Обслужил: %s\n", waiterName)))
 	
 	f.Write(toCP866(fmt.Sprintf("Время: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
 	f.Write(toCP866("Закрытие: -\n"))
