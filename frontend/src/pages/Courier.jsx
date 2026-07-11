@@ -19,7 +19,7 @@ const Courier = () => {
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders/active');
-      setOrders((res.data || []).filter(o => o.status === 'ready' || o.status === 'on_way'));
+      setOrders((res.data || []).filter(o => (o.status === 'ready' || o.status === 'on_way') && !o.table_id));
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);

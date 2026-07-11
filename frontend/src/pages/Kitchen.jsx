@@ -18,7 +18,9 @@ const Kitchen = () => {
 
   const onWSMessage = (data) => {
     if (data.type === 'new_order') {
-      setOrders(prev => [data.order, ...prev]);
+      if (!data.order.table_id) {
+        setOrders(prev => [data.order, ...prev]);
+      }
     } else if (data.type === 'status_update') {
       fetchOrders();
     }
@@ -31,7 +33,7 @@ const Kitchen = () => {
     try {
       const res = await api.get('/orders/active');
       const kitchenOrders = (res.data || []).filter(o =>
-        o.status === 'new' || o.status === 'preparing' || o.status === 'ready'
+        (o.status === 'new' || o.status === 'preparing' || o.status === 'ready') && !o.table_id
       );
       setOrders(kitchenOrders);
       // eslint-disable-next-line no-unused-vars
