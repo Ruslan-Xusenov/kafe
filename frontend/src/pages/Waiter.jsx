@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search } from 'lucide-react';
 
 const Waiter = () => {
   const [tables, setTables] = useState([]);
@@ -15,6 +15,7 @@ const Waiter = () => {
   
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [loading, setLoading] = useState(true);
 
@@ -290,20 +291,48 @@ const Waiter = () => {
             </header>
 
             <div className="menu-area">
-              <div className="categories-slider no-scrollbar">
-                {categories.map(c => (
-                  <button 
-                    key={c.id} 
-                    className={`modern-cat-btn ${activeCategory === c.id ? 'active' : ''}`}
-                    onClick={() => setActiveCategory(c.id)}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+              <div className="search-bar-wrapper" style={{ padding: '0 1rem', marginBottom: '0.5rem', position: 'relative' }}>
+                <Search size={18} style={{ position: 'absolute', left: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
+                <input 
+                  type="text" 
+                  placeholder="Qidiruv..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem 1rem 0.75rem 2.5rem', 
+                    borderRadius: '12px', 
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-surface)',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    color: 'var(--text-main)'
+                  }}
+                />
               </div>
 
+              {!searchQuery && (
+                <div className="categories-slider no-scrollbar">
+                  {categories.map(c => (
+                    <button 
+                      key={c.id} 
+                      className={`modern-cat-btn ${activeCategory === c.id ? 'active' : ''}`}
+                      onClick={() => setActiveCategory(c.id)}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="menu-grid pb-[300px]">
-                {products.filter(p => p.category_id === activeCategory && p.is_active).map((p, i) => {
+                {products.filter(p => {
+                  if (!p.is_active) return false;
+                  if (searchQuery) {
+                    return p.name.toLowerCase().includes(searchQuery.toLowerCase());
+                  }
+                  return p.category_id === activeCategory;
+                }).map((p, i) => {
                   const cartItem = cart.find(c => c.product_id === p.id);
                   return (
                     <motion.div 
