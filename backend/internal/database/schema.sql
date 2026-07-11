@@ -155,3 +155,23 @@ CREATE TABLE product_ingredients (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(product_id, ingredient_id)
 );
+
+-- Trigger to auto-deactivate products when ingredient stock reaches 0
+CREATE OR REPLACE FUNCTION auto_deactivate_products_on_stock_empty()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.stock <= 0 THEN
+        UPDATE products p
+        SET is_active = false
+        FROM product_ingredients pi
+        WHERE p.id = pi.product_id AND pi.ingredient_id = NEW.id AND p.is_active = true;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_auto_deactivate_products
+AFTER UPDATE OF stock ON ingredients
+FOR EACH ROW
+WHEN (NEW.stock <= 0 AND OLD.stock > 0)
+EXECUTE PROCEDURE auto_deactivate_products_on_stock_empty();
