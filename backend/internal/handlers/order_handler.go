@@ -226,7 +226,8 @@ func (h *OrderHandler) SetServiceFee(c *gin.Context) {
 }
 
 func (h *OrderHandler) GetWaiterHistory(c *gin.Context) {
-	orders, err := h.service.GetWaiterHistory()
+	userID, _ := c.Get("user_id")
+	orders, err := h.service.GetOrderHistoryByWaiter(userID.(int))
 	if err != nil {
 		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
