@@ -814,7 +814,7 @@ const Admin = () => {
           <div className="finance-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
               <h2>Финансы и Расходы</h2>
-              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Новыйlash</button>
+              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Обновить</button>
             </div>
 
             {/* Stats Cards */}
@@ -958,7 +958,7 @@ const Admin = () => {
         {activeTab === 'settings' && (
           <div className="settings-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
-              <h2>Tizim Настройкиi</h2>
+              <h2>Настройки системы</h2>
             </div>
             <div className="premium-card" style={{ maxWidth: '400px' }}>
               <form onSubmit={handleUpdateSettings}>
@@ -982,7 +982,7 @@ const Admin = () => {
                   </p>
                 </div>
                 <button type="submit" className="btn-primary w-full mt-4">
-                  <Save size={18} /> Настройкиni Сохранить
+                  <Save size={18} /> Сохранить настройки
                 </button>
               </form>
             </div>
@@ -993,8 +993,8 @@ const Admin = () => {
           <div className="orders-mgmt">
             <StatsSection role="admin" />
             <div className="flex justify-between items-center mb-4">
-              <h2>Заказы Monitoringi</h2>
-              <button className="refresh-btn" onClick={fetchData}><Clock size={18} /> Новыйlash</button>
+              <h2>Мониторинг заказов</h2>
+              <button className="refresh-btn" onClick={fetchData}><Clock size={18} /> Обновить</button>
             </div>
             <div className="orders-table-wrapper premium-card">
               <table className="admin-table">
@@ -1030,8 +1030,8 @@ const Admin = () => {
         {activeTab === 'performance' && (
           <div className="performance-mgmt animate-fade">
              <div className="flex justify-between items-center mb-6">
-                <h2>Сотрудники Reytingi va Ish Sifati</h2>
-                <button className="refresh-btn" onClick={fetchData}><RefreshCw size={18} /> Новыйlash</button>
+                <h2>Рейтинг и качество работы сотрудников</h2>
+                <button className="refresh-btn" onClick={fetchData}><RefreshCw size={18} /> Обновить</button>
              </div>
              <div className="performance-grid">
                {performance.map(p => (
@@ -1088,7 +1088,7 @@ const Admin = () => {
 
             <div className="menu-sections">
               <section className="cat-section mb-4">
-                <h3>Категорияlar</h3>
+                <h3>Категории</h3>
                 <div className="cat-grid">
                   {categories.map(c => (
                     <div key={c.id} className="premium-card cat-card-admin">
@@ -1103,7 +1103,7 @@ const Admin = () => {
               </section>
 
               <section className="prod-section">
-                <h3>Продуктlar</h3>
+                <h3>Продукты</h3>
                 <div className="admin-table-wrapper premium-card">
                   <table className="admin-table">
                     <thead>
@@ -1236,7 +1236,7 @@ const Admin = () => {
             </div>
             <form onSubmit={handleCreateStaff}>
               <div className={`input-group ${errors.staff?.name ? 'has-error' : ''}`}>
-                <label>Имяi Sharif</label>
+                <label>ФИО</label>
                 <input 
                   value={newStaff.full_name} 
                   onChange={e => {
