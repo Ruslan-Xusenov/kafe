@@ -133,7 +133,8 @@ func handleMessages(c *websocket.Conn) {
 				log.Printf("🔔 MASTER v8.5: Yangi buyurtma #%d qabul qilindi!\n", id)
 			}
 			
-			printOrder(orderData, isReprint)
+			eventType := m["type"].(string)
+			printOrder(orderData, isReprint, eventType)
 		}
 	}
 }
@@ -211,7 +212,7 @@ func generateAndPrintCancelReceipt(target string, orderID int, item map[string]i
 	}
 }
 
-func printOrder(order map[string]interface{}, onlyUSB bool) {
+func printOrder(order map[string]interface{}, onlyUSB bool, eventType string) {
 	id := int(order["id"].(float64))
 	
 	targets := []string{"USB"}
@@ -239,17 +240,19 @@ func printOrder(order map[string]interface{}, onlyUSB bool) {
 			continue // Skip printing if no items are routed to this printer
 		}
 
-		generateAndPrintReceipt(target, id, order, itemsForTarget)
+		generateAndPrintReceipt(target, id, order, itemsForTarget, eventType)
 	}
 }
 
-func generateAndPrintReceipt(target string, id int, order map[string]interface{}, items []interface{}) {
+func generateAndPrintReceipt(target string, id int, order map[string]interface{}, items []interface{}, eventType string) {
 	f, err := os.CreateTemp("", fmt.Sprintf("order_%d_*.bin", id))
 	if err != nil {
 		log.Println("❌ Fayl yaratishda xato:", err)
 		return
 	}
 	defer os.Remove(f.Name())
+
+	isFinal := eventType == "close_order" || eventType == "reprint_order"
 
 	// Build Binary Sequence
 	f.Write(ESC_INIT)
@@ -258,11 +261,13 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	f.Write(BEEP)
 
 	// Header
-	f.Write(ALIGN_CENTER)
-	f.Write(FONT_BIG)
-	f.Write(toCP866("Mangal kafe\n"))
-	f.Write(FONT_NORMAL)
-	f.Write(toCP866("------------------------------------------------\n"))
+	if isFinal {
+		f.Write(ALIGN_CENTER)
+		f.Write(FONT_BIG)
+		f.Write(toCP866("Mangal kafe\n"))
+		f.Write(FONT_NORMAL)
+		f.Write(toCP866("------------------------------------------------\n"))
+	}
 	
 	// Details
 	f.Write(ALIGN_LEFT)
@@ -272,10 +277,12 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	tableID, hasTable := order["table_id"]
 	isTableOrder := hasTable && tableID != nil
 
-	if isTableOrder {
-		f.Write(toCP866("Тип: В заведении\n"))
-	} else {
-		f.Write(toCP866("Тип: Доставка\n"))
+	if isFinal {
+		if isTableOrder {
+			f.Write(toCP866("Тип: В заведении\n"))
+		} else {
+			f.Write(toCP866("Тип: Доставка\n"))
+		}
 	}
 
 	// Table number
@@ -304,11 +311,17 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	f.Write(toCP866(fmt.Sprintf("Обслужил: %s\n", waiterName)))
 	
 	f.Write(toCP866(fmt.Sprintf("Время: %s\n", time.Now().Format("02.01.2006 15:04:05"))))
-	f.Write(toCP866("Закрытие: -\n"))
+	if isFinal {
+		f.Write(toCP866("Закрытие: -\n"))
+	}
 	f.Write(toCP866("------------------------------------------------\n"))
 
 	// Items Table
-	f.Write(toCP866("Наименование           Кол-во Цена      Итого\n"))
+	if isFinal {
+		f.Write(toCP866("Наименование           Кол-во Цена      Итого\n"))
+	} else {
+		f.Write(toCP866("Наименование           Кол-во\n"))
+	}
 	f.Write(toCP866("------------------------------------------------\n"))
 	
 	var targetTotal float64 = 0
@@ -331,9 +344,17 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 			paddedName += " "
 		}
 		
-		line := fmt.Sprintf("%s %-6.1f %-10.0f %-10.0f\n", 
-			paddedName, qty, price, price*qty)
-		f.Write(toCP866(line))
+		if isFinal {
+			line := fmt.Sprintf("%s %-6.1f %-10.0f %-10.0f\n", 
+				paddedName, qty, price, price*qty)
+			f.Write(toCP866(line))
+		} else {
+			line := fmt.Sprintf("%s %-6.1f\n", paddedName, qty)
+			// Double height and width for kitchen receipt items to make them clear
+			f.Write(FONT_DOUBLE_H)
+			f.Write(toCP866(line))
+			f.Write(FONT_NORMAL)
+		}
 		
 		if comment, ok := item["comment"].(string); ok && comment != "" {
 			f.Write(toCP866(fmt.Sprintf("  * Коммент: %s\n", comment)))
@@ -342,23 +363,25 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	f.Write(toCP866("------------------------------------------------\n"))
 
 	// Footer Summary (Calculate based on routed items only)
-	var servicePercentage float64 = 0
-	if sp, ok := order["service_percentage"].(float64); ok {
-		servicePercentage = sp
-	}
-	
-	serviceFee := targetTotal * servicePercentage / 100
-	finalTotal := targetTotal + serviceFee
+	if isFinal {
+		var servicePercentage float64 = 0
+		if sp, ok := order["service_percentage"].(float64); ok {
+			servicePercentage = sp
+		}
+		
+		serviceFee := targetTotal * servicePercentage / 100
+		finalTotal := targetTotal + serviceFee
 
-	f.Write(ALIGN_RIGHT)
-	f.Write(toCP866(fmt.Sprintf("Подитог: %.0f\n", targetTotal)))
-	f.Write(toCP866(fmt.Sprintf("Обслуживание (%.1f%%): %.0f\n", servicePercentage, serviceFee)))
-	f.Write(toCP866("Скидка (0%): 0\n"))
-	f.Write([]byte("\n"))
-	
-	f.Write(FONT_DOUBLE_W)
-	f.Write(toCP866(fmt.Sprintf("  ИТОГО: %.0f\n", finalTotal)))
-	f.Write(FONT_NORMAL)
+		f.Write(ALIGN_RIGHT)
+		f.Write(toCP866(fmt.Sprintf("Подитог: %.0f\n", targetTotal)))
+		f.Write(toCP866(fmt.Sprintf("Обслуживание (%.1f%%): %.0f\n", servicePercentage, serviceFee)))
+		f.Write(toCP866("Скидка (0%): 0\n"))
+		f.Write([]byte("\n"))
+		
+		f.Write(FONT_DOUBLE_W)
+		f.Write(toCP866(fmt.Sprintf("  ИТОГО: %.0f\n", finalTotal)))
+		f.Write(FONT_NORMAL)
+	}
 	f.Write([]byte("\n\n\n\n"))
 
 	// Cut
