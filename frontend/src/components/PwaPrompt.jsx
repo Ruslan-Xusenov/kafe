@@ -81,11 +81,11 @@ const PwaPrompt = () => {
             zIndex: 9999,
             width: '90%',
             maxWidth: '400px',
-            backgroundColor: '#1e1e1e',
-            color: '#fff',
+            backgroundColor: '#ffffff',
+            color: '#1a1a1a',
             borderRadius: '16px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid #e5e7eb',
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
@@ -96,20 +96,20 @@ const PwaPrompt = () => {
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <img src="/icon-192x192.png" alt="KafePlat" style={{ width: '48px', height: '48px', borderRadius: '10px' }} />
               <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>KafePlat</h3>
-                <p style={{ margin: 0, fontSize: '13px', color: '#aaa' }}>Ilovani o'rnating va tezroq kiring</p>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1a1a1a' }}>KafePlat</h3>
+                <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Ilovani o'rnating va tezroq kiring</p>
               </div>
             </div>
             <button 
               onClick={handleDismiss}
-              style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}
+              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}
             >
               <X size={20} />
             </button>
           </div>
 
           {isIOS ? (
-            <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ backgroundColor: '#f3f4f6', padding: '12px', borderRadius: '8px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px', color: '#4b5563' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 1. <Share size={16} /> Ulashish (Share) tugmasini bosing
               </span>
@@ -121,7 +121,7 @@ const PwaPrompt = () => {
             <button
               onClick={handleInstallClick}
               style={{
-                backgroundColor: '#ff7b00',
+                backgroundColor: '#f97316',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -132,7 +132,8 @@ const PwaPrompt = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                width: '100%'
+                width: '100%',
+                boxShadow: '0 4px 12px rgba(249,115,22,0.35)'
               }}
             >
               <Download size={18} /> O'rnatish

@@ -57,24 +57,24 @@ const BottomNav = () => {
           left: 0;
           right: 0;
           z-index: 999;
-          background: rgba(13,13,15,0.92);
+          background: rgba(255,255,255,0.94);
           backdrop-filter: blur(24px) saturate(180%);
           -webkit-backdrop-filter: blur(24px) saturate(180%);
-          border-top: 1px solid rgba(255,255,255,0.08);
+          border-top: 1px solid var(--border);
           padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
-          justify-content: flex-start; /* Changed to flex-start for scrolling */
+          justify-content: flex-start;
           align-items: center;
-          box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
           overflow-x: auto;
           flex-wrap: nowrap;
           -webkit-overflow-scrolling: touch;
         }
         
         .bottom-nav::-webkit-scrollbar {
-          height: 4px; /* small visible scrollbar for non-touch devices */
+          height: 4px;
         }
         .bottom-nav::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(249, 115, 22, 0.3);
           border-radius: 4px;
         }
 

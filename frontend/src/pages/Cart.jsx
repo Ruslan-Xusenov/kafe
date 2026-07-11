@@ -66,18 +66,16 @@ const Cart = () => {
             flex-direction: column;
             align-items: center;
             text-align: center;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(249,115,22,0.20);
+            background: #ffffff;
+            border: 1px solid rgba(249,115,22,0.15);
             border-radius: 28px;
             padding: 3.5rem 2.5rem;
             max-width: 420px;
             width: 100%;
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
             box-shadow:
-              0 32px 80px rgba(0,0,0,0.55),
-              0 0 0 1px rgba(255,255,255,0.06),
-              inset 0 1px 0 rgba(255,255,255,0.10);
+              0 8px 40px rgba(0,0,0,0.10),
+              0 0 0 1px rgba(249,115,22,0.05),
+              inset 0 1px 0 rgba(255,255,255,1);
             overflow: hidden;
           }
 
@@ -130,7 +128,7 @@ const Cart = () => {
             font-size: 1.75rem;
             font-weight: 800;
             margin-bottom: 0.85rem;
-            background: linear-gradient(135deg, #fff 30%, #fb923c 100%);
+            background: var(--grad-brand);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -174,8 +172,8 @@ const Cart = () => {
             z-index: 1;
             font-size: 0.8rem;
             color: var(--text-muted);
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
             border-radius: 10px;
             padding: 0.5rem 1rem;
           }
@@ -403,7 +401,7 @@ const Cart = () => {
           border-radius: 10px;
           overflow: hidden;
           flex-shrink: 0;
-          background: rgba(255,255,255,0.04);
+          background: var(--bg-surface);
         }
 
         .cart-item-img img {
@@ -440,7 +438,7 @@ const Cart = () => {
           display: flex;
           align-items: center;
           gap: 0.6rem;
-          background: rgba(255,255,255,0.05);
+          background: var(--bg-surface);
           border: 1px solid var(--border);
           border-radius: 8px;
           padding: 0.35rem 0.5rem;

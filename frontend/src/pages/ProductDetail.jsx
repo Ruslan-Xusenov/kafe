@@ -261,12 +261,13 @@ const ProductDetail = () => {
         .pd-header {
           display: flex; align-items: center; justify-content: space-between;
           padding: 1rem; position: sticky; top: 0; z-index: 100;
-          background: rgba(13,13,15,0.8); backdrop-filter: blur(20px);
+          background: rgba(248,247,245,0.85); backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--border);
         }
 
         .back-btn {
           width: 40px; height: 40px; border-radius: 50%;
-          background: var(--bg-surface); color: white; display: flex; align-items: center; justify-content: center;
+          background: var(--bg-surface); color: var(--text-primary); display: flex; align-items: center; justify-content: center;
           border: 1px solid var(--border); transition: 0.2s;
         }
         .back-btn:hover { border-color: var(--primary); color: var(--primary); }
@@ -281,7 +282,7 @@ const ProductDetail = () => {
         .pd-main-img-wrap {
           aspect-ratio: 1; border-radius: 24px; overflow: hidden;
           background: var(--bg-card); position: sticky; top: 100px;
-          border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+          border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.10);
         }
         .pd-main-img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s transform cubic-bezier(0.4, 0, 0.2, 1); }
         .pd-main-img-wrap:hover .pd-main-img { transform: scale(1.05); }
@@ -317,7 +318,7 @@ const ProductDetail = () => {
         }
         .qty-control button {
           width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
-          background: var(--bg-surface); color: white; border-radius: 8px; transition: 0.2s;
+          background: var(--bg-surface); color: var(--text-primary); border-radius: 8px; transition: 0.2s;
         }
         .qty-control button:hover:not(:disabled) { background: var(--primary); }
         .qty-control button:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -348,7 +349,7 @@ const ProductDetail = () => {
           transition: 0.3s; text-decoration: none;
         }
         .related-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: var(--shadow-md); }
-        .rel-img-wrap { width: 100%; height: 160px; background: rgba(255,255,255,0.03); }
+        .rel-img-wrap { width: 100%; height: 160px; background: var(--bg-surface); }
         .rel-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
         .rel-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; opacity: 0.1; }
         

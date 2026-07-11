@@ -404,7 +404,7 @@ const Waiter = () => {
       {/* History Modal */}
       {showHistory && (
         <div className="modal-overlay" style={{ zIndex: 100 }}>
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '800px', background: '#121212', maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '800px', background: '#ffffff', maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
             <div className="modal-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
               <h3>Мои заказы (История)</h3>
               <button onClick={() => setShowHistory(false)}><X size={20} /></button>
@@ -415,7 +415,7 @@ const Waiter = () => {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {history.map(order => (
-                    <div key={order.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
+                    <div key={order.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span className="font-700 text-primary">Чек #{order.id}</span>
                         <span className="text-muted" style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleString('ru-RU')}</span>
@@ -520,7 +520,7 @@ const Waiter = () => {
           margin: 0 auto 1rem;
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          background: rgba(255,255,255,0.05);
+          background: rgba(255,255,255,0.06);
           color: var(--text-muted);
           transition: var(--transition);
         }
@@ -552,11 +552,11 @@ const Waiter = () => {
 
         .back-button {
           display: flex; align-items: center; gap: 0.5rem;
-          background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+          background: var(--bg-surface); border: 1px solid var(--border);
           color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 8px;
           font-weight: 600; cursor: pointer; transition: var(--transition);
         }
-        .back-button:hover { background: rgba(255,255,255,0.1); }
+        .back-button:hover { background: var(--bg-card-hover); }
 
         .header-center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
         .header-center h2 { margin: 0; font-size: 1.5rem; font-weight: 800; font-family: var(--font-display); }
@@ -684,12 +684,12 @@ const Waiter = () => {
         .compact-right { font-weight: 700; font-size: 0.95rem; border-left: 1px solid rgba(255,255,255,0.4); padding-left: 1rem; }
 
         .btn-close-cart {
-          background: rgba(255,255,255,0.1); border: none; color: white;
+          background: rgba(249,115,22,0.1); border: none; color: var(--primary);
           width: 32px; height: 32px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center; cursor: pointer;
           transition: var(--transition);
         }
-        .btn-close-cart:hover { background: rgba(255,255,255,0.2); transform: rotate(90deg); }
+        .btn-close-cart:hover { background: rgba(249,115,22,0.2); transform: rotate(90deg); }
 
         .smart-cart-panel {
           position: fixed;
@@ -697,11 +697,11 @@ const Waiter = () => {
           right: 1.5rem;
           width: 450px;
           max-width: calc(100vw - 3rem);
-          background: #111111 !important; /* solid to prevent bleeding */
-          border: 1px solid rgba(255,255,255,0.1);
+          background: #ffffff !important;
+          border: 1px solid var(--border);
           border-radius: 24px;
           padding: 1.5rem;
-          box-shadow: 0 10px 50px rgba(0,0,0,0.9);
+          box-shadow: 0 10px 50px rgba(0,0,0,0.12);
           z-index: 100;
           max-height: calc(100vh - 3rem);
           display: flex; flex-direction: column;
@@ -722,8 +722,8 @@ const Waiter = () => {
 
         .smart-cart-item {
           display: flex; justify-content: space-between; align-items: center;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.05);
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
           padding: 0.75rem 1rem;
           border-radius: 12px;
         }
@@ -740,11 +740,11 @@ const Waiter = () => {
 
         .item-actions button {
           width: 32px; height: 32px; border-radius: 50%;
-          border: none; background: rgba(255,255,255,0.05); color: var(--text-main);
+          border: none; background: var(--bg-surface); color: var(--text-primary);
           display: flex; align-items: center; justify-content: center; cursor: pointer;
           transition: var(--transition);
         }
-        .item-actions button:hover { background: rgba(255,255,255,0.1); color: var(--primary); }
+        .item-actions button:hover { background: rgba(249,115,22,0.1); color: var(--primary); }
         .item-actions .qty { width: 40px; text-align: center; font-weight: 700; font-size: 0.9rem; }
         .item-actions .qty small { font-size: 0.7rem; color: var(--text-muted); font-weight: normal; }
 
@@ -789,7 +789,7 @@ const Waiter = () => {
 
           .smart-cart-panel { 
             position: fixed;
-            bottom: 85px; /* Safely above bottom nav */
+            bottom: 85px;
             left: 0; 
             right: 0;
             width: 100%;
@@ -797,10 +797,10 @@ const Waiter = () => {
             border-radius: 24px 24px 0 0;
             padding: 1.25rem 1rem 1.5rem; 
             max-height: 60vh;
-            background: #111111 !important;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.9);
+            background: #ffffff !important;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.10);
             border-bottom: none;
-            z-index: 800; /* below BottomNav (999) but above content */
+            z-index: 800;
           }
           
           .cart-panel-header { margin-bottom: 0.75rem; padding-bottom: 0.75rem; }

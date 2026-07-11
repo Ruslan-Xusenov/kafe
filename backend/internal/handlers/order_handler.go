@@ -40,6 +40,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	if err := h.service.CreateOrder(&order); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -69,6 +70,7 @@ func (h *OrderHandler) GetMyOrders(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	orders, err := h.service.GetCustomerOrders(userID.(int))
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -78,6 +80,7 @@ func (h *OrderHandler) GetMyOrders(c *gin.Context) {
 func (h *OrderHandler) GetAllOrders(c *gin.Context) {
 	orders, err := h.service.GetAllOrders()
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -87,6 +90,7 @@ func (h *OrderHandler) GetAllOrders(c *gin.Context) {
 func (h *OrderHandler) GetActiveOrders(c *gin.Context) {
 	orders, err := h.service.GetActiveOrders()
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -109,6 +113,7 @@ func (h *OrderHandler) UpdateStatus(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	if err := h.service.UpdateOrderStatus(id, req.Status, userID.(int), role.(string)); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -125,6 +130,7 @@ func (h *OrderHandler) SubmitRating(c *gin.Context) {
 	}
 
 	if err := h.service.SubmitRating(id, ratings); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -135,6 +141,7 @@ func (h *OrderHandler) SubmitRating(c *gin.Context) {
 func (h *OrderHandler) GetStaffPerformance(c *gin.Context) {
 	performance, err := h.service.GetStaffPerformance()
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -147,6 +154,7 @@ func (h *OrderHandler) AssignCourier(c *gin.Context) {
 	courierID, _ := c.Get("user_id") // Use the logged in courier's ID
 
 	if err := h.service.AssignCourier(id, courierID.(int)); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -159,6 +167,7 @@ func (h *OrderHandler) GetStats(c *gin.Context) {
 
 	stats, err := h.service.GetStats(userID.(int), role.(string))
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -170,6 +179,7 @@ func (h *OrderHandler) GetOrderRatings(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	ratings, err := h.service.GetRatingsByOrderID(id)
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -178,6 +188,7 @@ func (h *OrderHandler) GetOrderRatings(c *gin.Context) {
 
 func (h *OrderHandler) TestPrinter(c *gin.Context) {
 	if err := h.service.TestPrinter(); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -187,6 +198,7 @@ func (h *OrderHandler) TestPrinter(c *gin.Context) {
 func (h *OrderHandler) ReprintOrder(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := h.service.ReprintOrder(id); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -205,6 +217,7 @@ func (h *OrderHandler) SetServiceFee(c *gin.Context) {
 
 	order, err := h.service.SetServiceFee(id, req.Percentage)
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -215,6 +228,7 @@ func (h *OrderHandler) SetServiceFee(c *gin.Context) {
 func (h *OrderHandler) GetWaiterHistory(c *gin.Context) {
 	orders, err := h.service.GetWaiterHistory()
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -229,6 +243,7 @@ func (h *OrderHandler) GetActiveOrdersByWaiter(c *gin.Context) {
 	}
 	orders, err := h.service.GetActiveOrdersByWaiter(waiterID)
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -243,6 +258,7 @@ func (h *OrderHandler) GetOrderHistoryByWaiter(c *gin.Context) {
 	}
 	orders, err := h.service.GetOrderHistoryByWaiter(waiterID)
 	if err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -270,6 +286,7 @@ func (h *OrderHandler) CancelOrderItem(c *gin.Context) {
 	}
 
 	if err := h.service.CancelOrderItem(orderID, itemID, req.Quantity); err != nil {
+		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

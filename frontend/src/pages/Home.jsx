@@ -257,7 +257,7 @@ const Home = () => {
         .prod-img-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(to top, rgba(13,13,15,0.7) 0%, transparent 60%);
+          background: linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%);
           display: flex; align-items: flex-end; justify-content: center;
           padding-bottom: 1.5rem; opacity: 0; transition: 0.3s;
         }
@@ -396,16 +396,15 @@ const Home = () => {
           border-radius: var(--radius-lg);
           overflow: hidden;
           transition: var(--transition);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
           display: flex;
           flex-direction: column;
+          box-shadow: var(--shadow-sm);
         }
 
         .prod-card:hover {
           border-color: rgba(249,115,22,0.30);
           transform: translateY(-4px);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(249,115,22,0.15);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(249,115,22,0.15);
         }
 
         .prod-img-wrap {
@@ -413,7 +412,7 @@ const Home = () => {
           height: 190px;
           overflow: hidden;
           position: relative;
-          background: rgba(255,255,255,0.03);
+          background: var(--bg-surface);
         }
 
         .prod-img {
@@ -428,7 +427,7 @@ const Home = () => {
         .prod-img-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(to top, rgba(13,13,15,0.6) 0%, transparent 50%);
+          background: linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%);
           pointer-events: none;
         }
 

@@ -348,16 +348,16 @@ const Layout = () => {
           bottom: 0;
           width: 85%;
           max-width: 320px;
-          background: rgba(18, 18, 20, 0.95);
+          background: rgba(255, 255, 255, 0.97);
           backdrop-filter: blur(24px) saturate(180%);
           -webkit-backdrop-filter: blur(24px) saturate(180%);
-          border-left: 1px solid rgba(255,255,255,0.08);
+          border-left: 1px solid var(--border);
           z-index: 1002;
           transform: translateX(100%);
           transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
           display: flex;
           flex-direction: column;
-          box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+          box-shadow: -10px 0 40px rgba(0,0,0,0.12);
         }
 
         .mobile-drawer.open {
@@ -369,7 +369,7 @@ const Layout = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          border-bottom: 1px solid var(--border);
         }
 
         .drawer-links {
@@ -392,12 +392,12 @@ const Layout = () => {
           color: var(--text-secondary);
           text-decoration: none;
           transition: all 0.2s ease;
-          background: rgba(255,255,255,0.02);
+          background: transparent;
           border: 1px solid transparent;
         }
 
         .drawer-link:hover, .drawer-link:active {
-          background: rgba(255,255,255,0.05);
+          background: var(--bg-surface);
           color: var(--text-primary);
         }
 
@@ -421,8 +421,8 @@ const Layout = () => {
 
         .drawer-footer {
           padding: 1.5rem;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          background: rgba(0,0,0,0.2);
+          border-top: 1px solid var(--border);
+          background: var(--bg-surface);
         }
 
         /* Main content */

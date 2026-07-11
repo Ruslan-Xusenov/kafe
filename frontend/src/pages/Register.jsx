@@ -171,13 +171,11 @@ const Register = () => {
         .auth-card {
           width: 100%;
           max-width: 420px;
-          background: rgba(255,255,255,0.04);
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: var(--radius-xl);
           padding: 2.5rem 2rem;
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          box-shadow: 0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+          box-shadow: 0 8px 40px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
           position: relative;
           z-index: 1;
         }
@@ -209,9 +207,9 @@ const Register = () => {
         }
 
         .auth-error {
-          background: rgba(239,68,68,0.10);
+          background: rgba(239,68,68,0.08);
           border: 1px solid rgba(239,68,68,0.25);
-          color: #fca5a5;
+          color: #dc2626;
           padding: 0.8rem 1rem;
           border-radius: var(--radius-sm);
           font-size: 0.875rem;
@@ -262,7 +260,7 @@ const Register = () => {
 
         .field-error {
           font-size: 0.78rem;
-          color: #fca5a5;
+          color: #dc2626;
           display: flex;
           align-items: center;
           gap: 0.3rem;

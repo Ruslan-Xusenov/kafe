@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'KafePlat',
         short_name: 'KafePlat',
         description: 'Kafe boshqaruv tizimi va yetkazib berish',
-        theme_color: '#1a1a1a',
-        background_color: '#121212',
+        theme_color: '#f8f7f5',
+        background_color: '#f8f7f5',
         display: 'standalone',
         icons: [
           {

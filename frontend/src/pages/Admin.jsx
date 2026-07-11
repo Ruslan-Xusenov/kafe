@@ -1496,7 +1496,7 @@ const Admin = () => {
       {/* Order Details Modal */}
       {showOrderModal && selectedOrderDetails && (
         <div className="modal-overlay">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '600px', background: '#121212'}}>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '600px', background: '#ffffff'}}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <h3>Детали заказа #{selectedOrderDetails.id}</h3>
@@ -1535,7 +1535,7 @@ const Admin = () => {
                 <span className="font-700">{selectedOrderDetails.waiter_name || '-'}</span>
               </div>
               {selectedOrderDetails.comment && (
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px' }}>
+                <div style={{ background: 'var(--bg-surface)', padding: '0.75rem', borderRadius: '8px' }}>
                   <span className="text-muted">Комментарий:</span>
                   <p style={{ marginTop: '0.25rem' }}>{selectedOrderDetails.comment}</p>
                 </div>
@@ -1545,7 +1545,7 @@ const Admin = () => {
                 <h4 style={{ marginBottom: '0.75rem' }}>Список продуктов</h4>
                 <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                   {(selectedOrderDetails.items || []).map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
                       <div>
                         <div className="font-700">{item.product_name || 'Noma\'lum'}</div>
                         <div className="text-muted" style={{ fontSize: '0.85rem' }}>{item.quantity} {item.unit || 'x'}</div>
@@ -1761,11 +1761,11 @@ const Admin = () => {
         .mb-4 { margin-bottom: 2rem; }
         select {
           width: 100%;
-          background: var(--bg-dark);
+          background: var(--bg-input);
           border: 1px solid var(--border);
           border-radius: 8px;
           padding: 0.75rem;
-          color: white;
+          color: var(--text-primary);
           outline: none;
         }
 
@@ -1829,7 +1829,7 @@ const Admin = () => {
 
         .stat-item {
           flex: 1;
-          background: rgba(255,255,255,0.04);
+          background: var(--bg-surface);
           border: 1px solid var(--border);
           border-radius: 10px;
           padding: 0.65rem 0.75rem;

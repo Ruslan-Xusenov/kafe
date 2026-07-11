@@ -61,10 +61,10 @@ const PrivacyConsent = () => {
             }
             .cookie-card {
               pointer-events: auto;
-              background: rgba(23, 23, 26, 0.85);
+              background: rgba(255, 255, 255, 0.95);
               backdrop-filter: blur(20px);
               -webkit-backdrop-filter: blur(20px);
-              border: 1px solid rgba(255, 255, 255, 0.1);
+              border: 1px solid var(--border);
               border-radius: 24px;
               padding: 1.25rem;
               max-width: 500px;
@@ -72,7 +72,7 @@ const PrivacyConsent = () => {
               display: flex;
               align-items: center;
               gap: 1.25rem;
-              box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             }
             .cookie-icon-wrap {
               width: 48px;
@@ -91,13 +91,13 @@ const PrivacyConsent = () => {
               flex: 1;
             }
             .cookie-content h3 {
-              color: white;
+              color: var(--text-primary);
               font-size: 1rem;
               font-weight: 700;
               margin-bottom: 0.25rem;
             }
             .cookie-content p {
-              color: rgba(255, 255, 255, 0.6);
+              color: var(--text-secondary);
               font-size: 0.85rem;
               line-height: 1.4;
               margin: 0;
