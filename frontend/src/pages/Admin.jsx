@@ -342,7 +342,7 @@ const Admin = () => {
   };
 
   const deleteCat = async (id) => {
-    if (!window.confirm('Haqiqatan ham bu kategoriyani o\'chirmoqchimisiz? Ichidagi mahsulotlar ham o\'chishi mumkin!')) return;
+    if (!window.confirm('Вы действительно хотите удалить эту категорию? Вложенные продукты также могут быть удалены!')) return;
     try {
       await api.delete(`/catalog/categories/${id}`);
       fetchData();
@@ -439,14 +439,14 @@ const Admin = () => {
   const handleReprintOrder = async (id) => {
     try {
       await api.post(`/orders/${id}/print`);
-      alert("Chek отправлен на принтер!");
+      alert("Чек отправлен на принтер!");
     } catch (err) {
       alert("Ошибка при печати чека");
     }
   };
 
   const handleRemoveOrderItem = async (orderId, item) => {
-    const qtyInput = window.prompt(`Qancha miqdorni bekor qilmoqchisiz?\nMaksimal: ${item.quantity}`, item.quantity);
+    const qtyInput = window.prompt(`Сколько вы хотите отменить?\nМаксимум: ${item.quantity}`, item.quantity);
     if (qtyInput === null) return; // User cancelled
     
     const qty = parseFloat(qtyInput);
@@ -466,7 +466,7 @@ const Admin = () => {
       setSelectedOrderDetails(res.data);
       fetchData();
     } catch (err) {
-      alert("Xatolik yuz berdi: " + (err.response?.data?.error || err.message));
+      alert("Произошла ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -1153,7 +1153,7 @@ const Admin = () => {
         {activeTab === 'staff' && (
           <div className="staff-mgmt">
             <div className="flex-header">
-              <h2>Сотрудники Boshqaruvi</h2>
+              <h2>Управление сотрудниками</h2>
               <button className="btn-primary" onClick={() => setShowStaffModal(true)}>
                 <Plus size={18} /> Добавить сотрудника
               </button>
@@ -1188,7 +1188,7 @@ const Admin = () => {
         {activeTab === 'tables' && (
           <div className="tables-mgmt animate-fade">
             <div className="flex-header">
-              <h2>Столы Boshqaruvi</h2>
+              <h2>Управление столами</h2>
               <button className="btn-primary" onClick={() => setShowTableModal(true)}>
                 <Plus size={18} /> Добавить стол
               </button>
@@ -1289,7 +1289,7 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>{editCatId ? 'Категорию tahrirlash' : 'Новый Категория'}</h3>
+              <h3>{editCatId ? 'Редактирование категории' : 'Новая категория'}</h3>
               <button onClick={() => { setShowCatModal(false); setEditCatId(null); }}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateCat}>
@@ -1331,11 +1331,11 @@ const Admin = () => {
                   checked={newCat.is_user_controlled} 
                   onChange={e => setNewCat({...newCat, is_user_controlled: e.target.checked})} 
                 />
-                <label htmlFor="cat_user_controlled" style={{ cursor: 'pointer' }}>Прибыльlanuvchi boshqaruvi (Pors/Dona tanlash)</label>
+                <label htmlFor="cat_user_controlled" style={{ cursor: 'pointer' }}>Пользовательский выбор порций (Порция/Шт)</label>
               </div>
 
               <div className="input-group mb-4">
-                <label>Маршрутизация принтера (Chek qayerdan chiqadi?)</label>
+                <label>Маршрутизация принтера (Откуда выйдет чек?)</label>
                 <select 
                   style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '100%', outline: 'none' }}
                   value={newCat.printer_target}
@@ -1359,7 +1359,7 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>{editProdId ? 'Продуктni tahrirlash' : 'Новый Продукт'}</h3>
+              <h3>{editProdId ? 'Редактирование продукта' : 'Новый продукт'}</h3>
               <button onClick={() => { setShowProdModal(false); setEditProdId(null); }}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateProd}>
@@ -1556,7 +1556,7 @@ const Admin = () => {
                           className="delete-btn-ico" 
                           style={{ padding: '0.2rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
                           onClick={() => handleRemoveOrderItem(selectedOrderDetails.id, item)}
-                          title="Bekor qilish"
+                          title="Отменить"
                         >
                           <Trash2 size={16} />
                         </button>

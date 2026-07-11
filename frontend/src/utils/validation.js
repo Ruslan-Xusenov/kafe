@@ -19,8 +19,8 @@ export const validatePassword = (password) => {
 
 export const validatePrice = (price) => {
   const p = parseFloat(price);
-  if (isNaN(p)) return "Narxi son bo'lishi shart";
-  if (p <= 0) return "Narxi 0 dan katta bo'lishi shart";
+  if (isNaN(p)) return "Цена должна быть числом";
+  if (p <= 0) return "Цена должна быть больше 0";
   return null;
 };
 

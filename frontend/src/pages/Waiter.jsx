@@ -295,7 +295,7 @@ const Waiter = () => {
                 <Search size={18} style={{ position: 'absolute', left: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
                 <input 
                   type="text" 
-                  placeholder="Qidiruv..." 
+                  placeholder="Поиск..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ 

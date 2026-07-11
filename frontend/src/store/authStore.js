@@ -14,7 +14,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Backend xato xabarlarini o'zbek tiliga tarjima
+// Backend xato xabarlarini rus tiliga tarjima
 const translateError = (err) => {
   const serverMsg = err.response?.data?.error || '';
   const map = {
@@ -45,7 +45,7 @@ export const useAuthStore = create((set) => ({
       return { success: true, role: user.role };
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      const msg = translateError(err) || 'Kirishda xatolik yuz berdi';
+      const msg = translateError(err) || 'Ошибка при входе';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }
@@ -61,7 +61,7 @@ export const useAuthStore = create((set) => ({
       return { success: true };
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      const msg = translateError(err) || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
+      const msg = translateError(err) || 'Ошибка при регистрации';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }

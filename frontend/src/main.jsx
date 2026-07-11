@@ -17,7 +17,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '2rem', color: 'white', background: '#e11d48', minHeight: '100vh' }}>
-          <h2>Nimadir xato ketdi! (UI xatoligi)</h2>
+          <h2>Что-то пошло не так! (Ошибка UI)</h2>
           <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error?.toString()}</pre>
           <pre style={{ whiteSpace: 'pre-wrap', marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>
             {this.state.error?.stack}
