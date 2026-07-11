@@ -1343,8 +1343,8 @@ const Admin = () => {
                 >
                   <option value="ALL">Барча принтерлардан (По умолчанию)</option>
                   <option value="USB">Kassa printeri (USB)</option>
-                  <option value="192.168.1.10:9100">Oshxona (LAN 192.168.1.10)</option>
-                  <option value="192.168.1.11:9100">Bar/Ichimliklar (LAN 192.168.1.11)</option>
+                  <option value="192.168.1.11:9100">Kuxnya (LAN 192.168.1.11)</option>
+                  <option value="192.168.1.10:9100">Salat (LAN 192.168.1.10)</option>
                 </select>
               </div>
 
