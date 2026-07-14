@@ -644,5 +644,14 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "is_dop": true, "order": partialOrder})
 	go s.printerService.PrintOrder(partialOrder)
 
+	// WORKAROUND: The local printer bridge (running at the cafe) has a 30s deduplication filter 
+	// based on the order ID. Since 'dop' items share the same order ID, rapid consecutive additions 
+	// get blocked. We send a dummy order with a fake ID to reset the bridge's lastOrderID state.
+	dummyOrder := map[string]interface{}{
+		"id": -9999,
+		"items": []interface{}{},
+	}
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": dummyOrder})
+
 	return updatedOrder, nil
 }
