@@ -195,14 +195,18 @@ const Waiter = () => {
           unit: st.itemGroup.unit
         }));
 
-      if (itemsToAdd.length > 0) {
-        await api.post(`/orders/${existingOrder.id}/add-items`, { items: itemsToAdd });
-      }
+      const itemsToCancel = Object.values(stagedChanges)
+        .filter(st => st.delta < 0)
+        .map(st => ({
+          product_id: st.itemGroup.product_id,
+          quantity: Math.abs(st.delta)
+        }));
 
-      const itemsToCancel = Object.values(stagedChanges).filter(st => st.delta < 0);
-      for (const st of itemsToCancel) {
-        let cancelAmount = Math.abs(st.delta);
-        await api.post(`/orders/${existingOrder.id}/products/${st.itemGroup.product_id}/cancel`, { quantity: cancelAmount });
+      if (itemsToAdd.length > 0 || itemsToCancel.length > 0) {
+        await api.post(`/orders/${existingOrder.id}/bulk-edit`, {
+          add_items: itemsToAdd,
+          cancel_items: itemsToCancel
+        });
       }
 
       setStagedChanges({});

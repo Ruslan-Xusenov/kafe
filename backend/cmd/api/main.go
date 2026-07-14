@@ -176,6 +176,7 @@ func main() {
 				staff.PUT("/:id/service-fee", orderHandler.SetServiceFee)
 				staff.POST("/:id/items/:item_id/cancel", orderHandler.CancelOrderItem)
 				staff.POST("/:id/products/:product_id/cancel", orderHandler.CancelProductFromOrder)
+				staff.POST("/:id/bulk-edit", orderHandler.BulkEditOrder)
 			}
 
 			// Parameterized routes must be at the end to avoid shadowing
