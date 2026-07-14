@@ -28,14 +28,16 @@ func (h *OrderHandler) BulkEditOrder(c *gin.Context) {
 		return
 	}
 
-	user, exists := c.Get("user")
-	if !exists {
+	userID, exists := c.Get("user_id")
+	role, roleExists := c.Get("role")
+	if !exists || !roleExists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	u := user.(*models.User)
+	uid := userID.(int)
+	userRole := role.(string)
 
-	err = h.service.BulkEditOrder(orderID, req.AddItems, req.CancelItems, u.ID, string(u.Role))
+	err = h.service.BulkEditOrder(orderID, req.AddItems, req.CancelItems, uid, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
