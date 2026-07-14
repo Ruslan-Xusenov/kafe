@@ -346,3 +346,30 @@ func (h *OrderHandler) AddItemsToOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, updatedOrder)
 }
+func (h *OrderHandler) CancelProductFromOrder(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
+		return
+	}
+	productID, err := strconv.Atoi(c.Param("product_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID продукта"})
+		return
+	}
+
+	var req struct {
+		Quantity float64 `json:"quantity"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if err := h.service.CancelProductFromOrder(orderID, productID, req.Quantity); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Product items cancelled successfully"})
+}

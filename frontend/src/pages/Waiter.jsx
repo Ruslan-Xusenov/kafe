@@ -202,16 +202,7 @@ const Waiter = () => {
       const itemsToCancel = Object.values(stagedChanges).filter(st => st.delta < 0);
       for (const st of itemsToCancel) {
         let cancelAmount = Math.abs(st.delta);
-        const ids = [...st.itemGroup.ids];
-        for (let i = ids.length - 1; i >= 0 && cancelAmount > 0; i--) {
-          const targetItemId = ids[i];
-          const originalItem = existingOrder.items.find(it => it.id === targetItemId);
-          if (originalItem) {
-            const qtyToCancel = Math.min(originalItem.quantity, cancelAmount);
-            await api.post(`/orders/${existingOrder.id}/items/${targetItemId}/cancel`, { quantity: qtyToCancel });
-            cancelAmount -= qtyToCancel;
-          }
-        }
+        await api.post(`/orders/${existingOrder.id}/products/${st.itemGroup.product_id}/cancel`, { quantity: cancelAmount });
       }
 
       setStagedChanges({});

@@ -639,3 +639,64 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 
 	return updatedOrder, nil
 }
+func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty float64) error {
+	// 1. Fetch order
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil || order == nil {
+		return fmt.Errorf("order not found")
+	}
+
+	if cancelQty <= 0 {
+		return fmt.Errorf("quantity must be greater than 0")
+	}
+
+	// 2. Find all items with this product_id
+	var matchedItems []models.OrderItem
+	var totalQty float64
+	for _, it := range order.Items {
+		if it.ProductID == productID {
+			matchedItems = append(matchedItems, it)
+			totalQty += it.Quantity
+		}
+	}
+
+	if len(matchedItems) == 0 {
+		return fmt.Errorf("product not found in order")
+	}
+
+	if cancelQty > totalQty {
+		cancelQty = totalQty
+	}
+
+	// 3. Cancel from database incrementally
+	remainingToCancel := cancelQty
+	for i := len(matchedItems) - 1; i >= 0 && remainingToCancel > 0; i-- {
+		it := matchedItems[i]
+		qtyToCancelHere := remainingToCancel
+		if qtyToCancelHere > it.Quantity {
+			qtyToCancelHere = it.Quantity
+		}
+		
+		err := s.orderRepo.CancelItem(orderID, it.ID, qtyToCancelHere)
+		if err != nil {
+			return err
+		}
+		remainingToCancel -= qtyToCancelHere
+	}
+
+	// 4. Broadcast single cancel event to printer
+	// We use the first matched item as the base for the WS payload (it has the correct names and printer_target)
+	cancelledItem := matchedItems[0]
+	cancelledItem.Quantity = cancelQty
+
+	cancelPayload := map[string]interface{}{
+		"type": "cancel_item",
+		"order_id": orderID,
+		"item": cancelledItem,
+		"waiter_name": order.WaiterName,
+		"table_number": order.TableNumber,
+	}
+	s.wsService.BroadcastToRole("printer", cancelPayload)
+
+	return nil
+}
