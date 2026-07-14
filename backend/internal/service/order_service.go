@@ -563,7 +563,7 @@ func (s *OrderService) GetActiveOrderByTable(tableID int) (*models.Order, error)
 }
 
 // AddItemsToExistingOrder appends new items to an existing active order
-func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.OrderItem, waiterID int) (*models.Order, error) {
+func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.OrderItem, userID int, role string) (*models.Order, error) {
 	// 1. Get existing order
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil || order == nil {
@@ -575,9 +575,11 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 		return nil, fmt.Errorf("bu buyurtma allaqachon yopilgan")
 	}
 
-	// 3. Check waiter ownership
-	if order.WaiterID != nil && *order.WaiterID != waiterID {
-		return nil, fmt.Errorf("siz faqat o'zingizning buyurtmalaringizga element qo'sha olasiz")
+	// 3. Check waiter ownership (Admin can bypass)
+	if role != "admin" {
+		if order.WaiterID != nil && *order.WaiterID != userID {
+			return nil, fmt.Errorf("вы можете добавлять товары только в свои заказы")
+		}
 	}
 
 	// 4. Validate and set prices from DB

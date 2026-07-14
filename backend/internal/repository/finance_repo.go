@@ -98,7 +98,7 @@ func (r *financeRepository) GetWaiterSalaries(startDate, endDate string) ([]mode
 			u.id as waiter_id,
 			u.full_name as waiter_name,
 			COUNT(o.id) as total_orders,
-			COALESCE(SUM(o.service_fee) / 2.0, 0) as total_salary
+			COALESCE(SUM((o.total_price - COALESCE(o.service_fee, 0)) * 0.05), 0) as total_salary
 		FROM users u
 		LEFT JOIN orders o ON u.id = o.waiter_id 
 			AND o.status = 'delivered' 

@@ -335,8 +335,9 @@ func (h *OrderHandler) AddItemsToOrder(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
 
-	updatedOrder, err := h.service.AddItemsToExistingOrder(orderID, req.Items, userID.(int))
+	updatedOrder, err := h.service.AddItemsToExistingOrder(orderID, req.Items, userID.(int), role.(string))
 	if err != nil {
 		fmt.Printf("ADD_ITEMS_TO_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
