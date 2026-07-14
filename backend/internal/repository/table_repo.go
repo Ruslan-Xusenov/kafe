@@ -17,9 +17,9 @@ func NewTableRepository(db *sqlx.DB) *TableRepository {
 func (r *TableRepository) GetAll() ([]models.Table, error) {
 	var tables []models.Table
 	err := r.db.Select(&tables, `
-		SELECT t.*, o.waiter_id as active_waiter_id
+		SELECT t.*, 
+		       (SELECT waiter_id FROM orders WHERE table_id = t.id AND status IN ('new', 'preparing', 'ready') LIMIT 1) as active_waiter_id
 		FROM tables t
-		LEFT JOIN orders o ON o.table_id = t.id AND o.status IN ('new', 'preparing', 'ready')
 		ORDER BY NULLIF(regexp_replace(t.name, '\D', '', 'g'), '')::int NULLS LAST, t.name ASC
 	`)
 	if err != nil {
