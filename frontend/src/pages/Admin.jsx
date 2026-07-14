@@ -1628,7 +1628,7 @@ const Admin = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="text-muted">Адрес / Стол:</span>
-                <span className="font-700">{selectedOrderDetails.table_id ? `Стол №${tables.find(t => t.id === selectedOrderDetails.table_id)?.name || selectedOrderDetails.table_id}` : selectedOrderDetails.address || '-'}</span>
+                <span className="font-700">{selectedOrderDetails.table_name ? `Стол: ${selectedOrderDetails.table_name}` : selectedOrderDetails.address || '-'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="text-muted">Официант:</span>
