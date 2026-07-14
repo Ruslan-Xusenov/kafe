@@ -166,6 +166,16 @@ const Waiter = () => {
     }
   };
 
+  
+  const handleReprintOrder = async (orderId) => {
+    try {
+      await api.post(`/orders/${orderId}/reprint`);
+      alert('Chek printerga yuborildi!');
+    } catch (err) {
+      alert('Xatolik: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   const stageIncrease = (itemGroup) => {
     if (!user || user.role !== 'admin') return;
     setStagedChanges(prev => {
@@ -381,7 +391,14 @@ const Waiter = () => {
                   <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                       <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.95rem' }}>📋 Mavjud buyurtma #{existingOrder.id}</span>
-                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{(existingOrder.total_price || 0).toLocaleString()} сум</span>
+                      
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {(existingOrder.total_price || 0).toLocaleString()} сум
+                        <button onClick={() => handleReprintOrder(existingOrder.id)} style={{ padding: '4px 8px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                          🖨️ Chek chiqarish
+                        </button>
+                      </span>
+
                     </div>
                     {(() => {
                       // Group items by product_id, summing quantities
