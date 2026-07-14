@@ -204,7 +204,8 @@ func main() {
 			finance.GET("/expenses", financeHandler.GetExpenses)
 			finance.POST("/expenses", financeHandler.CreateExpense)
 		finance.POST("/close-shift", financeHandler.CloseShift)
-			finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
+		finance.POST("/send-real-profit", financeHandler.SendRealProfit)
+		finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
 		}
 
 		// Inventory (Admin only)

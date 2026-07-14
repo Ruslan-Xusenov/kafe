@@ -29,6 +29,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [containerPrice, setContainerPrice] = useState('1000');
   const [containerId, setContainerId] = useState('7');
+  const [tableServicePercentage, setTableServicePercentage] = useState('10');
 
   const [expenses, setExpenses] = useState([]);
   const [financeStats, setFinanceStats] = useState({ total_revenue: 0, total_expenses: 0, net_profit: 0 });
@@ -87,6 +88,16 @@ const Admin = () => {
     }
   };
 
+  const handleSendRealProfit = async () => {
+    try {
+      const res = await api.post('/finance/send-real-profit');
+      alert(res.data.message || "Реальная прибыль отправлена!");
+      fetchData();
+    } catch (err) {
+      alert("Ошибка при отправке: " + (err.response?.data?.error || err.message));
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -110,6 +121,7 @@ const Admin = () => {
         const res = await api.get('/catalog/settings');
         setContainerPrice(res.data.container_price || '1000');
         setContainerId(res.data.container_product_id || '7');
+        setTableServicePercentage(res.data.table_service_percentage || '10');
       } else if (activeTab === 'inventory') {
         const res = await api.get('/catalog/products');
         setProducts(res.data || []);
@@ -384,7 +396,8 @@ const Admin = () => {
       setLoading(true);
       await api.put('/catalog/settings', { 
         container_price: containerPrice,
-        container_product_id: containerId
+        container_product_id: containerId,
+        table_service_percentage: tableServicePercentage
       });
       alert('Настройки сохранены');
       // eslint-disable-next-line no-unused-vars
@@ -862,8 +875,15 @@ const Admin = () => {
           <div className="finance-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
               <h2>Финансы и Расходы</h2>
-              <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}><Clock size={16} /> Закрыть смену (Отчет)</button>
-              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Обновить</button>
+              <div>
+                <button className="btn-success" onClick={handleSendRealProfit} style={{ background: 'var(--primary)', marginRight: '10px' }}>
+                  <TrendingUp size={16} /> Отправить Реал. Прибыль
+                </button>
+                <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}>
+                  <Clock size={16} /> Закрыть смену (Отчет)
+                </button>
+                <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Обновить</button>
+              </div>
             </div>
 
             {/* Stats Cards */}
@@ -891,8 +911,17 @@ const Admin = () => {
                   <LayoutDashboard size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Чистая прибыль</span>
+                  <span className="stat-label">Чистая прибыль (без учета з/п)</span>
                   <span className="stat-value">{financeStats.net_profit.toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.1) 0%, rgba(249,115,22,0) 100%)', border: '1px solid var(--primary)' }}>
+                <div className="stat-icon-wrap" style={{ background: 'var(--primary)', color: '#fff' }}>
+                  <TrendingUp size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Реальная прибыль</span>
+                  <span className="stat-value" style={{ color: 'var(--primary)' }}>{(financeStats.real_profit || 0).toLocaleString()} <small>so'm</small></span>
                 </div>
               </div>
             </div>
@@ -1028,6 +1057,17 @@ const Admin = () => {
                   />
                   <p className="hint-text" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '5px' }}>
                     * Если вы создаете новый продукт для посуды в базе данных, введите его ID здесь.
+                  </p>
+                </div>
+                <div className="input-group mt-4">
+                  <label>Процент за обслуживание столов (для клиентов) %</label>
+                  <input 
+                    type="number" 
+                    value={tableServicePercentage} 
+                    onChange={e => setTableServicePercentage(e.target.value)} 
+                  />
+                  <p className="hint-text" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '5px' }}>
+                    * Этот процент будет добавляться к счету клиента по умолчанию.
                   </p>
                 </div>
                 <button type="submit" className="btn-primary w-full mt-4">

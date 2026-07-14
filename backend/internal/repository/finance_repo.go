@@ -12,6 +12,7 @@ type FinanceRepository interface {
 	GetExpenses() ([]models.Expense, error)
 	GetStats() (*models.FinanceStats, error)
 	GetWaiterSalaries(startDate, endDate string) ([]models.WaiterSalary, error)
+	ForceCloseActiveOrders() error
 	CloseShift() error
 }
 
@@ -104,6 +105,22 @@ func (r *financeRepository) GetStats() (*models.FinanceStats, error) {
 		stats.NasiyaRevenue = 0
 	}
 
+	// Calculate Waiter Salaries for the current shift
+	salariesQuery := `
+		SELECT COALESCE(SUM((o.total_price - COALESCE(o.service_fee, 0)) * (COALESCE(u.default_service_percentage, 0) / 100.0)), 0)
+		FROM orders o
+		JOIN users u ON u.id = o.waiter_id
+		WHERE o.status = 'delivered' 
+		  AND o.table_id IS NOT NULL 
+		  AND u.role = 'waiter'
+		  AND o.created_at > COALESCE((SELECT value::timestamp FROM settings WHERE key = 'last_shift_closed_at'), '1970-01-01'::timestamp)
+	`
+	if err := r.db.QueryRow(salariesQuery).Scan(&stats.TotalSalaries); err != nil {
+		stats.TotalSalaries = 0
+	}
+
+	stats.RealProfit = stats.NetProfit - stats.TotalSalaries
+
 	return stats, nil
 }
 
@@ -113,7 +130,7 @@ func (r *financeRepository) GetWaiterSalaries(startDate, endDate string) ([]mode
 			u.id as waiter_id,
 			u.full_name as waiter_name,
 			COUNT(o.id) as total_orders,
-			COALESCE(SUM((o.total_price - COALESCE(o.service_fee, 0)) * 0.05), 0) as total_salary
+			COALESCE(SUM((o.total_price - COALESCE(o.service_fee, 0)) * (COALESCE(u.default_service_percentage, 0) / 100.0)), 0) as total_salary
 		FROM users u
 		LEFT JOIN orders o ON u.id = o.waiter_id 
 			AND o.status = 'delivered' 
@@ -154,4 +171,33 @@ func (r *financeRepository) CloseShift() error {
 	`
 	_, err := r.db.Exec(query)
 	return err
+}
+
+func (r *financeRepository) ForceCloseActiveOrders() error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Update active orders
+	_, err = tx.Exec(`
+		UPDATE orders 
+		SET status = 'delivered', payment_method = 'cash', updated_at = NOW() 
+		WHERE status IN ('new', 'preparing', 'ready')
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Update all tables to free
+	_, err = tx.Exec(`
+		UPDATE tables 
+		SET status = 'free'
+	`)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

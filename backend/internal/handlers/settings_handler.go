@@ -25,16 +25,23 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 		containerID = "7" // Fallback
 	}
 	
+	tableServicePercentage, err := h.repo.Get("table_service_percentage")
+	if err != nil {
+		tableServicePercentage = "10" // Fallback
+	}
+	
 	c.JSON(http.StatusOK, gin.H{
 		"container_price":      containerPrice,
 		"container_product_id": containerID,
+		"table_service_percentage": tableServicePercentage,
 	})
 }
 
 func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 	var body struct {
-		ContainerPrice     string `json:"container_price"`
-		ContainerProductID string `json:"container_product_id"`
+		ContainerPrice         string `json:"container_price"`
+		ContainerProductID     string `json:"container_product_id"`
+		TableServicePercentage string `json:"table_service_percentage"`
 	}
 	
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -52,6 +59,13 @@ func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 	if body.ContainerProductID != "" {
 		if err := h.repo.Set("container_product_id", body.ContainerProductID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении ID"})
+			return
+		}
+	}
+	
+	if body.TableServicePercentage != "" {
+		if err := h.repo.Set("table_service_percentage", body.TableServicePercentage); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении процента обслуживания"})
 			return
 		}
 	}

@@ -89,6 +89,13 @@ func (h *FinanceHandler) GetWaiterSalaries(c *gin.Context) {
 }
 
 func (h *FinanceHandler) CloseShift(c *gin.Context) {
+	// 0. Force close any active/forgotten orders
+	err := h.financeRepo.ForceCloseActiveOrders()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при закрытии забытых столов"})
+		return
+	}
+
 	// 1. Fetch current shift stats
 	stats, err := h.financeRepo.GetStats()
 	if err != nil {
@@ -152,4 +159,47 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Смена успешно закрыта"})
+}
+
+func (h *FinanceHandler) SendRealProfit(c *gin.Context) {
+	// 1. Fetch current shift stats (including TotalSalaries and RealProfit)
+	stats, err := h.financeRepo.GetStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения статистики"})
+		return
+	}
+
+	// 2. Send Telegram Message
+	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	chatIDs := []string{"660122397", "5211777116"}
+	
+	if botToken != "" {
+		msgText := fmt.Sprintf(
+			"📊 <b>ОТЧЕТ: РЕАЛЬНАЯ ПРИБЫЛЬ</b>\n\n"+
+				"💰 Общая выручка: <b>%.0f</b> сум\n"+
+				"💸 Общие расходы: <b>%.0f</b> сум\n"+
+				"👔 Зарплаты официантов (за смену): <b>%.0f</b> сум\n"+
+				"💎 <b>ЧИСТАЯ (РЕАЛЬНАЯ) ПРИБЫЛЬ: %.0f сум</b>\n\n"+
+				"🕒 Время отчета: %s",
+			stats.TotalRevenue, stats.TotalExpenses, stats.TotalSalaries, stats.RealProfit,
+			time.Now().Format("2006-01-02 15:04"),
+		)
+
+		for _, chatID := range chatIDs {
+			payload := map[string]interface{}{
+				"chat_id":    chatID,
+				"text":       msgText,
+				"parse_mode": "HTML",
+			}
+			jsonData, _ := json.Marshal(payload)
+			go func(cID string, jd []byte) {
+				http.Post(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken), "application/json", bytes.NewBuffer(jd))
+			}(chatID, jsonData)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Реальная прибыль успешно отправлена",
+		"real_profit": stats.RealProfit,
+	})
 }

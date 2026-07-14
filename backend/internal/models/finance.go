@@ -18,6 +18,8 @@ type FinanceStats struct {
 	CardRevenue   float64 `json:"card_revenue"`
 	ClickRevenue  float64 `json:"click_revenue"`
 	NasiyaRevenue float64 `json:"nasiya_revenue"`
+	TotalSalaries float64 `json:"total_salaries"`
+	RealProfit    float64 `json:"real_profit"`
 }
 
 type WaiterSalary struct {
