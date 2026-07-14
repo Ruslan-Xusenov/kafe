@@ -20,6 +20,9 @@ const Waiter = () => {
   
   const [loading, setLoading] = useState(true);
 
+  const authData = localStorage.getItem('auth');
+  const user = authData ? JSON.parse(authData).user : null;
+
   useEffect(() => {
     fetchInitialData();
   }, []);
