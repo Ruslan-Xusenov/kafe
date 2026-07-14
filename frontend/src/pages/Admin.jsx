@@ -1083,8 +1083,17 @@ const Admin = () => {
             <StatsSection role="admin" />
             <div className="flex justify-between items-center mb-4">
               <h2>Мониторинг заказов</h2>
-              <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}><Clock size={16} /> Закрыть смену (Отчет)</button>
-              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={18} /> Обновить</button>
+              <div>
+                <button className="btn-success" onClick={handleSendRealProfit} style={{ background: 'var(--primary)', marginRight: '10px' }}>
+                  <TrendingUp size={16} /> Отправить Реал. Прибыль
+                </button>
+                <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}>
+                  <Clock size={16} /> Закрыть смену (Отчет)
+                </button>
+                <button className="refresh-btn" onClick={fetchData}>
+                  <RefreshCw size={18} /> Обновить
+                </button>
+              </div>
             </div>
             <div className="orders-table-wrapper premium-card">
               <table className="admin-table">
