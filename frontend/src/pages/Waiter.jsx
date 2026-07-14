@@ -206,7 +206,7 @@ const Waiter = () => {
     if (!newFee || isNaN(newFee) || newFee < 0) return alert("Iltimos, to'g'ri foizni kiriting");
     try {
       await api.put(`/orders/${existingOrder.id}/service-fee`, {
-        service_fee_percent: parseFloat(newFee)
+        percentage: parseFloat(newFee)
       });
       setShowFeeModal(false);
       setNewFee('');
@@ -1078,6 +1078,58 @@ const Waiter = () => {
         }
         .submit-order-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(249,115,22,0.5); }
         .submit-order-btn:active { transform: scale(0.98); }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.8);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: var(--bg-surface);
+          border-radius: 24px;
+          width: 100%;
+          max-width: 500px;
+          margin: 1rem;
+          box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+
+        .modal-header {
+          padding: 1.5rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          font-size: 1.25rem;
+          color: var(--text-primary);
+        }
+
+        .modal-header button {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          padding: 0.5rem;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition);
+        }
+        .modal-header button:hover {
+          background: var(--bg-default);
+          color: var(--text-primary);
+        }
 
         /* Utilities */
         .no-scrollbar::-webkit-scrollbar { display: none; }
