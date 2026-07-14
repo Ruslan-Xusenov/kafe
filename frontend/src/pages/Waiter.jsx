@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api, { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search, Lock } from 'lucide-react';
 
 const Waiter = () => {
   const [tables, setTables] = useState([]);
@@ -320,6 +320,8 @@ const Waiter = () => {
   const freeCount = tables.filter(t => t.status === 'free').length;
   const occCount = tables.filter(t => t.status !== 'free').length;
 
+  const isOrderOwnerOrAdmin = !existingOrder || !existingOrder.waiter_id || user?.role === 'admin' || existingOrder.waiter_id === user?.id;
+
   return (
     <div className="waiter-wrapper">
       <AnimatePresence mode="wait">
@@ -480,7 +482,9 @@ const Waiter = () => {
                               {user?.role === 'admin' && (
                                 <button onClick={() => stageDecrease(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
                               )}
-                              <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                              {isOrderOwnerOrAdmin && (
+                                <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                              )}
                             </div>
                           </span>
                           <span style={{ color: 'var(--text-muted)' }}>{(itemGroup.price * displayQty).toLocaleString()} сум</span>
@@ -497,9 +501,19 @@ const Waiter = () => {
                   </div>
                 </div>
               )}
+            </div>
 
-              <div className="search-bar-wrapper" style={{ padding: '0 1rem', marginBottom: '0.5rem', position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
+            {!isOrderOwnerOrAdmin ? (
+              <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Lock size={48} style={{ margin: '0 auto', marginBottom: '1rem', opacity: 0.3 }} />
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Ruxsat etilmagan</h3>
+                <p>Bu stolga <strong>{existingOrder.waiter_name || 'boshqa ofitsiant'}</strong> xizmat ko'rsatmoqda.</p>
+              </div>
+            ) : (
+              <>
+                <div className="menu-area" style={{ paddingTop: 0 }}>
+                  <div className="search-bar-wrapper" style={{ padding: '0 1rem', marginBottom: '0.5rem', position: 'relative' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
                 <input 
                   type="text" 
                   placeholder="Поиск..." 
@@ -633,9 +647,11 @@ const Waiter = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
 
       {/* Transfer Table Modal */}
       {showTransferModal && selectedTable && (
