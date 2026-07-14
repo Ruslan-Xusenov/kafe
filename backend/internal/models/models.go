@@ -31,6 +31,7 @@ type Table struct {
 	Capacity  *int      `json:"capacity" db:"capacity"`
 	Status    string    `json:"status" db:"status"` // "free", "occupied"
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ActiveWaiterID *int `json:"active_waiter_id" db:"active_waiter_id"`
 }
 
 type Category struct {
@@ -127,6 +128,7 @@ type StaffRating struct {
 	Rating    int       `json:"rating" db:"rating"`
 	Comment   string    `json:"comment" db:"comment"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ActiveWaiterID *int `json:"active_waiter_id" db:"active_waiter_id"`
 }
 
 type StaffPerformance struct {

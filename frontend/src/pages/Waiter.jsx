@@ -317,8 +317,15 @@ const Waiter = () => {
   );
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const freeCount = tables.filter(t => t.status === 'free').length;
-  const occCount = tables.filter(t => t.status !== 'free').length;
+  const displayTables = tables.filter(t => {
+    if (user?.role === 'admin') return true;
+    if (t.status === 'free') return true;
+    if (t.active_waiter_id === user?.id) return true;
+    return false;
+  });
+
+  const freeCount = displayTables.filter(t => t.status === 'free').length;
+  const occCount = displayTables.filter(t => t.status !== 'free').length;
 
   const isOrderOwnerOrAdmin = !existingOrder || !existingOrder.waiter_id || user?.role === 'admin' || existingOrder.waiter_id === user?.id;
 
@@ -357,7 +364,7 @@ const Waiter = () => {
             </header>
 
             <div className="tables-grid">
-              {tables.map((table, i) => (
+              {displayTables.map((table, i) => (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
