@@ -168,9 +168,11 @@ func main() {
 				staff.GET("/waiter-history", orderHandler.GetWaiterHistory)
 				staff.GET("/waiter-active/:waiterID", orderHandler.GetActiveOrdersByWaiter)
 				staff.GET("/waiter-hist/:waiterID", orderHandler.GetOrderHistoryByWaiter)
+				staff.GET("/active-by-table/:tableID", orderHandler.GetActiveOrderByTable)
 				staff.PUT("/:id/status", orderHandler.UpdateStatus)
 				staff.POST("/:id/assign", orderHandler.AssignCourier)
 				staff.POST("/:id/print", orderHandler.ReprintOrder)
+				staff.POST("/:id/add-items", orderHandler.AddItemsToOrder)
 				staff.PUT("/:id/service-fee", orderHandler.SetServiceFee)
 				staff.POST("/:id/items/:item_id/cancel", orderHandler.CancelOrderItem)
 			}

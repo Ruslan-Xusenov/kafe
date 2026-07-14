@@ -294,3 +294,54 @@ func (h *OrderHandler) CancelOrderItem(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Продукт отменен из заказа"})
 }
+
+func (h *OrderHandler) GetActiveOrderByTable(c *gin.Context) {
+	tableID, err := strconv.Atoi(c.Param("tableID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID стола"})
+		return
+	}
+	order, err := h.service.GetActiveOrderByTable(tableID)
+	if err != nil {
+		fmt.Printf("GET_ACTIVE_ORDER_BY_TABLE_ERROR: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if order == nil {
+		c.JSON(http.StatusOK, nil)
+		return
+	}
+	c.JSON(http.StatusOK, order)
+}
+
+func (h *OrderHandler) AddItemsToOrder(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
+		return
+	}
+
+	var req struct {
+		Items []models.OrderItem `json:"items"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.Items) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Список продуктов пуст"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+
+	updatedOrder, err := h.service.AddItemsToExistingOrder(orderID, req.Items, userID.(int))
+	if err != nil {
+		fmt.Printf("ADD_ITEMS_TO_ORDER_ERROR: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedOrder)
+}

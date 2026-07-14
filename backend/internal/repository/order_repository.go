@@ -566,3 +566,97 @@ func (r *OrderRepository) CancelItem(orderID, itemID int, cancelQty float64) err
 
 	return tx.Commit()
 }
+
+// FindActiveOrderByTableID returns the first active (non-delivered, non-cancelled) order for a table
+func (r *OrderRepository) FindActiveOrderByTableID(tableID int) (*models.Order, error) {
+	var order models.Order
+	query := `
+		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
+			   COALESCE(o.payment_method, '') as payment_method,
+			   o.created_at, o.updated_at,
+			   COALESCE(u1.full_name, '') as courier_name, 
+			   COALESCE(u2.full_name, '') as cook_name,
+			   COALESCE(u3.full_name, '') as waiter_name,
+			   t.number as table_number
+		FROM orders o
+		LEFT JOIN users u1 ON o.courier_id = u1.id
+		LEFT JOIN users u2 ON o.cook_id = u2.id
+		LEFT JOIN users u3 ON o.waiter_id = u3.id
+		LEFT JOIN tables t ON o.table_id = t.id
+		WHERE o.table_id = $1 
+		  AND o.status NOT IN ('delivered', 'cancelled')
+		ORDER BY o.created_at DESC
+		LIMIT 1
+	`
+	err := r.db.Get(&order, query, tableID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	// Fetch items
+	var items []models.OrderItem
+	itemQuery := `
+		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+			   COALESCE(oi.comment, '') as comment, oi.created_at,
+			   COALESCE(p.name, 'Noma''lum') as product_name,
+			   COALESCE(c.printer_target, 'ALL') as printer_target
+		FROM order_items oi
+		LEFT JOIN products p ON oi.product_id = p.id
+		LEFT JOIN categories c ON p.category_id = c.id
+		WHERE oi.order_id = $1
+	`
+	_ = r.db.Select(&items, itemQuery, order.ID)
+	order.Items = items
+
+	return &order, nil
+}
+
+// AddItemsToOrder appends new items to an existing order and recalculates totals
+func (r *OrderRepository) AddItemsToOrder(orderID int, items []models.OrderItem) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Insert new items
+	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, unit, comment) 
+                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`
+	for i := range items {
+		item := &items[i]
+		err = tx.QueryRow(itemQuery, orderID, item.ProductID, item.Quantity, item.Price, item.Unit, item.Comment).
+			Scan(&item.ID, &item.CreatedAt)
+		if err != nil {
+			return fmt.Errorf("failed to insert order item: %w", err)
+		}
+	}
+
+	// Recalculate order total from ALL items (old + new)
+	var newBaseTotal float64
+	err = tx.Get(&newBaseTotal, `SELECT COALESCE(SUM(price * quantity), 0) FROM order_items WHERE order_id = $1`, orderID)
+	if err != nil {
+		return err
+	}
+
+	// Get service percentage to recalculate service fee
+	var servicePercentage float64
+	err = tx.Get(&servicePercentage, `SELECT COALESCE(service_percentage, 0) FROM orders WHERE id = $1`, orderID)
+	if err != nil {
+		return err
+	}
+
+	serviceFee := newBaseTotal * servicePercentage / 100
+	finalTotal := newBaseTotal + serviceFee
+
+	_, err = tx.Exec(`UPDATE orders SET total_price = $1, service_fee = $2, updated_at = NOW() WHERE id = $3`, finalTotal, serviceFee, orderID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}

@@ -1544,25 +1544,39 @@ const Admin = () => {
               <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
                 <h4 style={{ marginBottom: '0.75rem' }}>Список продуктов</h4>
                 <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                  {(selectedOrderDetails.items || []).map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
-                      <div>
-                        <div className="font-700">{item.product_name || 'Noma\'lum'}</div>
-                        <div className="text-muted" style={{ fontSize: '0.85rem' }}>{item.quantity} {item.unit || 'x'}</div>
+                  {(() => {
+                    // Group items by product_id, summing quantities
+                    const grouped = (selectedOrderDetails.items || []).reduce((acc, item) => {
+                      const key = item.product_id;
+                      if (acc[key]) {
+                        acc[key].quantity += item.quantity;
+                        acc[key].totalPrice += (item.price || 0) * item.quantity;
+                        acc[key]._origItems.push(item);
+                      } else {
+                        acc[key] = { ...item, totalPrice: (item.price || 0) * item.quantity, _origItems: [item] };
+                      }
+                      return acc;
+                    }, {});
+                    return Object.values(grouped).map((item) => (
+                      <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <div>
+                          <div className="font-700">{item.product_name || "Noma'lum"}</div>
+                          <div className="text-muted" style={{ fontSize: '0.85rem' }}>{item.quantity} {item.unit || 'x'}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div className="font-700 text-primary">{item.totalPrice.toLocaleString()} сум</div>
+                          <button 
+                            className="delete-btn-ico" 
+                            style={{ padding: '0.2rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                            onClick={() => handleRemoveOrderItem(selectedOrderDetails.id, item._origItems[item._origItems.length - 1])}
+                            title="Отменить"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div className="font-700 text-primary">{(item.price || 0).toLocaleString()} сум</div>
-                        <button 
-                          className="delete-btn-ico" 
-                          style={{ padding: '0.2rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                          onClick={() => handleRemoveOrderItem(selectedOrderDetails.id, item)}
-                          title="Отменить"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </div>
               

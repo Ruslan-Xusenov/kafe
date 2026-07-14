@@ -26,7 +26,7 @@ func (r *ProductRepository) Create(product *models.Product) error {
 func (r *ProductRepository) GetAll() ([]models.Product, error) {
 	var products []models.Product
 	query := `
-		SELECT p.*,
+		SELECT p.id, p.category_id, p.name, COALESCE(p.description, '') as description, p.price, COALESCE(p.image_url, '') as image_url, p.is_active, COALESCE(p.unit, 'dona') as unit, COALESCE(p.min_quantity, 1) as min_quantity, COALESCE(p.quantity_step, 1) as quantity_step, COALESCE(p.has_mandatory_container, false) as has_mandatory_container, p.created_at, p.updated_at,
 		COALESCE((
 			SELECT SUM(
 				CASE 
@@ -60,7 +60,7 @@ func (r *ProductRepository) GetAll() ([]models.Product, error) {
 func (r *ProductRepository) GetByCategoryID(categoryID int) ([]models.Product, error) {
 	var products []models.Product
 	query := `
-		SELECT p.*,
+		SELECT p.id, p.category_id, p.name, COALESCE(p.description, '') as description, p.price, COALESCE(p.image_url, '') as image_url, p.is_active, COALESCE(p.unit, 'dona') as unit, COALESCE(p.min_quantity, 1) as min_quantity, COALESCE(p.quantity_step, 1) as quantity_step, COALESCE(p.has_mandatory_container, false) as has_mandatory_container, p.created_at, p.updated_at,
 		COALESCE((
 			SELECT SUM(
 				CASE 
@@ -94,7 +94,7 @@ func (r *ProductRepository) GetByCategoryID(categoryID int) ([]models.Product, e
 func (r *ProductRepository) GetByID(id int) (*models.Product, error) {
 	var product models.Product
 	query := `
-		SELECT p.*,
+		SELECT p.id, p.category_id, p.name, COALESCE(p.description, '') as description, p.price, COALESCE(p.image_url, '') as image_url, p.is_active, COALESCE(p.unit, 'dona') as unit, COALESCE(p.min_quantity, 1) as min_quantity, COALESCE(p.quantity_step, 1) as quantity_step, COALESCE(p.has_mandatory_container, false) as has_mandatory_container, p.created_at, p.updated_at,
 		COALESCE((
 			SELECT SUM(
 				CASE 

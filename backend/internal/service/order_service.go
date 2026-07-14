@@ -556,3 +556,91 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 
 	return nil
 }
+
+// GetActiveOrderByTable returns the active order for a table (if any)
+func (s *OrderService) GetActiveOrderByTable(tableID int) (*models.Order, error) {
+	return s.orderRepo.FindActiveOrderByTableID(tableID)
+}
+
+// AddItemsToExistingOrder appends new items to an existing active order
+func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.OrderItem, waiterID int) (*models.Order, error) {
+	// 1. Get existing order
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil || order == nil {
+		return nil, fmt.Errorf("buyurtma topilmadi (ID: %d)", orderID)
+	}
+
+	// 2. Check order is still active
+	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
+		return nil, fmt.Errorf("bu buyurtma allaqachon yopilgan")
+	}
+
+	// 3. Check waiter ownership
+	if order.WaiterID != nil && *order.WaiterID != waiterID {
+		return nil, fmt.Errorf("siz faqat o'zingizning buyurtmalaringizga element qo'sha olasiz")
+	}
+
+	// 4. Validate and set prices from DB
+	for i := range items {
+		item := &items[i]
+		prod, err := s.productRepo.GetByID(item.ProductID)
+		if err != nil || prod == nil {
+			return nil, fmt.Errorf("mahsulot topilmadi (ID: %d)", item.ProductID)
+		}
+
+		itemPrice := prod.Price
+		if item.Unit == "dona" && prod.Unit == "pors" {
+			itemPrice = prod.Price / 4.0
+		}
+
+		item.Price = itemPrice
+		item.ProductName = prod.Name
+	}
+
+	// 5. Add items to DB and recalculate totals
+	if err := s.orderRepo.AddItemsToOrder(orderID, items); err != nil {
+		return nil, err
+	}
+
+	// 6. Deduct inventory for new items
+	for _, item := range items {
+		_ = s.inventoryRepo.DeductStockForProduct(item.ProductID, item.Quantity)
+	}
+
+	// 7. Fetch updated order
+	updatedOrder, err := s.orderRepo.GetByID(orderID)
+	if err != nil || updatedOrder == nil {
+		return nil, fmt.Errorf("yangilangan buyurtmani olishda xatolik")
+	}
+
+	// 8. Enrich new items with product names for notification
+	for i := range items {
+		prod, _ := s.productRepo.GetByID(items[i].ProductID)
+		if prod != nil {
+			items[i].ProductName = prod.Name
+		}
+	}
+
+	// 9. Build a partial order with ONLY new items for printing to kitchen
+	partialOrder := &models.Order{
+		ID:          updatedOrder.ID,
+		TableID:     updatedOrder.TableID,
+		TableNumber: updatedOrder.TableNumber,
+		WaiterID:    updatedOrder.WaiterID,
+		WaiterName:  updatedOrder.WaiterName,
+		TotalPrice:  updatedOrder.TotalPrice,
+		Items:       items,
+		CreatedAt:   updatedOrder.CreatedAt,
+		Status:      updatedOrder.Status,
+	}
+
+	// 10. Notify kitchen and admin about new items
+	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": partialOrder})
+	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": partialOrder})
+
+	// 11. Print ONLY the new items (not the entire order)
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": partialOrder})
+	go s.printerService.PrintOrder(partialOrder)
+
+	return updatedOrder, nil
+}

@@ -12,6 +12,7 @@ const Waiter = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [cart, setCart] = useState([]);
   const [isCartExpanded, setIsCartExpanded] = useState(false);
+  const [existingOrder, setExistingOrder] = useState(null);
   
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -66,11 +67,25 @@ const Waiter = () => {
     }
   };
 
-  const handleTableSelect = (table) => {
+  const handleTableSelect = async (table) => {
     setSelectedTable(table);
     setCart([]);
     setIsCartExpanded(false);
+    setExistingOrder(null);
     setActiveCategory(categories.length > 0 ? categories[0].id : null);
+
+    // Check for existing active order on this table
+    if (table.status === 'occupied') {
+      try {
+        const res = await api.get(`/orders/active-by-table/${table.id}`);
+        if (res.data && res.data.id) {
+          setExistingOrder(res.data);
+        }
+      // eslint-disable-next-line no-unused-vars
+      } catch (err) {
+        // No active order found, that's fine
+      }
+    }
   };
 
   const addToCart = (product) => {
@@ -111,31 +126,42 @@ const Waiter = () => {
     if (!selectedTable) return alert("Стол не выбран!");
 
     const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const items = cart.map(item => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.price,
+      unit: item.unit
+    }));
     
     try {
-      const payload = {
-        table_id: selectedTable.id,
-        items: cart.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          unit: item.unit
-        })),
-        total_price: totalPrice,
-        address: `Стол: ${selectedTable.number}`,
-        phone: 'Внутренний заказ'
-      };
+      if (existingOrder) {
+        // Add items to existing active order
+        const res = await api.post(`/orders/${existingOrder.id}/add-items`, { items });
+        setExistingOrder(res.data);
+        alert(`Buyurtma #${existingOrder.id} ga qo'shildi!`);
+      } else {
+        // Create new order
+        const payload = {
+          table_id: selectedTable.id,
+          items,
+          total_price: totalPrice,
+          address: `Стол: ${selectedTable.number}`,
+          phone: 'Внутренний заказ'
+        };
 
-      await api.post('/orders', payload);
+        await api.post('/orders', payload);
       
-      if (selectedTable.status === 'free') {
-         await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'occupied' });
+        if (selectedTable.status === 'free') {
+           await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'occupied' });
+        }
+
+        alert('Заказ отправлен на кухню!');
       }
 
-      alert('Заказ отправлен на кухню!');
       setSelectedTable(null);
       setCart([]);
       setIsCartExpanded(false);
+      setExistingOrder(null);
       fetchInitialData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
@@ -268,15 +294,21 @@ const Waiter = () => {
             className="order-container"
           >
             <header className="order-header glass sticky top-0 z-20">
-              <button className="back-button" onClick={() => setSelectedTable(null)}>
+              <button className="back-button" onClick={() => { setSelectedTable(null); setExistingOrder(null); }}>
                 <ArrowLeft size={20} />
                 <span>Назад</span>
               </button>
               <div className="header-center">
                 <h2>Стол № {selectedTable.number}</h2>
-                <span className={`status-badge-small ${selectedTable.status}`}>
-                  {selectedTable.status === 'free' ? 'Свободен' : 'Занят'}
-                </span>
+                {existingOrder ? (
+                  <span className="status-badge-small occupied" style={{ background: 'rgba(249,115,22,0.15)', color: '#f97316', borderColor: 'rgba(249,115,22,0.3)' }}>
+                    Buyurtma #{existingOrder.id}
+                  </span>
+                ) : (
+                  <span className={`status-badge-small ${selectedTable.status}`}>
+                    {selectedTable.status === 'free' ? 'Свободен' : 'Занят'}
+                  </span>
+                )}
               </div>
               <div className="header-right">
                 {selectedTable.status !== 'free' && (
@@ -291,6 +323,36 @@ const Waiter = () => {
             </header>
 
             <div className="menu-area">
+              {/* Existing order items display */}
+              {existingOrder && existingOrder.items && existingOrder.items.length > 0 && (
+                <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
+                  <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.95rem' }}>📋 Mavjud buyurtma #{existingOrder.id}</span>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{(existingOrder.total_price || 0).toLocaleString()} сум</span>
+                    </div>
+                    {(() => {
+                      // Group items by product_id, summing quantities
+                      const grouped = existingOrder.items.reduce((acc, item) => {
+                        const key = item.product_id;
+                        if (acc[key]) {
+                          acc[key].quantity += item.quantity;
+                        } else {
+                          acc[key] = { ...item };
+                        }
+                        return acc;
+                      }, {});
+                      return Object.values(grouped).map(item => (
+                        <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', fontSize: '0.9rem', borderTop: '1px dashed var(--border)' }}>
+                          <span>{item.product_name} × {item.quantity} {item.unit}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{(item.price * item.quantity).toLocaleString()} сум</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
+
               <div className="search-bar-wrapper" style={{ padding: '0 1rem', marginBottom: '0.5rem', position: 'relative' }}>
                 <Search size={18} style={{ position: 'absolute', left: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
                 <input 
@@ -421,7 +483,7 @@ const Waiter = () => {
                   </div>
                   <button className="submit-order-btn" onClick={submitOrder}>
                     <Send size={18} />
-                    Отправить на кухню
+                    {existingOrder ? `Buyurtma #${existingOrder.id} ga qo'shish` : 'Отправить на кухню'}
                   </button>
                 </motion.div>
               )}
@@ -435,39 +497,68 @@ const Waiter = () => {
         <div className="modal-overlay" style={{ zIndex: 100 }}>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '800px', background: '#ffffff', maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
             <div className="modal-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <h3>Мои заказы (История)</h3>
+              <h3>Mening buyurtmalarim</h3>
               <button onClick={() => setShowHistory(false)}><X size={20} /></button>
             </div>
             <div className="order-details-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
               {history.length === 0 ? (
-                <div className="text-center text-muted py-8">Пока нет заказов</div>
+                <div className="text-center text-muted py-8">Hali buyurtmalar yo'q</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {history.map(order => (
-                    <div key={order.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span className="font-700 text-primary">Чек #{order.id}</span>
-                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleString('ru-RU')}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {history.map(order => {
+                    const isActive = order.status !== 'delivered' && order.status !== 'cancelled';
+                    const paymentLabel = order.payment_method === 'cash' ? '💵 Naqd' :
+                      order.payment_method === 'card' ? '💳 Karta' :
+                      order.payment_method === 'click' ? '📱 Click/Payme' :
+                      order.payment_method === 'nasiya' ? '📒 Nasiya' : null;
+                    return (
+                      <div key={order.id} style={{ 
+                        background: isActive ? 'rgba(249,115,22,0.04)' : 'var(--bg-surface)', 
+                        border: `1.5px solid ${isActive ? 'rgba(249,115,22,0.25)' : 'var(--border)'}`, 
+                        borderRadius: '14px', 
+                        padding: '1rem 1.15rem',
+                        transition: 'all 0.2s'
+                      }}>
+                        {/* Row 1: Order ID + Date */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--primary)' }}>#{order.id}-buyurtma</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(order.created_at).toLocaleString('ru-RU')}</span>
+                        </div>
+                        {/* Row 2: Table + Status */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                          <span style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            🪑 <b>Stol {order.table_number || order.table_id || '-'}</b>
+                          </span>
+                          {isActive ? (
+                            <span style={{
+                              background: 'rgba(249,115,22,0.12)', color: '#f97316', border: '1px solid rgba(249,115,22,0.3)',
+                              padding: '3px 12px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.03em'
+                            }}>🟠 Faol</span>
+                          ) : order.status === 'cancelled' ? (
+                            <span style={{
+                              background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
+                              padding: '3px 12px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 700
+                            }}>❌ Bekor qilingan</span>
+                          ) : paymentLabel ? (
+                            <span style={{
+                              background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)',
+                              padding: '3px 12px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 700
+                            }}>{paymentLabel} orqali to'langan</span>
+                          ) : (
+                            <span style={{
+                              background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)',
+                              padding: '3px 12px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 700
+                            }}>✅ Yopilgan</span>
+                          )}
+                        </div>
+                        {/* Row 3: Total */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px dashed var(--border)' }}>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Umumiy summa:</span>
+                          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{(order.total_price || 0).toLocaleString()} so'm</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                        <span>Стол: <b>№{order.table_number || order.table_id || '-'}</b></span>
-                        <span className={`status-badge-small ${order.status}`}>
-                          {STATUS_MAP[order.status] || order.status}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                        <span className="text-muted">Оплата: </span>
-                        {order.payment_method === 'cash' ? '💵 Наличные' :
-                         order.payment_method === 'card' ? '💳 Терминал (Карта)' :
-                         order.payment_method === 'click' ? '📱 Click/Payme' :
-                         order.payment_method === 'nasiya' ? '📒 В долг' : (order.payment_method || '-')}
-                      </div>
-                      <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-                        <span className="text-muted">Итоговая сумма:</span>
-                        <span className="font-700">{(order.total_price || 0).toLocaleString()} сум</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
