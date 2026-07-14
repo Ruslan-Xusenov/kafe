@@ -154,6 +154,13 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		if prod != nil {
 			order.Items[i].ProductName = prod.Name
 		}
+
+		target, err := s.productRepo.GetPrinterTarget(order.Items[i].ProductID)
+		if err == nil {
+			order.Items[i].PrinterTarget = target
+		} else {
+			order.Items[i].PrinterTarget = "ALL"
+		}
 		
 		// Deduct inventory stock
 		_ = s.inventoryRepo.DeductStockForProduct(order.Items[i].ProductID, order.Items[i].Quantity)
@@ -451,7 +458,7 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 		return fmt.Errorf("item not found in order")
 	}
 	
-	// Validate quantity
+	// Validate 
 	if cancelQty <= 0 {
 		return fmt.Errorf("quantity must be greater than 0")
 	}
@@ -459,12 +466,10 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 		cancelQty = cancelledItem.Quantity
 	}
 
-	// Update DB
 	if err := s.orderRepo.CancelItem(orderID, itemID, cancelQty); err != nil {
 		return err
 	}
 
-	// Broadcast cancellation to printer with the specific cancelled quantity
 	cancelledItem.Quantity = cancelQty
 	cancelPayload := map[string]interface{}{
 		"type": "cancel_item",
@@ -478,14 +483,12 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 	return nil
 }
 
-// CloseTable marks all active orders for a table as delivered and prints ONE combined receipt.
 func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int, role string) error {
 	activeOrders, err := s.orderRepo.GetAll()
 	if err != nil {
 		return err
 	}
 
-	// Filter orders belonging to this table that are still active
 	var tableOrders []*models.Order
 	for i := range activeOrders {
 		o := &activeOrders[i]
@@ -496,10 +499,9 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 	}
 
 	if len(tableOrders) == 0 {
-		return nil // Nothing to close
+		return nil 
 	}
 
-	// Mark all orders as delivered
 	for _, o := range tableOrders {
 		if paymentMethod != "" {
 			_ = s.orderRepo.SetPaymentMethod(o.ID, paymentMethod)
@@ -507,16 +509,13 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 		_ = s.orderRepo.UpdateStatus(o.ID, models.StatusDelivered, nil)
 	}
 
-	// Build ONE combined receipt from the first order's metadata + all items merged
 	firstOrder := tableOrders[0]
 
-	// Re-fetch first order to get full waiter/table info
 	populated, err := s.orderRepo.GetByID(firstOrder.ID)
 	if err != nil || populated == nil {
 		populated = firstOrder
 	}
 
-	// Merge all items and sum totals
 	var allItems []models.OrderItem
 	var grandTotal float64
 	var grandServiceFee float64
@@ -534,8 +533,6 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 			servicePercentage = full.ServicePercentage
 		}
 	}
-
-	// Create combined order struct for printing
 	combinedOrder := &models.Order{
 		ID:                populated.ID,
 		TableID:           populated.TableID,
@@ -550,39 +547,29 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 		Status:           models.StatusDelivered,
 	}
 
-	// Broadcast ONE combined receipt to printer
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": combinedOrder})
 	go s.printerService.PrintOrder(combinedOrder)
 
 	return nil
 }
 
-// GetActiveOrderByTable returns the active order for a table (if any)
 func (s *OrderService) GetActiveOrderByTable(tableID int) (*models.Order, error) {
 	return s.orderRepo.FindActiveOrderByTableID(tableID)
 }
-
-// AddItemsToExistingOrder appends new items to an existing active order
 func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.OrderItem, userID int, role string) (*models.Order, error) {
-	// 1. Get existing order
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil || order == nil {
 		return nil, fmt.Errorf("buyurtma topilmadi (ID: %d)", orderID)
 	}
 
-	// 2. Check order is still active
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
 		return nil, fmt.Errorf("bu buyurtma allaqachon yopilgan")
 	}
-
-	// 3. Check waiter ownership (Admin can bypass)
 	if role != "admin" {
 		if order.WaiterID != nil && *order.WaiterID != userID {
 			return nil, fmt.Errorf("вы можете добавлять товары только в свои заказы")
 		}
 	}
-
-	// 4. Validate and set prices from DB
 	for i := range items {
 		item := &items[i]
 		prod, err := s.productRepo.GetByID(item.ProductID)
@@ -597,25 +584,28 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 
 		item.Price = itemPrice
 		item.ProductName = prod.Name
+
+		target, err := s.productRepo.GetPrinterTarget(item.ProductID)
+		if err == nil {
+			item.PrinterTarget = target
+		} else {
+			item.PrinterTarget = "ALL"
+		}
 	}
 
-	// 5. Add items to DB and recalculate totals
 	if err := s.orderRepo.AddItemsToOrder(orderID, items); err != nil {
 		return nil, err
 	}
 
-	// 6. Deduct inventory for new items
 	for _, item := range items {
 		_ = s.inventoryRepo.DeductStockForProduct(item.ProductID, item.Quantity)
 	}
 
-	// 7. Fetch updated order
 	updatedOrder, err := s.orderRepo.GetByID(orderID)
 	if err != nil || updatedOrder == nil {
 		return nil, fmt.Errorf("yangilangan buyurtmani olishda xatolik")
 	}
 
-	// 8. Enrich new items with product names for notification
 	for i := range items {
 		prod, _ := s.productRepo.GetByID(items[i].ProductID)
 		if prod != nil {
@@ -623,7 +613,6 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 		}
 	}
 
-	// 9. Build a partial order with ONLY new items for printing to kitchen
 	partialOrder := &models.Order{
 		ID:          updatedOrder.ID,
 		TableID:     updatedOrder.TableID,
@@ -636,17 +625,12 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 		Status:      updatedOrder.Status,
 	}
 
-	// 10. Notify kitchen and admin about new items
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": partialOrder})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": partialOrder})
 
-	// 11. Print ONLY the new items (not the entire order)
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "is_dop": true, "order": partialOrder})
 	go s.printerService.PrintOrder(partialOrder)
 
-	// WORKAROUND: The local printer bridge (running at the cafe) has a 30s deduplication filter 
-	// based on the order ID. Since 'dop' items share the same order ID, rapid consecutive additions 
-	// get blocked. We send a dummy order with a fake ID to reset the bridge's lastOrderID state.
 	dummyOrder := map[string]interface{}{
 		"id": -9999,
 		"items": []interface{}{},

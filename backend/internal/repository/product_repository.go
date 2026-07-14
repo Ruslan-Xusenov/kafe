@@ -145,3 +145,14 @@ func (r *ProductRepository) Delete(id int) error {
 	_, err := r.db.Exec(query, id)
 	return err
 }
+
+func (r *ProductRepository) GetPrinterTarget(productID int) (string, error) {
+	var target string
+	query := `SELECT COALESCE(c.printer_target, 'ALL') FROM categories c JOIN products p ON c.id = p.category_id WHERE p.id = $1`
+	err := r.db.Get(&target, query, productID)
+	if err != nil {
+		return "ALL", err
+	}
+	return target, nil
+}
+
