@@ -1012,7 +1012,16 @@ const Admin = () => {
                   {orders.map(o => (
                     <tr key={o.id}>
                       <td>#{o.id}</td>
-                      <td>{o.phone}</td>
+                      <td>
+                        {o.table_number ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontWeight: 'bold' }}>Стол: {o.table_number}</span>
+                            <span style={{ fontSize: '0.85rem', color: '#666' }}>Официант: {o.waiter_name || 'Неизвестно'}</span>
+                          </div>
+                        ) : (
+                          o.phone
+                        )}
+                      </td>
                       <td>{o.total_price.toLocaleString()}</td>
                       <td><span className={`status-badge ${o.status}`}>{o.status}</span></td>
                       <td>{new Date(o.created_at).toLocaleDateString()}</td>
