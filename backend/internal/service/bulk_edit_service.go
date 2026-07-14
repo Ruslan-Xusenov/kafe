@@ -97,7 +97,7 @@ func (s *OrderService) BulkEditOrder(orderID int, addItems []models.OrderItem, c
 			"added_items":     addedItemsForPrint,
 			"cancelled_items": cancelledItemsForPrint,
 			"waiter_name":     order.WaiterName,
-			"table_number":    order.TableNumber,
+			"table_name":      order.TableName,
 		}
 		s.wsService.BroadcastToRole("printer", bulkPayload)
 	}

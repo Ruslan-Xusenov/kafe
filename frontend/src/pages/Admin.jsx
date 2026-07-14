@@ -50,7 +50,7 @@ const Admin = () => {
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
   const [serviceFeePercent, setServiceFeePercent] = useState(10);
   const [showTableModal, setShowTableModal] = useState(false);
-  const [newTable, setNewTable] = useState({ number: '', capacity: '' });
+  const [newTable, setNewTable] = useState({ name: '', capacity: '' });
 
   const [selectedWaiter, setSelectedWaiter] = useState(null);
   const [waiterOrders, setWaiterOrders] = useState([]);
@@ -415,11 +415,11 @@ const Admin = () => {
     e.preventDefault();
     try {
       await api.post('/tables', { 
-        number: parseInt(newTable.number),
+        number: parseInt(newTable.name),
         capacity: parseInt(newTable.capacity) || 4 
       });
       setShowTableModal(false);
-      setNewTable({ number: '', capacity: '' });
+      setNewTable({ name: '', capacity: '' });
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
@@ -628,7 +628,7 @@ const Admin = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                           <div>
                             <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>Чек #{order.id}</span>
-                            <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Стол №{order.table_number || order.table_id}</span>
+                            <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Стол №{order.table_name || order.table_id}</span>
                           </div>
                           <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{(order.total_price || 0).toLocaleString()} сум</span>
                         </div>
@@ -720,7 +720,7 @@ const Admin = () => {
                             <span style={{ fontWeight: 800 }}>{(order.total_price || 0).toLocaleString()} сум</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.3rem' }}>
-                            <span className="text-muted">Стол №{order.table_number || order.table_id}</span>
+                            <span className="text-muted">Стол №{order.table_name || order.table_id}</span>
                             <span className={`status-badge ${order.status}`}>{STATUS_MAP[order.status] || order.status}</span>
                           </div>
                           <div style={{ fontSize: '0.85rem' }}>
@@ -1026,9 +1026,9 @@ const Admin = () => {
                     <tr key={o.id}>
                       <td>#{o.id}</td>
                       <td>
-                        {o.table_number ? (
+                        {o.table_name ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontWeight: 'bold' }}>Стол: {o.table_number}</span>
+                            <span style={{ fontWeight: 'bold' }}>Стол: {o.table_name}</span>
                             <span style={{ fontSize: '0.85rem', color: '#666' }}>Официант: {o.waiter_name || 'Неизвестно'}</span>
                           </div>
                         ) : (
@@ -1219,7 +1219,7 @@ const Admin = () => {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Номер стола</th>
+                    <th>Название стола</th>
                     <th>Кол-во человек (Capacity)</th>
                     <th>Статус</th>
                     <th>Действия</th>
@@ -1228,7 +1228,7 @@ const Admin = () => {
                 <tbody>
                   {tables.map(t => (
                     <tr key={t.id}>
-                      <td>№{t.number}</td>
+                      <td>{t.name}</td>
                       <td>{t.capacity || 4} чел.</td>
                       <td>
                         <span className={`status-badge ${t.status === 'free' ? 'ready' : 'cancelled'}`}>
@@ -1493,12 +1493,12 @@ const Admin = () => {
             </div>
             <form onSubmit={handleCreateTable}>
               <div className="input-group mb-4">
-                <label>Номер стола</label>
+                <label>Название стола</label>
                 <input 
                   type="number"
                   required
-                  value={newTable.number} 
-                  onChange={e => setNewTable({...newTable, number: e.target.value})} 
+                  value={newTable.name} 
+                  onChange={e => setNewTable({...newTable, name: e.target.value})} 
                 />
               </div>
               <div className="input-group mb-4">
@@ -1550,7 +1550,7 @@ const Admin = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="text-muted">Адрес / Стол:</span>
-                <span className="font-700">{selectedOrderDetails.table_id ? `Стол №${tables.find(t => t.id === selectedOrderDetails.table_id)?.number || selectedOrderDetails.table_id}` : selectedOrderDetails.address || '-'}</span>
+                <span className="font-700">{selectedOrderDetails.table_id ? `Стол №${tables.find(t => t.id === selectedOrderDetails.table_id)?.name || selectedOrderDetails.table_id}` : selectedOrderDetails.address || '-'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="text-muted">Официант:</span>

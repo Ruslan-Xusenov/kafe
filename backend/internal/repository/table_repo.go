@@ -16,7 +16,7 @@ func NewTableRepository(db *sqlx.DB) *TableRepository {
 
 func (r *TableRepository) GetAll() ([]models.Table, error) {
 	var tables []models.Table
-	err := r.db.Select(&tables, "SELECT * FROM tables ORDER BY number ASC")
+	err := r.db.Select(&tables, "SELECT * FROM tables ORDER BY name ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +33,13 @@ func (r *TableRepository) GetByID(id int) (*models.Table, error) {
 }
 
 func (r *TableRepository) Create(table *models.Table) error {
-	query := `INSERT INTO tables (number, capacity, status) VALUES ($1, $2, $3) RETURNING id, created_at`
-	return r.db.QueryRow(query, table.Number, table.Capacity, table.Status).Scan(&table.ID, &table.CreatedAt)
+	query := `INSERT INTO tables (name, capacity, status) VALUES ($1, $2, $3) RETURNING id, created_at`
+	return r.db.QueryRow(query, table.Name, table.Capacity, table.Status).Scan(&table.ID, &table.CreatedAt)
 }
 
 func (r *TableRepository) Update(table *models.Table) error {
-	query := `UPDATE tables SET number = $1, capacity = $2, status = $3 WHERE id = $4`
-	_, err := r.db.Exec(query, table.Number, table.Capacity, table.Status, table.ID)
+	query := `UPDATE tables SET name = $1, capacity = $2, status = $3 WHERE id = $4`
+	_, err := r.db.Exec(query, table.Name, table.Capacity, table.Status, table.ID)
 	return err
 }
 

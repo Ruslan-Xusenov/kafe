@@ -60,9 +60,9 @@ const Printer = () => {
             <div className="receipt-divider">======================</div>
             <p className="receipt-text">Заказ #{latestOrder.id}</p>
             <p className="receipt-text">Дата: {new Date(latestOrder.created_at).toLocaleString()}</p>
-            {latestOrder.table_number ? (
+            {latestOrder.table_name ? (
               <>
-                <p className="receipt-text" style={{fontSize: '16px', fontWeight: 'bold'}}>Стол: №{latestOrder.table_number}</p>
+                <p className="receipt-text" style={{fontSize: '16px', fontWeight: 'bold'}}>Стол: №{latestOrder.table_name}</p>
                 <p className="receipt-text">Официант: {latestOrder.waiter_name}</p>
               </>
             ) : (

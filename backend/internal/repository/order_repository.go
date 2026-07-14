@@ -75,7 +75,7 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -123,7 +123,7 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -167,7 +167,7 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -213,7 +213,7 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -389,7 +389,7 @@ func (r *OrderRepository) GetWaiterHistory() ([]models.Order, error) {
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -435,7 +435,7 @@ func (r *OrderRepository) GetActiveByWaiterID(waiterID int) ([]models.Order, err
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -480,7 +480,7 @@ func (r *OrderRepository) GetHistoryByWaiterID(waiterID int) ([]models.Order, er
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id
@@ -579,7 +579,7 @@ func (r *OrderRepository) FindActiveOrderByTableID(tableID int) (*models.Order, 
 			   COALESCE(u1.full_name, '') as courier_name, 
 			   COALESCE(u2.full_name, '') as cook_name,
 			   COALESCE(u3.full_name, '') as waiter_name,
-			   t.number as table_number
+			   t.name as table_name
 		FROM orders o
 		LEFT JOIN users u1 ON o.courier_id = u1.id
 		LEFT JOIN users u2 ON o.cook_id = u2.id

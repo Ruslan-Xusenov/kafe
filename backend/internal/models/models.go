@@ -27,7 +27,7 @@ type User struct {
 
 type Table struct {
 	ID        int       `json:"id" db:"id"`
-	Number    int       `json:"number" db:"number"`
+	Name      string    `json:"name" db:"name"`
 	Capacity  *int      `json:"capacity" db:"capacity"`
 	Status    string    `json:"status" db:"status"` // "free", "occupied"
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
@@ -88,7 +88,7 @@ type Order struct {
 	CourierName string     `json:"courier_name" db:"courier_name"` // Joined field
 	CookName    string     `json:"cook_name" db:"cook_name"`       // Joined field
 	WaiterName  string     `json:"waiter_name" db:"waiter_name"`   // Joined field
-	TableNumber *int       `json:"table_number" db:"table_number"` // Joined field
+	TableName   string     `json:"table_name" db:"table_name"` // Joined field
 	Comment    string     `json:"comment" db:"comment"`
 	ServicePercentage float64 `json:"service_percentage" db:"service_percentage"`
 	ServiceFee float64   `json:"service_fee" db:"service_fee"`

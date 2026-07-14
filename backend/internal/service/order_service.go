@@ -476,7 +476,7 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 		"order_id": orderID,
 		"item": cancelledItem,
 		"waiter_name": order.WaiterName,
-		"table_number": order.TableNumber,
+		"table_name":   order.TableName,
 	}
 	s.wsService.BroadcastToRole("printer", cancelPayload)
 
@@ -536,7 +536,7 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 	combinedOrder := &models.Order{
 		ID:                populated.ID,
 		TableID:           populated.TableID,
-		TableNumber:       populated.TableNumber,
+		TableName:       populated.TableName,
 		WaiterID:         populated.WaiterID,
 		WaiterName:       populated.WaiterName,
 		TotalPrice:       grandTotal,
@@ -616,7 +616,7 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 	partialOrder := &models.Order{
 		ID:          updatedOrder.ID,
 		TableID:     updatedOrder.TableID,
-		TableNumber: updatedOrder.TableNumber,
+		TableName: updatedOrder.TableName,
 		WaiterID:    updatedOrder.WaiterID,
 		WaiterName:  updatedOrder.WaiterName,
 		TotalPrice:  updatedOrder.TotalPrice,
@@ -694,7 +694,7 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 		"order_id": orderID,
 		"item": cancelledItem,
 		"waiter_name": order.WaiterName,
-		"table_number": order.TableNumber,
+		"table_name":   order.TableName,
 	}
 	s.wsService.BroadcastToRole("printer", cancelPayload)
 

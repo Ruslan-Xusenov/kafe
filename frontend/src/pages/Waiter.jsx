@@ -142,7 +142,7 @@ const Waiter = () => {
           table_id: selectedTable.id,
           items,
           total_price: totalPrice,
-          address: `Стол: ${selectedTable.number}`,
+          address: `Стол: ${selectedTable.name}`,
           phone: 'Внутренний заказ'
         };
 
@@ -317,7 +317,7 @@ const Waiter = () => {
                       <Coffee size={24} />
                     </div>
                     <div className="table-details">
-                      <h3>№ {table.number}</h3>
+                      <h3>№ {table.name}</h3>
                       <span>{table.capacity} чел</span>
                     </div>
                   </div>
@@ -351,7 +351,7 @@ const Waiter = () => {
                 <span>Назад</span>
               </button>
               <div className="header-center">
-                <h2>Стол № {selectedTable.number}</h2>
+                <h2>Стол № {selectedTable.name}</h2>
                 {existingOrder ? (
                   <span className="status-badge-small occupied" style={{ background: 'rgba(249,115,22,0.15)', color: '#f97316', borderColor: 'rgba(249,115,22,0.3)' }}>
                     Buyurtma #{existingOrder.id}
@@ -603,7 +603,7 @@ const Waiter = () => {
                         {/* Row 2: Table + Status */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
                           <span style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            🪑 <b>Stol {order.table_number || order.table_id || '-'}</b>
+                            🪑 <b>Stol {order.table_name || order.table_id || '-'}</b>
                           </span>
                           {isActive ? (
                             <span style={{

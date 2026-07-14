@@ -47,7 +47,7 @@ CREATE TABLE products (
 -- Tables Table
 CREATE TABLE tables (
     id SERIAL PRIMARY KEY,
-    number INTEGER NOT NULL UNIQUE,
+    name VARCHAR(50) NOT NULL UNIQUE,
     capacity INTEGER,
     status VARCHAR(20) DEFAULT 'free', -- free, occupied
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

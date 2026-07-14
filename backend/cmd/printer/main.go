@@ -101,7 +101,7 @@ func handleMessages(c *websocket.Conn) {
 		}
 
 		if m["type"] == "shift_report" {
-			log.Printf("🔔 MASTER v8.8: Z-OTCHYOT qabul qilindi!\n")
+			log.Printf("🔔 MASTER v8.9: Z-OTCHYOT qabul qilindi!\n")
 			printShiftReport(m)
 			continue
 		}
@@ -111,9 +111,9 @@ func handleMessages(c *websocket.Conn) {
 			addedItems, _ := m["added_items"].([]interface{})
 			cancelledItems, _ := m["cancelled_items"].([]interface{})
 			waiterName, _ := m["waiter_name"].(string)
-			tableNumber, _ := m["table_number"].(string)
+			tableNumber, _ := m["table_name"].(string)
 
-			log.Printf("🔔 MASTER v8.7: O'ZGARISHLAR (#%d buyurtmadan) qabul qilindi!\n", orderID)
+			log.Printf("🔔 MASTER v8.9: O'ZGARISHLAR (#%d buyurtmadan) qabul qilindi!\n", orderID)
 			printBulkEditItems(orderID, addedItems, cancelledItems, waiterName, tableNumber)
 			continue
 		}
@@ -122,7 +122,7 @@ func handleMessages(c *websocket.Conn) {
 			orderID := int(m["order_id"].(float64))
 			item := m["item"].(map[string]interface{})
 			waiterName, _ := m["waiter_name"].(string)
-			tableNumber, _ := m["table_number"].(string)
+			tableNumber, _ := m["table_name"].(string)
 
 			log.Printf("🔔 MASTER v8.5: BEKOR QILISH (#%d buyurtmadan) qabul qilindi!\n", orderID)
 			printCancelItem(orderID, item, waiterName, tableNumber)
@@ -306,7 +306,7 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 
 	// Table number
 	tableNumber := "-"
-	if tn, ok := order["table_number"]; ok && tn != nil {
+	if tn, ok := order["table_name"]; ok && tn != nil {
 		switch v := tn.(type) {
 		case float64:
 			if v > 0 {
