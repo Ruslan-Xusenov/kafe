@@ -16,7 +16,7 @@ func NewTableRepository(db *sqlx.DB) *TableRepository {
 
 func (r *TableRepository) GetAll() ([]models.Table, error) {
 	var tables []models.Table
-	err := r.db.Select(&tables, "SELECT * FROM tables ORDER BY name ASC")
+	err := r.db.Select(&tables, `SELECT * FROM tables ORDER BY NULLIF(regexp_replace(name, '\D', '', 'g'), '')::int NULLS LAST, name ASC`)
 	if err != nil {
 		return nil, err
 	}
