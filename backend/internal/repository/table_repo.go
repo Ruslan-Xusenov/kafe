@@ -44,6 +44,13 @@ func (r *TableRepository) Update(table *models.Table) error {
 }
 
 func (r *TableRepository) Delete(id int) error {
-	_, err := r.db.Exec("DELETE FROM tables WHERE id = $1", id)
+	query := `DELETE FROM tables WHERE id = $1`
+	_, err := r.db.Exec(query, id)
+	return err
+}
+
+func (r *TableRepository) UpdateStatus(id int, status string) error {
+	query := `UPDATE tables SET status = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, status, id)
 	return err
 }
