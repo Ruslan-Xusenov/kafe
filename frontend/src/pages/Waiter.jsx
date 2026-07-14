@@ -169,7 +169,7 @@ const Waiter = () => {
   
   const handleReprintOrder = async (orderId) => {
     try {
-      await api.post(`/orders/${orderId}/reprint`);
+      await api.post(`/orders/${orderId}/print`);
       alert('Chek printerga yuborildi!');
     } catch (err) {
       alert('Xatolik: ' + (err.response?.data?.error || err.message));
