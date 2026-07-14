@@ -641,7 +641,7 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": partialOrder})
 
 	// 11. Print ONLY the new items (not the entire order)
-	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": partialOrder})
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "is_dop": true, "order": partialOrder})
 	go s.printerService.PrintOrder(partialOrder)
 
 	return updatedOrder, nil

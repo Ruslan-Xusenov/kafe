@@ -116,10 +116,11 @@ func handleMessages(c *websocket.Conn) {
 			id := int(orderData["id"].(float64))
 
 			isReprint := (m["type"] == "reprint_order")
+			isDop, _ := m["is_dop"].(bool)
 
 			// Deduplication Logic: Aggressive 30-second filter for v8.5 Final
 			now := time.Now()
-			if !isReprint && id == lastOrderID && now.Sub(lastPrintTime) < 30*time.Second {
+			if !isReprint && !isDop && id == lastOrderID && now.Sub(lastPrintTime) < 30*time.Second {
 				log.Printf("🚫 DUB_RAD: Buyurtma #%d allaqachon chiqarilgan (Rad etildi).\n", id)
 				continue
 			}
