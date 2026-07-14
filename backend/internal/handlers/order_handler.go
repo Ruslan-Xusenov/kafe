@@ -373,3 +373,21 @@ func (h *OrderHandler) CancelProductFromOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Product items cancelled successfully"})
 }
+
+func (h *OrderHandler) TransferOrderTable(c *gin.Context) {
+	var req struct {
+		FromTableID int `json:"from_table_id"`
+		ToTableID   int `json:"to_table_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Noto'g'ri so'rov qabul qilindi"})
+		return
+	}
+
+	if err := h.service.TransferTable(req.FromTableID, req.ToTableID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Buyurtma muvaffaqiyatli ko'chirildi"})
+}

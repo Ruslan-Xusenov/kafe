@@ -53,6 +53,10 @@ const Admin = () => {
   const [newTable, setNewTable] = useState({ name: '', capacity: '' });
   const [editingTableId, setEditingTableId] = useState(null);
 
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferFromTable, setTransferFromTable] = useState(null);
+  const [transferToTableId, setTransferToTableId] = useState('');
+
   const [selectedWaiter, setSelectedWaiter] = useState(null);
   const [waiterOrders, setWaiterOrders] = useState([]);
   const [waiterHistory, setWaiterHistory] = useState([]);
@@ -449,6 +453,24 @@ const Admin = () => {
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) { alert('Ошибка'); }
+  };
+
+  const handleTransferTable = async (e) => {
+    e.preventDefault();
+    if (!transferToTableId) return alert("Iltimos, ko'chirish uchun bo'sh stolni tanlang");
+    try {
+      await api.post('/orders/transfer', {
+        from_table_id: transferFromTable.id,
+        to_table_id: parseInt(transferToTableId)
+      });
+      setShowTransferModal(false);
+      setTransferFromTable(null);
+      setTransferToTableId('');
+      fetchData();
+      alert("Stol muvaffaqiyatli ko'chirildi!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Stolni ko'chirishda xatolik yuz berdi");
+    }
   };
 
   const openOrderModal = async (order) => {
@@ -1254,6 +1276,12 @@ const Admin = () => {
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className="btn-secondary" style={{ padding: '6px' }} onClick={() => openEditTable(t)}><Edit2 size={16} /></button>
                           <button className="delete-btn" onClick={() => deleteTable(t.id)}><Trash2 size={16} /></button>
+                          {t.status === 'occupied' && (
+                            <button className="btn-primary" style={{ padding: '6px', fontSize: '12px' }} onClick={() => {
+                              setTransferFromTable(t);
+                              setShowTransferModal(true);
+                            }}>🔄 Ko'chirish</button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1265,6 +1293,38 @@ const Admin = () => {
           </div>
         )}
       </main>
+
+      {/* Transfer Table Modal */}
+      {showTransferModal && transferFromTable && (
+        <div className="modal-overlay">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
+            <div className="modal-header">
+              <h3>Stolni ko'chirish</h3>
+              <button onClick={() => { setShowTransferModal(false); setTransferFromTable(null); setTransferToTableId(''); }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleTransferTable}>
+              <div className="input-group">
+                <label>Qaysi stoldan:</label>
+                <input type="text" value={transferFromTable.name} disabled />
+              </div>
+              <div className="input-group">
+                <label>Qaysi stolga (Bo'sh stollar):</label>
+                <select 
+                  value={transferToTableId} 
+                  onChange={e => setTransferToTableId(e.target.value)}
+                  required
+                >
+                  <option value="">-- Stol tanlang --</option>
+                  {tables.filter(t => t.status === 'free').map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.capacity || 4} kishi)</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="btn-primary w-full mt-4">Ko'chirish</button>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* Staff Modal */}
       {showStaffModal && (

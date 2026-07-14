@@ -700,3 +700,39 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 
 	return nil
 }
+
+func (s *OrderService) TransferTable(fromTableID int, toTableID int) error {
+	// 1. Get active order on fromTableID
+	order, err := s.orderRepo.FindActiveOrderByTableID(fromTableID)
+	if err != nil || order == nil {
+		return fmt.Errorf("tanlangan stolda faol buyurtma topilmadi")
+	}
+
+	// 2. Check if toTableID is free
+	toTable, err := s.tableRepo.GetByID(toTableID)
+	if err != nil {
+		return fmt.Errorf("yangi stolni topishda xatolik: %v", err)
+	}
+	if toTable.Status != "free" {
+		return fmt.Errorf("tanlangan yangi stol band. Iltimos bo'sh stol tanlang")
+	}
+
+	// 3. Update order's table_id
+	if err := s.orderRepo.TransferTable(order.ID, toTableID); err != nil {
+		return fmt.Errorf("buyurtmani ko'chirishda xatolik: %v", err)
+	}
+
+	// 4. Update table statuses
+	if err := s.tableRepo.UpdateStatus(fromTableID, "free"); err != nil {
+		return fmt.Errorf("eski stol holatini yangilashda xatolik: %v", err)
+	}
+	if err := s.tableRepo.UpdateStatus(toTableID, "occupied"); err != nil {
+		return fmt.Errorf("yangi stol holatini yangilashda xatolik: %v", err)
+	}
+
+	// 5. Notify clients (Waiters and Admins) to refresh
+	s.wsService.BroadcastToRole("waiter", map[string]interface{}{"type": "tables_updated"})
+	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "tables_updated"})
+
+	return nil
+}

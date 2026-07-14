@@ -660,3 +660,9 @@ func (r *OrderRepository) AddItemsToOrder(orderID int, items []models.OrderItem)
 
 	return tx.Commit()
 }
+
+func (r *OrderRepository) TransferTable(orderID int, newTableID int) error {
+	query := `UPDATE orders SET table_id = $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.db.Exec(query, newTableID, orderID)
+	return err
+}
