@@ -22,6 +22,12 @@ const Waiter = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
 
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferToTableId, setTransferToTableId] = useState('');
+  
+  const [showFeeModal, setShowFeeModal] = useState(false);
+  const [newFee, setNewFee] = useState('');
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -173,6 +179,42 @@ const Waiter = () => {
       alert('Chek printerga yuborildi!');
     } catch (err) {
       alert('Xatolik: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleTransferTable = async (e) => {
+    e.preventDefault();
+    if (!transferToTableId) return alert("Iltimos, ko'chirish uchun bo'sh stolni tanlang");
+    try {
+      await api.post('/orders/transfer', {
+        from_table_id: selectedTable.id,
+        to_table_id: parseInt(transferToTableId)
+      });
+      setShowTransferModal(false);
+      setTransferToTableId('');
+      setSelectedTable(null); // Go back to table list
+      setExistingOrder(null);
+      fetchInitialData();
+      alert("Stol muvaffaqiyatli ko'chirildi!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Stolni ko'chirishda xatolik yuz berdi");
+    }
+  };
+
+  const handleUpdateServiceFee = async (e) => {
+    e.preventDefault();
+    if (!newFee || isNaN(newFee) || newFee < 0) return alert("Iltimos, to'g'ri foizni kiriting");
+    try {
+      await api.put(`/orders/${existingOrder.id}/service-fee`, {
+        service_fee_percent: parseFloat(newFee)
+      });
+      setShowFeeModal(false);
+      setNewFee('');
+      // refresh order
+      const ordRes = await api.get(`/orders/active-by-table/${selectedTable.id}`);
+      setExistingOrder(ordRes.data || null);
+    } catch (err) {
+      alert("Xizmat haqini o'zgartirishda xatolik: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -392,10 +434,16 @@ const Waiter = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                       <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.95rem' }}>📋 Mavjud buyurtma #{existingOrder.id}</span>
                       
-                      <span style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {(existingOrder.total_price || 0).toLocaleString()} сум
+                        <button onClick={() => setShowFeeModal(true)} style={{ padding: '4px 8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                          ⚙️ {existingOrder.service_fee_percent || 0}% Xizmat
+                        </button>
+                        <button onClick={() => setShowTransferModal(true)} style={{ padding: '4px 8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                          🔄 Ko'chirish
+                        </button>
                         <button onClick={() => handleReprintOrder(existingOrder.id)} style={{ padding: '4px 8px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          🖨️ Chek chiqarish
+                          🖨️ Chek
                         </button>
                       </span>
 
@@ -584,6 +632,65 @@ const Waiter = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Transfer Table Modal */}
+      {showTransferModal && selectedTable && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '400px'}}>
+            <div className="modal-header">
+              <h3>Stolni ko'chirish</h3>
+              <button onClick={() => { setShowTransferModal(false); setTransferToTableId(''); }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleTransferTable} style={{ padding: '1rem' }}>
+              <div className="input-group">
+                <label>Qaysi stoldan:</label>
+                <input type="text" value={selectedTable.name} disabled />
+              </div>
+              <div className="input-group" style={{ marginTop: '1rem' }}>
+                <label>Qaysi stolga (Bo'sh stollar):</label>
+                <select 
+                  value={transferToTableId} 
+                  onChange={e => setTransferToTableId(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }}
+                >
+                  <option value="">-- Stol tanlang --</option>
+                  {tables.filter(t => t.status === 'free').map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.capacity || 4} kishi)</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="submit-order-btn" style={{ marginTop: '1.5rem', padding: '0.8rem' }}>Ko'chirish</button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Service Fee Modal */}
+      {showFeeModal && existingOrder && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '300px'}}>
+            <div className="modal-header">
+              <h3>Xizmat haqi (%)</h3>
+              <button onClick={() => { setShowFeeModal(false); setNewFee(''); }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleUpdateServiceFee} style={{ padding: '1rem' }}>
+              <div className="input-group">
+                <label>Yangi foizni kiriting:</label>
+                <input 
+                  type="number" 
+                  value={newFee} 
+                  onChange={e => setNewFee(e.target.value)} 
+                  placeholder={existingOrder.service_fee_percent?.toString() || "0"}
+                  required
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd', marginTop: '0.5rem' }}
+                />
+              </div>
+              <button type="submit" className="submit-order-btn" style={{ marginTop: '1.5rem', padding: '0.8rem' }}>Saqlash</button>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* History Modal */}
       {showHistory && (
