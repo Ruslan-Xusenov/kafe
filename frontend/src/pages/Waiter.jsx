@@ -437,11 +437,13 @@ const Waiter = () => {
                       <span style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {(existingOrder.total_price || 0).toLocaleString()} сум
                         <button onClick={() => setShowFeeModal(true)} style={{ padding: '4px 8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          ⚙️ {existingOrder.service_fee_percent || 0}% Xizmat
+                          ⚙️ {existingOrder.service_percentage || 0}% Xizmat
                         </button>
-                        <button onClick={() => setShowTransferModal(true)} style={{ padding: '4px 8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          🔄 Ko'chirish
-                        </button>
+                        {user?.role === 'admin' && (
+                          <button onClick={() => setShowTransferModal(true)} style={{ padding: '4px 8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                            🔄 Ko'chirish
+                          </button>
+                        )}
                         <button onClick={() => handleReprintOrder(existingOrder.id)} style={{ padding: '4px 8px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
                           🖨️ Chek
                         </button>
@@ -681,7 +683,7 @@ const Waiter = () => {
                   type="number" 
                   value={newFee} 
                   onChange={e => setNewFee(e.target.value)} 
-                  placeholder={existingOrder.service_fee_percent?.toString() || "0"}
+                  placeholder={existingOrder.service_percentage?.toString() || "0"}
                   required
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd', marginTop: '0.5rem' }}
                 />
