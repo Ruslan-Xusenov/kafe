@@ -13,6 +13,7 @@ const Waiter = () => {
   const [cart, setCart] = useState([]);
   const [isCartExpanded, setIsCartExpanded] = useState(false);
   const [existingOrder, setExistingOrder] = useState(null);
+  const [stagedChanges, setStagedChanges] = useState({});
   
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -72,6 +73,7 @@ const Waiter = () => {
     setCart([]);
     setIsCartExpanded(false);
     setExistingOrder(null);
+    setStagedChanges({});
     setActiveCategory(categories.length > 0 ? categories[0].id : null);
 
     if (table.status === 'occupied') {
@@ -164,42 +166,64 @@ const Waiter = () => {
     }
   };
 
-  const increaseExistingItem = async (item) => {
+  const stageIncrease = (itemGroup) => {
     if (!user || user.role !== 'admin') return;
-    try {
-      const payload = {
-        items: [{
-          product_id: item.product_id,
-          quantity: 1,
-          price: item.price,
-          unit: item.unit
-        }]
-      };
-      const res = await api.post(`/orders/${existingOrder.id}/add-items`, payload);
-      setExistingOrder(res.data);
-    } catch (err) {
-      alert("Ошибка: " + (err.response?.data?.error || err.message));
-    }
+    setStagedChanges(prev => {
+      const current = prev[itemGroup.product_id] || { delta: 0, itemGroup };
+      return { ...prev, [itemGroup.product_id]: { ...current, delta: current.delta + 1 } };
+    });
   };
 
-  const decreaseExistingItem = async (itemGroup) => {
+  const stageDecrease = (itemGroup) => {
     if (!user || user.role !== 'admin') return;
-    if (!itemGroup.ids || itemGroup.ids.length === 0) return;
-    
-    // Always remove the last added DB item in this product group
-    const targetItemId = itemGroup.ids[itemGroup.ids.length - 1]; 
+    setStagedChanges(prev => {
+      const current = prev[itemGroup.product_id] || { delta: 0, itemGroup };
+      if (itemGroup.quantity + current.delta <= 0) return prev;
+      return { ...prev, [itemGroup.product_id]: { ...current, delta: current.delta - 1 } };
+    });
+  };
 
+  const applyStagedChanges = async () => {
+    if (!existingOrder) return;
     try {
-      await api.post(`/orders/${existingOrder.id}/items/${targetItemId}/cancel`, { quantity: 1 });
-      // Refresh the existing order from backend
+      const itemsToAdd = Object.values(stagedChanges)
+        .filter(st => st.delta > 0)
+        .map(st => ({
+          product_id: st.itemGroup.product_id,
+          quantity: st.delta,
+          price: st.itemGroup.price,
+          unit: st.itemGroup.unit
+        }));
+
+      if (itemsToAdd.length > 0) {
+        await api.post(`/orders/${existingOrder.id}/add-items`, { items: itemsToAdd });
+      }
+
+      const itemsToCancel = Object.values(stagedChanges).filter(st => st.delta < 0);
+      for (const st of itemsToCancel) {
+        let cancelAmount = Math.abs(st.delta);
+        const ids = [...st.itemGroup.ids];
+        for (let i = ids.length - 1; i >= 0 && cancelAmount > 0; i--) {
+          const targetItemId = ids[i];
+          const originalItem = existingOrder.items.find(it => it.id === targetItemId);
+          if (originalItem) {
+            const qtyToCancel = Math.min(originalItem.quantity, cancelAmount);
+            await api.post(`/orders/${existingOrder.id}/items/${targetItemId}/cancel`, { quantity: qtyToCancel });
+            cancelAmount -= qtyToCancel;
+          }
+        }
+      }
+
+      setStagedChanges({});
       const res = await api.get(`/orders/active-by-table/${selectedTable.id}`);
       if (res.data && res.data.id) {
         setExistingOrder(res.data);
       } else {
         setExistingOrder(null);
       }
+      alert("O'zgarishlar saqlandi!");
     } catch (err) {
-      alert("Ошибка: " + (err.response?.data?.error || err.message));
+      alert("Xatolik: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -376,21 +400,36 @@ const Waiter = () => {
                         }
                         return acc;
                       }, {});
-                      return Object.values(grouped).map(itemGroup => (
+                      return Object.values(grouped).map(itemGroup => {
+                        const staged = stagedChanges[itemGroup.product_id]?.delta || 0;
+                        const displayQty = itemGroup.quantity + staged;
+                        return (
                         <div key={itemGroup.product_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', fontSize: '0.9rem', borderTop: '1px dashed var(--border)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {itemGroup.product_name} × {itemGroup.quantity} {itemGroup.unit}
+                            {itemGroup.product_name} × {displayQty} {itemGroup.unit}
+                            {staged !== 0 && (
+                              <span style={{ color: staged > 0 ? 'green' : 'red', fontWeight: 'bold' }}>
+                                ({staged > 0 ? '+' : ''}{staged})
+                              </span>
+                            )}
                             {user && user.role === 'admin' && (
                               <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
-                                <button onClick={() => decreaseExistingItem(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
-                                <button onClick={() => increaseExistingItem(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                                <button onClick={() => stageDecrease(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
+                                <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
                               </div>
                             )}
                           </span>
-                          <span style={{ color: 'var(--text-muted)' }}>{(itemGroup.price * itemGroup.quantity).toLocaleString()} сум</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{(itemGroup.price * displayQty).toLocaleString()} сум</span>
                         </div>
-                      ));
+                      )});
                     })()}
+                    {Object.keys(stagedChanges).some(k => stagedChanges[k].delta !== 0) && (
+                      <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button onClick={applyStagedChanges} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', width: '100%' }}>
+                          Применить изменения
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
