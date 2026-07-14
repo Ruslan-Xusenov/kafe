@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"kafe/internal/models"
+	"github.com/username/kafe-backend/internal/models"
 )
 
 func (s *OrderService) BulkEditOrder(orderID int, addItems []models.OrderItem, cancelItems []struct {

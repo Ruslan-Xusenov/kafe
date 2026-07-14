@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"github.com/gin-gonic/gin"
-	"kafe/internal/models"
+	"github.com/username/kafe-backend/internal/models"
 )
 
 type BulkEditRequest struct {
@@ -35,7 +35,7 @@ func (h *OrderHandler) BulkEditOrder(c *gin.Context) {
 	}
 	u := user.(*models.User)
 
-	err = h.service.BulkEditOrder(orderID, req.AddItems, req.CancelItems, u.ID, u.Role)
+	err = h.service.BulkEditOrder(orderID, req.AddItems, req.CancelItems, u.ID, string(u.Role))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
