@@ -415,7 +415,7 @@ const Waiter = () => {
                 )}
               </div>
               <div className="header-right">
-                {selectedTable.status !== 'free' && (
+                {user?.role === 'admin' && selectedTable.status !== 'free' && (
                   <button onClick={freeTable} className="btn-free-table">
                     Освободить стол
                   </button>
@@ -436,17 +436,19 @@ const Waiter = () => {
                       
                       <span style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {(existingOrder.total_price || 0).toLocaleString()} сум
-                        <button onClick={() => setShowFeeModal(true)} style={{ padding: '4px 8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          ⚙️ {existingOrder.service_percentage || 0}% Xizmat
-                        </button>
                         {user?.role === 'admin' && (
-                          <button onClick={() => setShowTransferModal(true)} style={{ padding: '4px 8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                            🔄 Ko'chirish
-                          </button>
+                          <>
+                            <button onClick={() => setShowFeeModal(true)} style={{ padding: '4px 8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                              ⚙️ {existingOrder.service_percentage || 0}% Xizmat
+                            </button>
+                            <button onClick={() => setShowTransferModal(true)} style={{ padding: '4px 8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                              🔄 Ko'chirish
+                            </button>
+                            <button onClick={() => handleReprintOrder(existingOrder.id)} style={{ padding: '4px 8px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                              🖨️ Chek
+                            </button>
+                          </>
                         )}
-                        <button onClick={() => handleReprintOrder(existingOrder.id)} style={{ padding: '4px 8px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          🖨️ Chek
-                        </button>
                       </span>
 
                     </div>
@@ -474,12 +476,12 @@ const Waiter = () => {
                                 ({staged > 0 ? '+' : ''}{staged})
                               </span>
                             )}
-                            {user && user.role === 'admin' && (
-                              <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
+                              {user?.role === 'admin' && (
                                 <button onClick={() => stageDecrease(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
-                                <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
-                              </div>
-                            )}
+                              )}
+                              <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                            </div>
                           </span>
                           <span style={{ color: 'var(--text-muted)' }}>{(itemGroup.price * displayQty).toLocaleString()} сум</span>
                         </div>
