@@ -219,7 +219,7 @@ const Waiter = () => {
   };
 
   const stageIncrease = (itemGroup) => {
-    if (!user || user.role !== 'admin') return;
+    if (!user) return;
     setStagedChanges(prev => {
       const current = prev[itemGroup.product_id] || { delta: 0, itemGroup };
       return { ...prev, [itemGroup.product_id]: { ...current, delta: current.delta + 1 } };
