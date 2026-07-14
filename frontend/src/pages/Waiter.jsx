@@ -170,6 +170,45 @@ const Waiter = () => {
     }
   };
 
+  const increaseExistingItem = async (item) => {
+    if (!user || user.role !== 'admin') return;
+    try {
+      const payload = {
+        items: [{
+          product_id: item.product_id,
+          quantity: 1,
+          price: item.price,
+          unit: item.unit
+        }]
+      };
+      const res = await api.post(`/orders/${existingOrder.id}/add-items`, payload);
+      setExistingOrder(res.data);
+    } catch (err) {
+      alert("Ошибка: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const decreaseExistingItem = async (itemGroup) => {
+    if (!user || user.role !== 'admin') return;
+    if (!itemGroup.ids || itemGroup.ids.length === 0) return;
+    
+    // Always remove the last added DB item in this product group
+    const targetItemId = itemGroup.ids[itemGroup.ids.length - 1]; 
+
+    try {
+      await api.post(`/orders/${existingOrder.id}/items/${targetItemId}/cancel`, { quantity: 1 });
+      // Refresh the existing order from backend
+      const res = await api.get(`/orders/active-by-table/${selectedTable.id}`);
+      if (res.data && res.data.id) {
+        setExistingOrder(res.data);
+      } else {
+        setExistingOrder(null);
+      }
+    } catch (err) {
+      alert("Ошибка: " + (err.response?.data?.error || err.message));
+    }
+  };
+
   const freeTable = async () => {
     if (!window.confirm("Вы хотите освободить стол?")) return;
     
@@ -337,15 +376,24 @@ const Waiter = () => {
                         const key = item.product_id;
                         if (acc[key]) {
                           acc[key].quantity += item.quantity;
+                          acc[key].ids.push(item.id);
                         } else {
-                          acc[key] = { ...item };
+                          acc[key] = { ...item, ids: [item.id] };
                         }
                         return acc;
                       }, {});
-                      return Object.values(grouped).map(item => (
-                        <div key={item.product_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', fontSize: '0.9rem', borderTop: '1px dashed var(--border)' }}>
-                          <span>{item.product_name} × {item.quantity} {item.unit}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>{(item.price * item.quantity).toLocaleString()} сум</span>
+                      return Object.values(grouped).map(itemGroup => (
+                        <div key={itemGroup.product_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', fontSize: '0.9rem', borderTop: '1px dashed var(--border)' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {itemGroup.product_name} × {itemGroup.quantity} {itemGroup.unit}
+                            {user && user.role === 'admin' && (
+                              <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
+                                <button onClick={() => decreaseExistingItem(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
+                                <button onClick={() => increaseExistingItem(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                              </div>
+                            )}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)' }}>{(itemGroup.price * itemGroup.quantity).toLocaleString()} сум</span>
                         </div>
                       ));
                     })()}
