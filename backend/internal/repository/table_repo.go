@@ -21,6 +21,7 @@ func (r *TableRepository) GetAll() ([]models.Table, error) {
 		       (SELECT waiter_id FROM orders WHERE table_id = t.id AND status IN ('new', 'preparing', 'ready') LIMIT 1) as active_waiter_id
 		FROM tables t
 		ORDER BY 
+			(t.status = 'free') DESC,
 			(t.name !~ '^\s*\d+\s*$'), 
 			NULLIF(regexp_replace(t.name, '\D', '', 'g'), '')::int NULLS LAST, 
 			t.name ASC
