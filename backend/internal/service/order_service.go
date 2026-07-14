@@ -16,19 +16,21 @@ type OrderService struct {
 	productRepo *repository.ProductRepository
 	settingsRepo *repository.SettingsRepository
 	inventoryRepo repository.InventoryRepository
+	tableRepo    *repository.TableRepository
 	wsService    *WebsocketService
 	botService   *BotService
 	printerService *PrinterService
 }
 
-func NewOrderService(orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, settingsRepo *repository.SettingsRepository, inventoryRepo repository.InventoryRepository, wsService *WebsocketService, botService *BotService, printerService *PrinterService) *OrderService {
+func NewOrderService(orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, settingsRepo *repository.SettingsRepository, inventoryRepo repository.InventoryRepository, tableRepo *repository.TableRepository, wsService *WebsocketService, botService *BotService, printerService *PrinterService) *OrderService {
 	return &OrderService{
-		orderRepo:   orderRepo,
-		productRepo: productRepo,
-		settingsRepo: settingsRepo,
-		inventoryRepo: inventoryRepo,
-		wsService:    wsService,
-		botService:   botService,
+		orderRepo:      orderRepo,
+		productRepo:    productRepo,
+		settingsRepo:   settingsRepo,
+		inventoryRepo:  inventoryRepo,
+		tableRepo:      tableRepo,
+		wsService:      wsService,
+		botService:     botService,
 		printerService: printerService,
 	}
 }

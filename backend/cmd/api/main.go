@@ -45,7 +45,7 @@ func main() {
 	wsService := service.NewWebsocketService()
 	botService := service.NewBotService()
 	printerService := service.NewPrinterService()
-	orderService := service.NewOrderService(orderRepo, prodRepo, settingsRepo, inventoryRepo, wsService, botService, printerService)
+	orderService := service.NewOrderService(orderRepo, prodRepo, settingsRepo, inventoryRepo, tableRepo, wsService, botService, printerService)
 
 	// Initialize Handlers
 	authHandler := handlers.NewAuthHandler(authService, userRepo)
