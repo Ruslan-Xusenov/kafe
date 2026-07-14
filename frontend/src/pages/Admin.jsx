@@ -139,6 +139,17 @@ const Admin = () => {
   const fetchWaiterOrders = async (waiter) => {
     setSelectedWaiter(waiter);
     setWaiterOrders([]);
+
+  const handleCloseShift = async () => {
+    if (!window.confirm("Вы уверены, что хотите закрыть смену? Данные за сегодня будут отправлены в Telegram, а текущая статистика обнулится.")) return;
+    try {
+      await api.post('/finance/close-shift');
+      alert("Смена успешно закрыта. Отчет отправлен в Telegram и распечатан!");
+      fetchData();
+    } catch (err) {
+      alert("Ошибка при закрытии смены: " + (err.response?.data?.error || err.message));
+    }
+  };
     setWaiterHistory([]);
     setShowWaiterHistory(false);
     setWaiterOrdersLoading(true);
@@ -814,6 +825,7 @@ const Admin = () => {
           <div className="finance-mgmt animate-fade">
             <div className="flex justify-between items-center mb-6">
               <h2>Финансы и Расходы</h2>
+              <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}><Clock size={16} /> Закрыть смену (Отчет)</button>
               <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Обновить</button>
             </div>
 
@@ -994,7 +1006,8 @@ const Admin = () => {
             <StatsSection role="admin" />
             <div className="flex justify-between items-center mb-4">
               <h2>Мониторинг заказов</h2>
-              <button className="refresh-btn" onClick={fetchData}><Clock size={18} /> Обновить</button>
+              <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}><Clock size={16} /> Закрыть смену (Отчет)</button>
+              <button className="refresh-btn" onClick={fetchData}><RefreshCw size={18} /> Обновить</button>
             </div>
             <div className="orders-table-wrapper premium-card">
               <table className="admin-table">

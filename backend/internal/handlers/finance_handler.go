@@ -1,19 +1,26 @@
 package handlers
 
 import (
-	"github.com/username/kafe-backend/internal/models"
-	"github.com/username/kafe-backend/internal/repository"
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/username/kafe-backend/internal/models"
+	"github.com/username/kafe-backend/internal/repository"
+	"github.com/username/kafe-backend/internal/service"
 )
 
 type FinanceHandler struct {
 	financeRepo repository.FinanceRepository
+	wsService   *service.WebsocketService
 }
 
-func NewFinanceHandler(financeRepo repository.FinanceRepository) *FinanceHandler {
-	return &FinanceHandler{financeRepo: financeRepo}
+func NewFinanceHandler(financeRepo repository.FinanceRepository, wsService *service.WebsocketService) *FinanceHandler {
+	return &FinanceHandler{financeRepo: financeRepo, wsService: wsService}
 }
 
 func (h *FinanceHandler) GetStats(c *gin.Context) {
@@ -79,4 +86,67 @@ func (h *FinanceHandler) GetWaiterSalaries(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, salaries)
+}
+
+func (h *FinanceHandler) CloseShift(c *gin.Context) {
+	// 1. Fetch current shift stats
+	stats, err := h.financeRepo.GetStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения статистики"})
+		return
+	}
+
+	// 2. Broadcast to printer
+	shiftReportPayload := map[string]interface{}{
+		"type":           "shift_report",
+		"timestamp":      time.Now().Format("2006-01-02 15:04:05"),
+		"total_revenue":  stats.TotalRevenue,
+		"total_expenses": stats.TotalExpenses,
+		"net_profit":     stats.NetProfit,
+		"cash":           stats.CashRevenue,
+		"card":           stats.CardRevenue,
+		"click":          stats.ClickRevenue,
+		"nasiya":         stats.NasiyaRevenue,
+	}
+	h.wsService.BroadcastToRole("printer", shiftReportPayload)
+
+	// 3. Send Telegram Message
+	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	chatID := "660122397"
+	
+	if botToken != "" {
+		msgText := fmt.Sprintf(
+			"📅 <b>ОТЧЕТ ЗА СМЕНУ ЗАКРЫТ</b>\n\n"+
+				"💰 Общая выручка: <b>%.0f</b> сум\n"+
+				"💸 Общие расходы: <b>%.0f</b> сум\n"+
+				"📈 Чистая прибыль: <b>%.0f</b> сум\n\n"+
+				"💳 <b>Способы оплаты:</b>\n"+
+				"💵 Наличные: %.0f сум\n"+
+				"💳 Терминал: %.0f сум\n"+
+				"📲 Click/Payme: %.0f сум\n"+
+				"📓 В долг: %.0f сум\n\n"+
+				"🕒 Время закрытия: %s",
+			stats.TotalRevenue, stats.TotalExpenses, stats.NetProfit,
+			stats.CashRevenue, stats.CardRevenue, stats.ClickRevenue, stats.NasiyaRevenue,
+			time.Now().Format("2006-01-02 15:04"),
+		)
+
+		payload := map[string]interface{}{
+			"chat_id":    chatID,
+			"text":       msgText,
+			"parse_mode": "HTML",
+		}
+		
+		jsonData, _ := json.Marshal(payload)
+		http.Post(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken), "application/json", bytes.NewBuffer(jsonData))
+	}
+
+	// 4. Update last_shift_closed_at in DB
+	err = h.financeRepo.CloseShift()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при закрытии смены в БД"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Смена успешно закрыта"})
 }

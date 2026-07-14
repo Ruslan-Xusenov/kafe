@@ -100,6 +100,12 @@ func handleMessages(c *websocket.Conn) {
 			continue
 		}
 
+		if m["type"] == "shift_report" {
+			log.Printf("🔔 MASTER v8.8: Z-OTCHYOT qabul qilindi!\n")
+			printShiftReport(m)
+			continue
+		}
+
 		if m["type"] == "bulk_edit" {
 			orderID := int(m["order_id"].(float64))
 			addedItems, _ := m["added_items"].([]interface{})
@@ -590,5 +596,85 @@ func generateAndPrintBulkEditReceipt(target string, orderID int, addedItems, can
 				conn.Write(data)
 			}
 		}
+	}
+}
+
+func printShiftReport(m map[string]interface{}) {
+	target := os.Getenv("PRINTER_USB")
+	if target == "" {
+		target = "USB"
+	}
+	f, err := os.CreateTemp("", "shift_report_*.bin")
+	if err != nil {
+		return
+	}
+	defer os.Remove(f.Name())
+
+	// Extract values safely
+	timestamp, _ := m["timestamp"].(string)
+	totalRev := safeFloat(m["total_revenue"])
+	totalExp := safeFloat(m["total_expenses"])
+	netProfit := safeFloat(m["net_profit"])
+	cash := safeFloat(m["cash"])
+	card := safeFloat(m["card"])
+	click := safeFloat(m["click"])
+	nasiya := safeFloat(m["nasiya"])
+
+	f.Write(ESC_INIT)
+	f.Write(DISABLE_CHINESE)
+	f.Write(CODE_PAGE)
+	f.Write(BEEP)
+	f.Write(BEEP)
+
+	f.Write(ALIGN_CENTER)
+	f.Write(FONT_BIG)
+	f.Write(toCP866("ИТОГИ СМЕНЫ\n(Z-ОТЧЕТ)\n"))
+	f.Write(FONT_NORMAL)
+	f.Write(toCP866("------------------------------------------------\n"))
+	
+	f.Write(ALIGN_LEFT)
+	f.Write(toCP866(fmt.Sprintf("ВРЕМЯ ЗАКРЫТИЯ: %s\n", timestamp)))
+	f.Write(toCP866("------------------------------------------------\n"))
+	
+	f.Write(FONT_BIG)
+	f.Write(toCP866(fmt.Sprintf("ОБЩАЯ ВЫРУЧКА: %.0f sum\n", totalRev)))
+	f.Write(FONT_NORMAL)
+	f.Write(toCP866(fmt.Sprintf("ОБЩИЕ РАСХОДЫ: %.0f sum\n", totalExp)))
+	f.Write(toCP866(fmt.Sprintf("ЧИСТАЯ ПРИБЫЛЬ: %.0f sum\n", netProfit)))
+	f.Write(toCP866("------------------------------------------------\n"))
+	
+	f.Write(ALIGN_CENTER)
+	f.Write(toCP866("СПОСОБЫ ОПЛАТЫ\n"))
+	f.Write(ALIGN_LEFT)
+	f.Write(toCP866(fmt.Sprintf("НАЛИЧНЫЕ:       %.0f sum\n", cash)))
+	f.Write(toCP866(fmt.Sprintf("ТЕРМИНАЛ:       %.0f sum\n", card)))
+	f.Write(toCP866(fmt.Sprintf("CLICK/PAYME:    %.0f sum\n", click)))
+	f.Write(toCP866(fmt.Sprintf("В ДОЛГ:         %.0f sum\n", nasiya)))
+	
+	f.Write(toCP866("------------------------------------------------\n\n\n\n\n"))
+	f.Write(PAPER_CUT)
+	f.Close()
+
+	cmd := exec.Command("cmd", "/c", fmt.Sprintf("copy /b %s %s", f.Name(), target))
+	if err := cmd.Run(); err != nil {
+		log.Printf("❌ Z-OTCHYOT chop etishda xatolik: %v\n", err)
+	} else {
+		log.Printf("✅ Z-OTCHYOT muvaffaqiyatli chop etildi!\n")
+	}
+}
+
+func safeFloat(val interface{}) float64 {
+	if val == nil {
+		return 0
+	}
+	switch v := val.(type) {
+	case float64:
+		return v
+	case float32:
+		return float64(v)
+	case int:
+		return float64(v)
+	default:
+		return 0
 	}
 }

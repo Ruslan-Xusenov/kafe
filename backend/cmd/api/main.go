@@ -52,7 +52,7 @@ func main() {
 	catalogHandler := handlers.NewCatalogHandler(catalogService)
 	orderHandler := handlers.NewOrderHandler(orderService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
-	financeHandler := handlers.NewFinanceHandler(financeRepo)
+	financeHandler := handlers.NewFinanceHandler(financeRepo, wsService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryRepo)
 	tableHandler := handlers.NewTableHandler(tableRepo, orderService)
 
@@ -202,6 +202,7 @@ func main() {
 			finance.GET("/stats", financeHandler.GetStats)
 			finance.GET("/expenses", financeHandler.GetExpenses)
 			finance.POST("/expenses", financeHandler.CreateExpense)
+		finance.POST("/close-shift", financeHandler.CloseShift)
 			finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
 		}
 
