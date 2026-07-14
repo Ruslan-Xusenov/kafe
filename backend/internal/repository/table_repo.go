@@ -19,7 +19,7 @@ func (r *TableRepository) GetAll() ([]models.Table, error) {
 	err := r.db.Select(&tables, `
 		SELECT t.*, o.waiter_id as active_waiter_id
 		FROM tables t
-		LEFT JOIN orders o ON o.table_id = t.id AND o.status = 'active'
+		LEFT JOIN orders o ON o.table_id = t.id AND o.status IN ('new', 'preparing', 'ready')
 		ORDER BY NULLIF(regexp_replace(t.name, '\D', '', 'g'), '')::int NULLS LAST, t.name ASC
 	`)
 	if err != nil {
