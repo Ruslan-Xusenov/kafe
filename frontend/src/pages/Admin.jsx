@@ -495,8 +495,8 @@ const Admin = () => {
   if (loading) return <div className="flex-center h-full"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="admin-page animate-fade">
-      <aside className="admin-sidebar glass">
+    <div className="admin-page">
+      <aside className="admin-sidebar glass animate-fade">
         <div className="sidebar-header">
           <LayoutDashboard className="text-primary" />
           <span>Панель Администратора</span>
@@ -535,7 +535,7 @@ const Admin = () => {
         </nav>
       </aside>
 
-      <main className="admin-main">
+      <main className="admin-main animate-fade">
         {activeTab === 'inventory' && (
           <InventorySection products={products} />
         )}
