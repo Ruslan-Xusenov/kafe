@@ -112,7 +112,7 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 
 	// 3. Send Telegram Message
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
-	chatID := "660122397"
+	chatIDs := []string{"660122397", "5211777116"}
 	
 	if botToken != "" {
 		msgText := fmt.Sprintf(
@@ -131,14 +131,17 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 			time.Now().Format("2006-01-02 15:04"),
 		)
 
-		payload := map[string]interface{}{
-			"chat_id":    chatID,
-			"text":       msgText,
-			"parse_mode": "HTML",
+		for _, chatID := range chatIDs {
+			payload := map[string]interface{}{
+				"chat_id":    chatID,
+				"text":       msgText,
+				"parse_mode": "HTML",
+			}
+			jsonData, _ := json.Marshal(payload)
+			go func(cID string, jd []byte) {
+				http.Post(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken), "application/json", bytes.NewBuffer(jd))
+			}(chatID, jsonData)
 		}
-		
-		jsonData, _ := json.Marshal(payload)
-		http.Post(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken), "application/json", bytes.NewBuffer(jsonData))
 	}
 
 	// 4. Update last_shift_closed_at in DB
