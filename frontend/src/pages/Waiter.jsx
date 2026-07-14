@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../store/authStore';
+import api, { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search } from 'lucide-react';
 
@@ -19,9 +19,7 @@ const Waiter = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [loading, setLoading] = useState(true);
-
-  const authData = localStorage.getItem('auth');
-  const user = authData ? JSON.parse(authData).user : null;
+  const { user } = useAuthStore();
 
   useEffect(() => {
     fetchInitialData();
@@ -47,7 +45,6 @@ const Waiter = () => {
       setTables(tableRes.data || []);
       setCategories(catRes.data || []);
       setProducts(prodRes.data || []);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error("fetchInitialData ERROR:", err.message, err.response?.data);
       alert("Ошибка загрузки данных: " + (err.response?.data?.error || err.message));
@@ -77,16 +74,13 @@ const Waiter = () => {
     setExistingOrder(null);
     setActiveCategory(categories.length > 0 ? categories[0].id : null);
 
-    // Check for existing active order on this table
     if (table.status === 'occupied') {
       try {
         const res = await api.get(`/orders/active-by-table/${table.id}`);
         if (res.data && res.data.id) {
           setExistingOrder(res.data);
         }
-      // eslint-disable-next-line no-unused-vars
       } catch (err) {
-        // No active order found, that's fine
       }
     }
   };
@@ -138,12 +132,10 @@ const Waiter = () => {
     
     try {
       if (existingOrder) {
-        // Add items to existing active order
         const res = await api.post(`/orders/${existingOrder.id}/add-items`, { items });
         setExistingOrder(res.data);
         alert(`Buyurtma #${existingOrder.id} ga qo'shildi!`);
       } else {
-        // Create new order
         const payload = {
           table_id: selectedTable.id,
           items,
@@ -166,7 +158,6 @@ const Waiter = () => {
       setIsCartExpanded(false);
       setExistingOrder(null);
       fetchInitialData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
       alert('Ошибка при отправке заказа: ' + (err.response?.data?.error || err.message));
