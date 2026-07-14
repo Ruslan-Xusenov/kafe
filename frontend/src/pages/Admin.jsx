@@ -51,6 +51,7 @@ const Admin = () => {
   const [serviceFeePercent, setServiceFeePercent] = useState(10);
   const [showTableModal, setShowTableModal] = useState(false);
   const [newTable, setNewTable] = useState({ name: '', capacity: '' });
+  const [editingTableId, setEditingTableId] = useState(null);
 
   const [selectedWaiter, setSelectedWaiter] = useState(null);
   const [waiterOrders, setWaiterOrders] = useState([]);
@@ -414,17 +415,31 @@ const Admin = () => {
   const handleCreateTable = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/tables', { 
-        number: parseInt(newTable.name),
-        capacity: parseInt(newTable.capacity) || 4 
-      });
+      if (editingTableId) {
+        await api.put(`/tables/${editingTableId}`, { 
+          name: newTable.name,
+          capacity: parseInt(newTable.capacity) || 4 
+        });
+      } else {
+        await api.post('/tables', { 
+          name: newTable.name,
+          capacity: parseInt(newTable.capacity) || 4 
+        });
+      }
       setShowTableModal(false);
       setNewTable({ name: '', capacity: '' });
+      setEditingTableId(null);
       fetchData();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert(err.response?.data?.error || 'Ошибка при добавлении стола');
+      alert(err.response?.data?.error || 'Ошибка при сохранении стола');
     }
+  };
+
+  const openEditTable = (t) => {
+    setNewTable({ name: t.name, capacity: t.capacity || 4 });
+    setEditingTableId(t.id);
+    setShowTableModal(true);
   };
 
   const deleteTable = async (id) => {
@@ -1211,7 +1226,7 @@ const Admin = () => {
           <div className="tables-mgmt animate-fade">
             <div className="flex-header">
               <h2>Управление столами</h2>
-              <button className="btn-primary" onClick={() => setShowTableModal(true)}>
+              <button className="btn-primary" onClick={() => { setNewTable({ name: '', capacity: '' }); setEditingTableId(null); setShowTableModal(true); }}>
                 <Plus size={18} /> Добавить стол
               </button>
             </div>
@@ -1236,7 +1251,10 @@ const Admin = () => {
                         </span>
                       </td>
                       <td>
-                        <button className="delete-btn" onClick={() => deleteTable(t.id)}><Trash2 size={16} /></button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn-secondary" style={{ padding: '6px' }} onClick={() => openEditTable(t)}><Edit2 size={16} /></button>
+                          <button className="delete-btn" onClick={() => deleteTable(t.id)}><Trash2 size={16} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1488,14 +1506,14 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '400px'}}>
             <div className="modal-header">
-              <h3>Новый Stol</h3>
+              <h3>{editingTableId ? 'Редактировать стол' : 'Новый стол'}</h3>
               <button onClick={() => setShowTableModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateTable}>
               <div className="input-group mb-4">
                 <label>Название стола</label>
                 <input 
-                  type="number"
+                  type="text"
                   required
                   value={newTable.name} 
                   onChange={e => setNewTable({...newTable, name: e.target.value})} 
