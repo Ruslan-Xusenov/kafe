@@ -71,6 +71,17 @@ const Admin = () => {
     fetchData();
   }, [activeTab]);
 
+  const handleCloseShift = async () => {
+    if (!window.confirm("Вы уверены, что хотите закрыть смену? Данные за сегодня будут отправлены в Telegram, а текущая статистика обнулится.")) return;
+    try {
+      await api.post('/finance/close-shift');
+      alert("Смена успешно закрыта. Отчет отправлен в Telegram и распечатан!");
+      fetchData();
+    } catch (err) {
+      alert("Ошибка при закрытии смены: " + (err.response?.data?.error || err.message));
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -139,17 +150,6 @@ const Admin = () => {
   const fetchWaiterOrders = async (waiter) => {
     setSelectedWaiter(waiter);
     setWaiterOrders([]);
-
-  const handleCloseShift = async () => {
-    if (!window.confirm("Вы уверены, что хотите закрыть смену? Данные за сегодня будут отправлены в Telegram, а текущая статистика обнулится.")) return;
-    try {
-      await api.post('/finance/close-shift');
-      alert("Смена успешно закрыта. Отчет отправлен в Telegram и распечатан!");
-      fetchData();
-    } catch (err) {
-      alert("Ошибка при закрытии смены: " + (err.response?.data?.error || err.message));
-    }
-  };
     setWaiterHistory([]);
     setShowWaiterHistory(false);
     setWaiterOrdersLoading(true);
