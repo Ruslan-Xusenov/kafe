@@ -32,8 +32,8 @@ docker-compose up --build
 Loyiha `http://localhost:3001` (Frontend) va `http://localhost:8080` (Backend) manzillarida ishga tushadi.
 
 ### 2. Serverga joylash (Production)
-Domen: `kafe.ruslandev.uz`
-IP: `46.224.133.140`
+Domen: `kafe.com`
+IP: `46.0.0.0.0`
 
 Serverdagi `deploy.sh` skriptidan foydalaning:
 ```bash
@@ -51,7 +51,7 @@ Loyihaning eng muhim qismi - bu onlayn zakazlarni kafedagi printerdan avtomatik 
 ### Qanday ishlaydi?
 1. Saytdan zakaz tushadi -> Server uni qabul qiladi.
 2. Server WebSocket orqali kafedagi **Bridge** dasturiga xabar yuboradi.
-3. **Bridge** dasturi (Windowsda orqa fonda ishlaydi) xabarni oladi va lokal IP-dagi (`192.168.123.10`) printerga buyruq beradi.
+3. **Bridge** dasturi (Windowsda orqa fonda ishlaydi) xabarni oladi va lokal IP-dagi (`192.168.0.0`) printerga buyruq beradi.
 
 ### Bridge sozlamalari (Kafedagi PC uchun):
 1. `bridge/main.go` ni Windows uchun yig'ing (`.exe`).
