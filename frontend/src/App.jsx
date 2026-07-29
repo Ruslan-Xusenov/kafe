@@ -16,10 +16,12 @@ import Courier from './pages/Courier';
 import Admin from './pages/Admin';
 import Printer from './pages/Printer';
 import Waiter from './pages/Waiter';
+import Cashier from './pages/Cashier';
 import MyOrders from './pages/MyOrders';
 import ProductDetail from './pages/ProductDetail';
 import PrivacyConsent from './components/PrivacyConsent';
 import PwaPrompt from './components/PwaPrompt';
+import SyncManager from './components/SyncManager';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuthStore();
@@ -44,6 +46,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <SyncManager />
       <PrivacyConsent />
       <PwaPrompt />
       <Routes>
@@ -84,6 +87,12 @@ function App() {
           <Route path="waiter" element={
             <ProtectedRoute allowedRoles={['admin', 'waiter']}>
               <Waiter />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="cashier" element={
+            <ProtectedRoute allowedRoles={['admin', 'cashier']}>
+              <Cashier />
             </ProtectedRoute>
           } />
         </Route>

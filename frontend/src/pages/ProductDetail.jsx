@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { ChevronLeft, Plus, Minus, ShoppingCart, Loader2, Star, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -54,7 +54,6 @@ const ProductDetail = () => {
         .slice(0, 4);
       setRelatedProducts(related);
 
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
       navigate('/');

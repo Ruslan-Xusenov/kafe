@@ -351,7 +351,19 @@ func (b *Bot) handleCallback(cb *tgbotapi.CallbackQuery) {
 	case data == "admin_add_courier": b.startAddCourier(chatID)
 	case data == "admin_remove_courier": b.startRemoveCourier(chatID)
 	case data == "contact_info":
-		b.sendMessage(chatID, "📞 <b>Свяжитесь с нами:</b>\n\n📍 Адрес: г. Ташкент, Чиланзар\n☎️ Телефон: +998 90 123 45 67\n🌐 Сайт: kafe.securehub.uz")
+		cafeAddress := os.Getenv("CAFE_ADDRESS")
+		if cafeAddress == "" {
+			cafeAddress = "Manzil ko'rsatilmagan"
+		}
+		cafePhone := os.Getenv("CAFE_PHONE")
+		if cafePhone == "" {
+			cafePhone = "Raqam ko'rsatilmagan"
+		}
+		cafeWebsite := os.Getenv("CAFE_WEBSITE")
+		if cafeWebsite == "" {
+			cafeWebsite = "website ko'rsatilmagan"
+		}
+		b.sendMessage(chatID, fmt.Sprintf("📞 <b>Свяжитесь с нами:</b>\n\n📍 Адрес: %s\n☎️ Телефон: %s\n🌐 Сайт: %s", cafeAddress, cafePhone, cafeWebsite))
 	case data == "how_to_use":
 		b.sendMessage(chatID, "📖 <b>Как пользоваться:</b>\n\n1. Нажмите кнопку '🌐 Онлайн заказ'.\n2. Выберите блюда и добавьте в корзину.\n3. Перейдите в корзину и подтвердите заказ.\n4. Наш курьер скоро свяжется с вами!")
 	case data == "skip_product_image": session := b.getSession(chatID); if session.AdminProductEdit != nil { session.AdminProductEdit.ImageURL = ""; session.State = ""; b.saveProduct(chatID) }

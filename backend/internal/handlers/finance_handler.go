@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,10 +18,27 @@ import (
 type FinanceHandler struct {
 	financeRepo repository.FinanceRepository
 	wsService   *service.WebsocketService
+	auditRepo   *repository.AuditRepository
 }
 
-func NewFinanceHandler(financeRepo repository.FinanceRepository, wsService *service.WebsocketService) *FinanceHandler {
-	return &FinanceHandler{financeRepo: financeRepo, wsService: wsService}
+func NewFinanceHandler(financeRepo repository.FinanceRepository, wsService *service.WebsocketService, auditRepo *repository.AuditRepository) *FinanceHandler {
+	return &FinanceHandler{financeRepo: financeRepo, wsService: wsService, auditRepo: auditRepo}
+}
+
+func telegramReportChatIDs() []string {
+	raw := os.Getenv("TELEGRAM_REPORT_CHAT_IDS")
+	if raw == "" {
+		raw = os.Getenv("TELEGRAM_CHAT_ID")
+	}
+
+	var chatIDs []string
+	for _, id := range strings.Split(raw, ",") {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			chatIDs = append(chatIDs, id)
+		}
+	}
+	return chatIDs
 }
 
 func (h *FinanceHandler) GetStats(c *gin.Context) {
@@ -67,6 +85,12 @@ func (h *FinanceHandler) CreateExpense(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "expense.create", "expense", &expense.ID, gin.H{
+		"amount":      expense.Amount,
+		"category":    expense.Category,
+		"description": expense.Description,
+	})
+
 	c.JSON(http.StatusCreated, expense)
 }
 
@@ -84,15 +108,18 @@ func (h *FinanceHandler) GetWaiterSalaries(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении зарплат официантов"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, salaries)
 }
 
 func (h *FinanceHandler) CloseShift(c *gin.Context) {
-	// 0. Force close any active/forgotten orders
-	err := h.financeRepo.ForceCloseActiveOrders()
+	activeOrders, err := h.financeRepo.CountActiveOrders()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при закрытии забытых столов"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при проверке активных заказов"})
+		return
+	}
+	if activeOrders > 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Сменани ёпишдан олдин %d та актив буюртмани ёпинг", activeOrders)})
 		return
 	}
 
@@ -119,9 +146,9 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 
 	// 3. Send Telegram Message
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
-	chatIDs := []string{"660122397", "5211777116"}
-	
-	if botToken != "" {
+	chatIDs := telegramReportChatIDs()
+
+	if botToken != "" && len(chatIDs) > 0 {
 		msgText := fmt.Sprintf(
 			"📅 <b>ОТЧЕТ ЗА СМЕНУ ЗАКРЫТ</b>\n\n"+
 				"💰 Общая выручка: <b>%.0f</b> сум\n"+
@@ -158,6 +185,13 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "shift.close", "finance", nil, gin.H{
+		"total_revenue":  stats.TotalRevenue,
+		"total_expenses": stats.TotalExpenses,
+		"net_profit":     stats.NetProfit,
+		"real_profit":    stats.RealProfit,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Смена успешно закрыта"})
 }
 
@@ -171,9 +205,9 @@ func (h *FinanceHandler) SendRealProfit(c *gin.Context) {
 
 	// 2. Send Telegram Message
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
-	chatIDs := []string{"660122397", "5211777116"}
-	
-	if botToken != "" {
+	chatIDs := telegramReportChatIDs()
+
+	if botToken != "" && len(chatIDs) > 0 {
 		msgText := fmt.Sprintf(
 			"📊 <b>ОТЧЕТ: РЕАЛЬНАЯ ПРИБЫЛЬ</b>\n\n"+
 				"💰 Общая выручка: <b>%.0f</b> сум\n"+
@@ -198,8 +232,11 @@ func (h *FinanceHandler) SendRealProfit(c *gin.Context) {
 		}
 	}
 
+	writeAudit(c, h.auditRepo, "profit_report.send", "finance", nil, gin.H{
+		"real_profit": stats.RealProfit,
+	})
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Реальная прибыль успешно отправлена",
+		"message":     "Реальная прибыль успешно отправлена",
 		"real_profit": stats.RealProfit,
 	})
 }

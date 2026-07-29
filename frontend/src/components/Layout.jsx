@@ -9,6 +9,8 @@ import {
 import { useState } from 'react';
 import BottomNav from './BottomNav';
 
+const CAFE_NAME = import.meta.env.VITE_CAFE_NAME || 'KafePlat';
+
 const Layout = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
@@ -51,7 +53,7 @@ const Layout = () => {
             <div className="logo-icon">
               <Utensils size={18} />
             </div>
-            <span className="logo-text">Kafe<span>Plat</span></span>
+            <span className="logo-text">{CAFE_NAME}</span>
           </Link>
 
           {/* Desktop nav links */}
@@ -106,7 +108,7 @@ const Layout = () => {
           <div className="drawer-header">
             <Link to="/" className="navbar-logo" onClick={() => setMobileOpen(false)}>
               <div className="logo-icon"><Utensils size={18} /></div>
-              <span className="logo-text">Kafe<span>Plat</span></span>
+              <span className="logo-text">{CAFE_NAME}</span>
             </Link>
             <button className="icon-btn" onClick={() => setMobileOpen(false)}>
               <X size={22} />

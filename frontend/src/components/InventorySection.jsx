@@ -30,7 +30,6 @@ const InventorySection = ({ products }) => {
       setLoading(true);
       const res = await api.get('/inventory/ingredients');
       setIngredients(res.data || []);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {
@@ -42,7 +41,6 @@ const InventorySection = ({ products }) => {
     try {
       const res = await api.get(`/inventory/recipes/${productId}`);
       setRecipes(res.data || []);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     }
@@ -61,7 +59,6 @@ const InventorySection = ({ products }) => {
       });
       setNewIngredient({ name: '', stock: '', unit: 'gr', min_stock: '', cost_price: '' });
       fetchIngredients();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Ошибка: ' + (err.response?.data?.error || ''));
     }
@@ -92,7 +89,6 @@ const InventorySection = ({ products }) => {
       });
       setNewRecipe({ ingredient_id: '', quantity: '', unit: 'gr' });
       fetchRecipes(selectedProduct);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Ошибка: ' + (err.response?.data?.error || ''));
     }

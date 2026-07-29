@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"math"
 	"net/http"
 	"strings"
 
@@ -23,16 +24,29 @@ func AuthMiddleware() gin.HandlerFunc {
 			}
 			tokenString = parts[1]
 		} else if queryToken := c.Query("token"); queryToken != "" {
+			// URL ?token= is ONLY allowed for WebSocket upgrade requests.
+			// Regular HTTP requests must use the Authorization header to avoid
+			// JWT tokens appearing in access logs and browser history.
+			upgradeHeader := c.GetHeader("Upgrade")
+			if !strings.EqualFold(upgradeHeader, "websocket") {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header talab qilinadi"})
+				c.Abort()
+				return
+			}
 			tokenString = queryToken
 		} else if wsToken := c.GetHeader("Sec-WebSocket-Protocol"); wsToken != "" {
-			tokenString = wsToken
+			// Browser WebSocket clients cannot set Authorization headers. The
+			// frontend sends the token as the auth.<jwt> subprotocol instead of
+			// putting it in the URL query string.
+			tokenString = strings.TrimSpace(wsToken)
+			tokenString = strings.TrimPrefix(tokenString, "auth.")
 		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header or token query parameter is required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization talab qilinadi"})
 			c.Abort()
 			return
 		}
 		token, err := security.ValidateToken(tokenString)
-		if err != nil || !token.Valid {
+		if err != nil || token == nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
@@ -45,8 +59,29 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		userID := int(claims["user_id"].(float64))
-		role := claims["role"].(string)
+		var userID int
+		switch value := claims["user_id"].(type) {
+		case float64:
+			if value <= 0 || math.Trunc(value) != value {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+				c.Abort()
+				return
+			}
+			userID = int(value)
+		case int:
+			userID = value
+		default:
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.Abort()
+			return
+		}
+
+		role, ok := claims["role"].(string)
+		if !ok || strings.TrimSpace(role) == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.Abort()
+			return
+		}
 
 		c.Set("user_id", userID)
 		c.Set("role", role)
@@ -63,9 +98,16 @@ func RoleMiddleware(roles ...string) gin.HandlerFunc {
 			return
 		}
 
+		role, ok := userRole.(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role context"})
+			c.Abort()
+			return
+		}
+
 		allowed := false
 		for _, r := range roles {
-			if r == userRole.(string) {
+			if r == role {
 				allowed = true
 				break
 			}

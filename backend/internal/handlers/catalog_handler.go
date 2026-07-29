@@ -6,15 +6,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/username/kafe-backend/internal/models"
+	"github.com/username/kafe-backend/internal/repository"
 	"github.com/username/kafe-backend/internal/service"
 )
 
 type CatalogHandler struct {
-	service *service.CatalogService
+	service   *service.CatalogService
+	auditRepo *repository.AuditRepository
 }
 
-func NewCatalogHandler(s *service.CatalogService) *CatalogHandler {
-	return &CatalogHandler{service: s}
+func NewCatalogHandler(s *service.CatalogService, auditRepo *repository.AuditRepository) *CatalogHandler {
+	return &CatalogHandler{service: s, auditRepo: auditRepo}
 }
 
 // Category Handlers
@@ -29,6 +31,11 @@ func (h *CatalogHandler) CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	writeAudit(c, h.auditRepo, "category.create", "category", &cat.ID, gin.H{
+		"name":           cat.Name,
+		"printer_target": cat.PrinterTarget,
+	})
 
 	c.JSON(http.StatusCreated, cat)
 }
@@ -56,6 +63,11 @@ func (h *CatalogHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "category.update", "category", &cat.ID, gin.H{
+		"name":           cat.Name,
+		"printer_target": cat.PrinterTarget,
+	})
+
 	c.JSON(http.StatusOK, cat)
 }
 
@@ -65,6 +77,7 @@ func (h *CatalogHandler) DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	writeAudit(c, h.auditRepo, "category.delete", "category", &id, nil)
 	c.JSON(http.StatusOK, gin.H{"message": "Категория удалена"})
 }
 
@@ -80,6 +93,12 @@ func (h *CatalogHandler) CreateProduct(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	writeAudit(c, h.auditRepo, "product.create", "product", &prod.ID, gin.H{
+		"name":        prod.Name,
+		"category_id": prod.CategoryID,
+		"price":       prod.Price,
+	})
 
 	c.JSON(http.StatusCreated, prod)
 }
@@ -117,6 +136,13 @@ func (h *CatalogHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "product.update", "product", &prod.ID, gin.H{
+		"name":        prod.Name,
+		"category_id": prod.CategoryID,
+		"price":       prod.Price,
+		"is_active":   prod.IsActive,
+	})
+
 	c.JSON(http.StatusOK, prod)
 }
 
@@ -126,5 +152,6 @@ func (h *CatalogHandler) DeleteProduct(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	writeAudit(c, h.auditRepo, "product.delete", "product", &id, nil)
 	c.JSON(http.StatusOK, gin.H{"message": "Продукт удален"})
 }

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api, { useAuthStore } from '../store/authStore';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search, Lock } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search, Lock, List, Map } from 'lucide-react';
+import PaymentModal from '../components/PaymentModal';
+import FloorPlan from '../components/FloorPlan';
+import { db, generateOfflineId } from '../store/db';
 
 const Waiter = () => {
   const [tables, setTables] = useState([]);
@@ -20,6 +23,7 @@ const Waiter = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuthStore();
 
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -27,6 +31,11 @@ const Waiter = () => {
   
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [newFee, setNewFee] = useState('');
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [debtors, setDebtors] = useState([]);
+
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
 
   useEffect(() => {
     fetchInitialData();
@@ -43,21 +52,38 @@ const Waiter = () => {
 
   const fetchInitialData = async () => {
     setLoading(true);
-    try {
-      const [tableRes, catRes, prodRes] = await Promise.all([
-        api.get(`/tables/?_t=${Date.now()}`),
-        api.get('/catalog/categories'),
-        api.get('/catalog/products')
-      ]);
-      setTables(tableRes.data || []);
-      setCategories(catRes.data || []);
-      setProducts(prodRes.data || []);
-    } catch (err) {
-      console.error("fetchInitialData ERROR:", err.message, err.response?.data);
-      alert("Ошибка загрузки данных: " + (err.response?.data?.error || err.message));
-    } finally {
-      setLoading(false);
+    if (navigator.onLine) {
+      try {
+        const [tableRes, catRes, prodRes, debtorsRes] = await Promise.all([
+          api.get(`/tables/?_t=${Date.now()}`),
+          api.get('/catalog/categories'),
+          api.get('/catalog/products'),
+          api.get('/debts/debtors')
+        ]);
+        const fetchedTables = tableRes.data || [];
+        const fetchedCats = catRes.data || [];
+        const fetchedProds = prodRes.data || [];
+        setTables(fetchedTables);
+        setCategories(fetchedCats);
+        setProducts(fetchedProds);
+        setDebtors(debtorsRes.data || []);
+
+        await db.posTables.bulkPut(fetchedTables);
+        await db.categories.bulkPut(fetchedCats);
+        await db.products.bulkPut(fetchedProds);
+      } catch (err) {
+        console.error("fetchInitialData ERROR:", err.message);
+      }
+    } else {
+      try {
+        setTables(await db.posTables.toArray());
+        setCategories(await db.categories.toArray());
+        setProducts(await db.products.toArray());
+      } catch (err) {
+        console.error("Dexie fetch error", err);
+      }
     }
+    setLoading(false);
   };
 
   const fetchHistory = async () => {
@@ -83,12 +109,21 @@ const Waiter = () => {
     setActiveCategory(categories.length > 0 ? categories[0].id : null);
 
     if (table.status === 'occupied') {
-      try {
-        const res = await api.get(`/orders/active-by-table/${table.id}`);
-        if (res.data && res.data.id) {
-          setExistingOrder(res.data);
+      if (navigator.onLine) {
+        try {
+          const res = await api.get(`/orders/active-by-table/${table.id}`);
+          if (res.data && res.data.id) {
+            setExistingOrder(res.data);
+          }
+        } catch (err) {
+          console.error('Failed to load active order for table', err);
         }
-      } catch (err) {
+      } else {
+        const offlineOrders = await db.offlineOrders.toArray();
+        const offlineOrder = offlineOrders.find(o => o.table_id === table.id);
+        if (offlineOrder) {
+          setExistingOrder(offlineOrder);
+        }
       }
     }
   };
@@ -129,7 +164,9 @@ const Waiter = () => {
   const submitOrder = async () => {
     if (cart.length === 0) return alert("Корзина пуста!");
     if (!selectedTable) return alert("Стол не выбран!");
+    if (isSubmitting) return;
 
+    setIsSubmitting(true);
     const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const items = cart.map(item => ({
       product_id: item.product_id,
@@ -140,9 +177,25 @@ const Waiter = () => {
     
     try {
       if (existingOrder) {
-        const res = await api.post(`/orders/${existingOrder.id}/add-items`, { items });
-        setExistingOrder(res.data);
-        alert(`Buyurtma #${existingOrder.id} ga qo'shildi!`);
+        if (navigator.onLine && existingOrder.id > 0) {
+          const res = await api.post(`/orders/${existingOrder.id}/add-items`, { items });
+          setExistingOrder(res.data);
+          alert(`Buyurtma #${existingOrder.id} ga qo'shildi!`);
+        } else {
+          await db.syncQueue.add({
+            type: 'ADD_ITEMS',
+            order_id: existingOrder.id,
+            payload: { items },
+            status: 'pending',
+            created_at: new Date()
+          });
+          const updatedItems = [...(existingOrder.items || [])];
+          items.forEach(ni => { updatedItems.push({...ni, id: generateOfflineId()}); });
+          const newOrder = { ...existingOrder, items: updatedItems, total_price: existingOrder.total_price + totalPrice };
+          setExistingOrder(newOrder);
+          if (existingOrder.id < 0) await db.offlineOrders.put(newOrder);
+          alert('Oflyayn navbatga qo\'shildi!');
+        }
       } else {
         const payload = {
           table_id: selectedTable.id,
@@ -152,13 +205,38 @@ const Waiter = () => {
           phone: 'Внутренний заказ'
         };
 
-        await api.post('/orders', payload);
-      
-        if (selectedTable.status === 'free') {
-           await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'occupied' });
+        if (navigator.onLine) {
+          await api.post('/orders', payload);
+          if (selectedTable.status === 'free') {
+             try {
+               await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'occupied' });
+             } catch (tableErr) {
+               console.warn("Failed to update table status, but order was created", tableErr);
+             }
+          }
+          alert('Заказ отправлен на кухню!');
+        } else {
+          const fakeId = generateOfflineId();
+          const fakeOrder = {
+            id: fakeId,
+            ...payload,
+            status: 'new',
+            created_at: new Date().toISOString(),
+            items: items.map(i => ({...i, id: generateOfflineId()}))
+          };
+          await db.offlineOrders.put(fakeOrder);
+          await db.syncQueue.add({
+            type: 'CREATE_ORDER',
+            order_id: fakeId,
+            payload,
+            status: 'pending',
+            created_at: new Date()
+          });
+          const newTables = tables.map(t => t.id === selectedTable.id ? {...t, status: 'occupied'} : t);
+          setTables(newTables);
+          await db.posTables.put({...selectedTable, status: 'occupied'});
+          alert('Oflyayn navbatda yaratildi!');
         }
-
-        alert('Заказ отправлен на кухню!');
       }
 
       setSelectedTable(null);
@@ -169,6 +247,8 @@ const Waiter = () => {
     } catch (err) {
       console.error(err);
       alert('Ошибка при отправке заказа: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -274,39 +354,55 @@ const Waiter = () => {
     }
   };
 
-  const freeTable = async () => {
-    if (!window.confirm("Вы хотите освободить стол?")) return;
-    
-    const paymentMethodMap = {
-      '1': 'cash',
-      '2': 'card',
-      '3': 'click',
-      '4': 'nasiya'
-    };
-    
-    let method = null;
-    while (!method) {
-      const choice = window.prompt("Выберите тип оплаты (введите цифру):\n1 - 💵 Наличные\n2 - 💳 Терминал (Карта)\n3 - 📱 Click/Payme\n4 - 📒 В долг");
-      
-      if (choice === null) return; // User cancelled
-      
-      method = paymentMethodMap[choice];
-      if (!method) {
-        alert("Пожалуйста, введите цифру от 1 до 4.");
-      }
+  const freeTable = () => {
+    if (existingOrder) {
+      setPaymentModalOpen(true);
+    } else {
+      handleCloseTable([]);
     }
+  };
 
+  const handleCloseTable = async (payments, selectedDebtor) => {
     try {
-      await api.put(`/tables/${selectedTable.id}`, { ...selectedTable, status: 'free', payment_method: method });
+      await api.put(`/tables/${selectedTable.id}`, { 
+        ...selectedTable, 
+        status: 'free', 
+        payments: payments 
+      });
+
+      // If there's nasiya, record the debt
+      const nasiyaPayment = payments.find(p => p.method === 'nasiya');
+      if (nasiyaPayment && selectedDebtor && existingOrder) {
+        await api.post('/debts/record', {
+          debtor_id: selectedDebtor.id,
+          order_id: existingOrder.id,
+          amount: nasiyaPayment.amount,
+          type: 'debt',
+          description: `Stol yopildi: ${selectedTable.name}`
+        });
+      }
+
       alert("Стол освобожден!");
+      setPaymentModalOpen(false);
       setSelectedTable(null);
       setIsCartExpanded(false);
+      setExistingOrder(null);
       fetchInitialData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.error || "Произошла ошибка";
       alert(msg);
+    }
+  };
+
+  const handleCreateDebtor = async (debtorData) => {
+    try {
+      const res = await api.post('/debts/debtors', debtorData);
+      setDebtors([...debtors, res.data]);
+      return res.data;
+    } catch (err) {
+      alert("Qarzdor yaratishda xatolik: " + (err.response?.data?.error || err.message));
+      return null;
     }
   };
 
@@ -349,8 +445,16 @@ const Waiter = () => {
                 </div>
               </div>
               <div className="table-stats">
+                <div className="fp-view-toggle">
+                  <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')}>
+                    <List size={15} /> Ro'yxat
+                  </button>
+                  <button className={viewMode === 'map' ? 'active' : ''} onClick={() => setViewMode('map')}>
+                    <Map size={15} /> Xarita
+                  </button>
+                </div>
                 <button className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '99px', fontSize: '0.85rem' }} onClick={fetchHistory}>
-                  <Clock size={16} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }}/> История
+                  <Clock size={16} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom'}}/> История
                 </button>
                 <div className="stat-pill free-pill">
                   <span className="dot"></span>
@@ -363,6 +467,16 @@ const Waiter = () => {
               </div>
             </header>
 
+            {viewMode === 'map' ? (
+              <div style={{ padding: '0 0.5rem' }}>
+                <FloorPlan
+                  tables={displayTables}
+                  onTableSelect={handleTableSelect}
+                  isAdmin={user?.role === 'admin'}
+                  onTablesUpdate={fetchInitialData}
+                />
+              </div>
+            ) : (
             <div className="tables-grid">
               {displayTables.map((table, i) => (
                 <motion.div 
@@ -397,6 +511,7 @@ const Waiter = () => {
                 </div>
               )}
             </div>
+            )}
           </motion.div>
         ) : (
           <motion.div 
@@ -647,7 +762,7 @@ const Waiter = () => {
                       </div>
                     ))}
                   </div>
-                  <button className="submit-order-btn" onClick={submitOrder}>
+                  <button className={`submit-order-btn ${isSubmitting ? 'disabled' : ''}`} disabled={isSubmitting} onClick={submitOrder}>
                     <Send size={18} />
                     {existingOrder ? `Buyurtma #${existingOrder.id} ga qo'shish` : 'Отправить на кухню'}
                   </button>
@@ -792,6 +907,15 @@ const Waiter = () => {
           </motion.div>
         </div>
       )}
+
+      <PaymentModal 
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        totalAmount={existingOrder?.total_price || 0}
+        onConfirm={handleCloseTable}
+        debtors={debtors}
+        onCreateDebtor={handleCreateDebtor}
+      />
 
       <style>{`
         .waiter-wrapper {

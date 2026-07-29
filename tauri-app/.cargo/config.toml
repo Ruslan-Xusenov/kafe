@@ -1,0 +1,3 @@
+# Windows cross-compile konfiguratsiya
+# cargo-xwin avtomatik lld-link va MSVC SDK ni boshqaradi
+# Qo'shimcha sozlama kerak emas — cargo xwin build ishlatiladi

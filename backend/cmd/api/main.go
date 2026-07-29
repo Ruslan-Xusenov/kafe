@@ -8,13 +8,13 @@ import (
 
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/username/kafe-backend/internal/database"
 	"github.com/username/kafe-backend/internal/handlers"
 	"github.com/username/kafe-backend/internal/middleware"
 	"github.com/username/kafe-backend/internal/repository"
 	"github.com/username/kafe-backend/internal/service"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -38,6 +38,11 @@ func main() {
 	financeRepo := repository.NewFinanceRepository(database.DB)
 	inventoryRepo := repository.NewInventoryRepository(database.DB)
 	tableRepo := repository.NewTableRepository(database.DB)
+	auditRepo := repository.NewAuditRepository(database.DB)
+	cashierRepo := repository.NewCashierRepository(database.DB)
+	debtRepo := repository.NewDebtRepository(database.DB)
+	refundRepo := repository.NewRefundRepository(database.DB)
+	fiscalRepo := repository.NewFiscalRepository(database.DB)
 
 	// Initialize Services
 	authService := service.NewAuthService(userRepo)
@@ -46,15 +51,21 @@ func main() {
 	botService := service.NewBotService()
 	printerService := service.NewPrinterService()
 	orderService := service.NewOrderService(orderRepo, prodRepo, settingsRepo, inventoryRepo, tableRepo, wsService, botService, printerService)
+	fiscalService := service.NewFiscalService(fiscalRepo, settingsRepo)
 
 	// Initialize Handlers
-	authHandler := handlers.NewAuthHandler(authService, userRepo)
-	catalogHandler := handlers.NewCatalogHandler(catalogService)
-	orderHandler := handlers.NewOrderHandler(orderService)
-	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
-	financeHandler := handlers.NewFinanceHandler(financeRepo, wsService)
-	inventoryHandler := handlers.NewInventoryHandler(inventoryRepo)
-	tableHandler := handlers.NewTableHandler(tableRepo, orderService)
+	authHandler := handlers.NewAuthHandler(authService, userRepo, auditRepo)
+	catalogHandler := handlers.NewCatalogHandler(catalogService, auditRepo)
+	orderHandler := handlers.NewOrderHandler(orderService, auditRepo)
+	settingsHandler := handlers.NewSettingsHandler(settingsRepo, auditRepo)
+	financeHandler := handlers.NewFinanceHandler(financeRepo, wsService, auditRepo)
+	inventoryHandler := handlers.NewInventoryHandler(inventoryRepo, auditRepo)
+	tableHandler := handlers.NewTableHandler(tableRepo, orderService, auditRepo)
+	auditHandler := handlers.NewAuditHandler(auditRepo)
+	cashierHandler := handlers.NewCashierHandler(cashierRepo, orderService, auditRepo)
+	debtHandler := handlers.NewDebtHandler(debtRepo, auditRepo)
+	refundHandler := handlers.NewRefundHandler(refundRepo, auditRepo)
+	fiscalHandler := handlers.NewFiscalHandler(fiscalService, auditRepo)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -71,7 +82,15 @@ func main() {
 			allowedOrigins = "http://localhost:3000,http://localhost:5173" // Default safe local origins
 		}
 
-		if origin != "" && strings.Contains(allowedOrigins, origin) {
+		originAllowed := false
+		for _, allowed := range strings.Split(allowedOrigins, ",") {
+			if strings.TrimSpace(allowed) == origin {
+				originAllowed = true
+				break
+			}
+		}
+
+		if origin != "" && originAllowed {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		} else if origin == "" {
 			// Allow non-browser clients (like bots/mobile) if no origin is set
@@ -96,7 +115,7 @@ func main() {
 	// Serve the static files from the frontend build (dist folder)
 	r.StaticFile("/", "../../frontend/dist/index.html")
 	r.Static("/assets", "../../frontend/dist/assets")
-	
+
 	// Fallback for SPA routing: All other unknown routes go to index.html
 	r.NoRoute(func(c *gin.Context) {
 		if !strings.HasPrefix(c.Request.URL.Path, "/api") && !strings.HasPrefix(c.Request.URL.Path, "/uploads") {
@@ -190,12 +209,13 @@ func main() {
 		tables := api.Group("/tables")
 		tables.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "waiter"))
 		{
-			tables.GET("/", tableHandler.GetAll)
+				tables.GET("/", tableHandler.GetAll)
 			tables.POST("/", tableHandler.Create)
 			tables.PUT("/:id", tableHandler.Update)
 			tables.DELETE("/:id", tableHandler.Delete)
+			tables.PUT("/layout/batch", tableHandler.UpdateLayout)
 		}
-		
+
 		// Finance (Admin only)
 		finance := api.Group("/finance")
 		finance.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
@@ -203,9 +223,15 @@ func main() {
 			finance.GET("/stats", financeHandler.GetStats)
 			finance.GET("/expenses", financeHandler.GetExpenses)
 			finance.POST("/expenses", financeHandler.CreateExpense)
-		finance.POST("/close-shift", financeHandler.CloseShift)
-		finance.POST("/send-real-profit", financeHandler.SendRealProfit)
-		finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
+			finance.POST("/close-shift", financeHandler.CloseShift)
+			finance.POST("/send-real-profit", financeHandler.SendRealProfit)
+			finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
+		}
+
+		audit := api.Group("/audit")
+		audit.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
+		{
+			audit.GET("/logs", auditHandler.GetLogs)
 		}
 
 		// Inventory (Admin only)
@@ -223,9 +249,62 @@ func main() {
 			inventory.DELETE("/recipes/:id", inventoryHandler.DeleteProductIngredient)
 		}
 
+		// Cashier POS (Cashier + Admin)
+		cashier := api.Group("/cashier")
+		cashier.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "cashier"))
+		{
+			cashier.POST("/shift/open", cashierHandler.OpenShift)
+			cashier.POST("/shift/close", cashierHandler.CloseShift)
+			cashier.GET("/shift/current", cashierHandler.GetCurrentShift)
+			cashier.POST("/shift/cash-operation", cashierHandler.AddCashOperation)
+			cashier.GET("/shift/:id/report", cashierHandler.GetShiftReport)
+			cashier.GET("/shifts", cashierHandler.GetAllShifts)
+			cashier.POST("/quick-sale", cashierHandler.QuickSale)
+		}
+
+		// Debt/Nasiya Management (Admin + Cashier)
+		debts := api.Group("/debts")
+		debts.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "cashier", "waiter"))
+		{
+			debts.GET("/debtors", debtHandler.GetAllDebtors)
+			debts.POST("/debtors", debtHandler.CreateDebtor)
+			debts.PUT("/debtors/:id", debtHandler.UpdateDebtor)
+			debts.GET("/debtors/:id/history", debtHandler.GetDebtorHistory)
+			debts.POST("/debtors/:id/pay", debtHandler.PayDebt)
+			debts.POST("/record", debtHandler.AddDebtRecord)
+			debts.GET("/summary", debtHandler.GetDebtSummary)
+		}
+
+		// Refund Management
+		refunds := api.Group("/refunds")
+		refunds.Use(middleware.AuthMiddleware())
+		{
+			refunds.POST("/", middleware.RoleMiddleware("admin", "cashier", "waiter"), refundHandler.CreateRefund)
+			refunds.GET("/pending", middleware.RoleMiddleware("admin"), refundHandler.GetPendingRefunds)
+			refunds.GET("/all", middleware.RoleMiddleware("admin"), refundHandler.GetAllRefunds)
+			refunds.GET("/reasons", refundHandler.GetRefundReasons)
+			refunds.GET("/pending-count", middleware.RoleMiddleware("admin"), refundHandler.CountPending)
+			refunds.PUT("/:id/approve", middleware.RoleMiddleware("admin"), refundHandler.ApproveRefund)
+			refunds.PUT("/:id/reject", middleware.RoleMiddleware("admin"), refundHandler.RejectRefund)
+			refunds.PUT("/:id/money-returned", middleware.RoleMiddleware("admin"), refundHandler.MarkMoneyReturned)
+				refunds.GET("/order/:id", middleware.RoleMiddleware("admin", "cashier", "waiter"), refundHandler.GetRefundsByOrder)
+		}
+
+		// Fiscal Receipts (Admin only)
+		fiscal := api.Group("/fiscal")
+		fiscal.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "cashier"))
+		{
+			fiscal.GET("/receipt/:order_id", fiscalHandler.GetReceiptByOrder)
+			fiscal.GET("/receipts", fiscalHandler.GetAllReceipts)
+			fiscal.GET("/settings", fiscalHandler.GetSettings)
+			fiscal.PUT("/settings", fiscalHandler.UpdateSettings)
+			fiscal.POST("/receipt/:order_id/resend", fiscalHandler.ResendToOFD)
+			fiscal.GET("/stats", fiscalHandler.GetStats)
+		}
+
 		// Printer Control (Staff Only)
 		printer := api.Group("/printer")
-		printer.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "cook", "courier"))
+		printer.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin", "cook", "courier", "cashier"))
 		{
 			printer.GET("/test", orderHandler.TestPrinter)
 		}
@@ -243,7 +322,7 @@ func main() {
 			if c.IsAborted() {
 				return
 			}
-			
+
 			uID, _ := c.Get("user_id")
 			rol, _ := c.Get("role")
 			wsService.HandleConnection(c.Writer, c.Request, uID.(int), rol.(string))
@@ -272,6 +351,29 @@ func main() {
 			wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
 
 			c.JSON(http.StatusOK, gin.H{"status": "notified"})
+		})
+
+		// Public Cafe Config (No Auth Required)
+		api.GET("/config", func(c *gin.Context) {
+			cafeName := os.Getenv("CAFE_NAME")
+			if cafeName == "" {
+				cafeName = "Kafe"
+			}
+			cafeFullName := os.Getenv("CAFE_FULL_NAME")
+			if cafeFullName == "" {
+				cafeFullName = cafeName
+			}
+			cafeWebsite := os.Getenv("CAFE_WEBSITE")
+			cafeAddress := os.Getenv("CAFE_ADDRESS")
+			cafePhone := os.Getenv("CAFE_PHONE")
+
+			c.JSON(http.StatusOK, gin.H{
+				"cafe_name":      cafeName,
+				"cafe_full_name": cafeFullName,
+				"cafe_website":   cafeWebsite,
+				"cafe_address":   cafeAddress,
+				"cafe_phone":     cafePhone,
+			})
 		})
 
 		// Health Check

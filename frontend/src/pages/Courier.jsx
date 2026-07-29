@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Truck, MapPin, Phone, CheckCircle, Navigation, RefreshCw, Package } from 'lucide-react';
 import StatsSection from '../components/StatsSection';
 
@@ -20,7 +20,6 @@ const Courier = () => {
     try {
       const res = await api.get('/orders/active');
       setOrders((res.data || []).filter(o => (o.status === 'ready' || o.status === 'on_way') && !o.table_id));
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {

@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KafePlat — Kafengizni Avtomatlashtiring, Daromadingizni Oshiring</title>
+  <meta name="description" content="Buyurtma qabul qilishdan chek bosishgacha hamma narsa avtomatik. Xodimlar kamroq xato qiladi, mijozlar tezroq xizmat oladi, siz ko'proq daromad qilasiz." />
+
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif'],
+            display: ['Plus Jakarta Sans', 'ui-sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <script>
+    // Fonga miltillashning oldini olish uchun
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #f97316, #facc15);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gradient-text-red {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-glow {
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,0.18) 0%, transparent 70%);
+    }
+    .section-glow-red {
+      background: radial-gradient(ellipse 80% 50% at 50% 50%, rgba(239,68,68,0.05) 0%, transparent 70%);
+    }
+    .card-hover {
+      transition: transform 0.28s cubic-bezier(.4,0,.2,1), box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 56px rgba(0,0,0,0.45);
+    }
+
+    /* Glassmorphism */
+    .glass-card {
+      background: hsl(var(--b1) / 0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.04);
+    }
+    [data-theme="night"] .glass-card {
+      background: hsl(var(--b1) / 0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    /* Premium Icon Box */
+    .ibox {
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 16px; flex-shrink: 0;
+      border-width: 1px; border-style: solid;
+    }
+    .ibox-lg { width: 72px; height: 72px; }
+    .ibox-md { width: 56px; height: 56px; border-radius: 14px; }
+    .ibox-sm { width: 40px; height: 40px; border-radius: 10px; }
+
+    .ibox-orange { background: linear-gradient(135deg,rgba(249,115,22,.18),rgba(234,88,12,.08)); border-color:rgba(249,115,22,.25); box-shadow:0 8px 24px rgba(249,115,22,.12); }
+    .ibox-red    { background: linear-gradient(135deg,rgba(239,68,68,.18),rgba(185,28,28,.08)); border-color:rgba(239,68,68,.25); box-shadow:0 8px 24px rgba(239,68,68,.12); }
+    .ibox-green  { background: linear-gradient(135deg,rgba(16,185,129,.18),rgba(5,150,105,.08)); border-color:rgba(16,185,129,.25); box-shadow:0 8px 24px rgba(16,185,129,.12); }
+    .ibox-blue   { background: linear-gradient(135deg,rgba(59,130,246,.18),rgba(29,78,216,.08)); border-color:rgba(59,130,246,.25); box-shadow:0 8px 24px rgba(59,130,246,.12); }
+    .ibox-purple { background: linear-gradient(135deg,rgba(139,92,246,.18),rgba(109,40,217,.08)); border-color:rgba(139,92,246,.25); box-shadow:0 8px 24px rgba(139,92,246,.12); }
+    .ibox-yellow { background: linear-gradient(135deg,rgba(234,179,8,.18),rgba(161,98,7,.08)); border-color:rgba(234,179,8,.25); box-shadow:0 8px 24px rgba(234,179,8,.12); }
+    .ibox-teal   { background: linear-gradient(135deg,rgba(20,184,166,.18),rgba(13,148,136,.08)); border-color:rgba(20,184,166,.25); box-shadow:0 8px 24px rgba(20,184,166,.12); }
+    .ibox-pink   { background: linear-gradient(135deg,rgba(236,72,153,.18),rgba(190,24,93,.08)); border-color:rgba(236,72,153,.25); box-shadow:0 8px 24px rgba(236,72,153,.12); }
+    .ibox-sky    { background: linear-gradient(135deg,rgba(14,165,233,.18),rgba(2,132,199,.08)); border-color:rgba(14,165,233,.25); box-shadow:0 8px 24px rgba(14,165,233,.12); }
+
+    /* SVG stroke colors */
+    .ic-orange { color:#fb923c; }
+    .ic-red    { color:#f87171; }
+    .ic-green  { color:#34d399; }
+    .ic-blue   { color:#60a5fa; }
+    .ic-purple { color:#a78bfa; }
+    .ic-yellow { color:#fbbf24; }
+    .ic-teal   { color:#2dd4bf; }
+    .ic-pink   { color:#f472b6; }
+    .ic-sky    { color:#38bdf8; }
+
+    /* Animations */
+    .receipt-animate { animation: receipt-slide 4s ease-in-out infinite; }
+    @keyframes receipt-slide {
+      0%,100% { transform: translateY(-4px); opacity:.85; }
+      30%,75%  { transform: translateY(0);     opacity: 1; }
+    }
+    .pulse-dot { animation: pulse-anim 2s ease-in-out infinite; }
+    @keyframes pulse-anim {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(.7); }
+    }
+    .new-order-blink { animation: blink-border 2s ease-in-out infinite; }
+    @keyframes blink-border {
+      0%,100% { border-color:rgba(96,165,250,.2); }
+      50%      { border-color:rgba(96,165,250,.6); box-shadow:0 0 8px rgba(96,165,250,.2); }
+    }
+    .float-anim { animation: float 3.5s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+    [data-reveal] {
+      opacity:0; transform:translateY(28px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    [data-reveal].revealed { opacity:1; transform:translateY(0); }
+    [data-reveal-delay="1"]{transition-delay:.1s}
+    [data-reveal-delay="2"]{transition-delay:.2s}
+    [data-reveal-delay="3"]{transition-delay:.3s}
+    [data-reveal-delay="4"]{transition-delay:.4s}
+    [data-reveal-delay="5"]{transition-delay:.5s}
+    [data-reveal-delay="6"]{transition-delay:.6s}
+
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:hsl(var(--b1))}
+    ::-webkit-scrollbar-thumb{background:hsl(var(--p));border-radius:3px}
+  </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+
+  <!-- Ambient Glassmorphism Blobs -->
+  <div class="fixed top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-primary/20 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+  <div class="fixed bottom-[-10%] right-[-10%] w-[35vw] h-[35vw] bg-secondary/20 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+  <div class="fixed top-[40%] left-[60%] w-[30vw] h-[30vw] bg-info/15 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+
+  <!-- ==================== NAVBAR ==================== -->
+  <div class="navbar bg-base-100/60 backdrop-blur-2xl border-b border-base-300/50 fixed top-0 z-50 px-4 transition-all duration-300" id="navbar">
+    <div class="navbar-start">
+      <div class="dropdown">
+        <label tabindex="0" class="btn btn-ghost lg:hidden">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </label>
+        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-box w-52">
+          <li><a href="#problems">Muammolar</a></li>
+          <li><a href="#benefits">Foydalar</a></li>
+          <li><a href="#howworks">Qanday Ishlaydi</a></li>
+          <li><a href="#roles">Kim Uchun</a></li>
+          <li><a href="#contact">Bog'lanish</a></li>
+        </ul>
+      </div>
+      <a href="#" class="btn btn-ghost text-xl font-black font-display gap-2">
+        <!-- Coffee SVG logo -->
+        <svg class="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
+          <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/>
+          <line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>
+        </svg>
+        Kafe<span class="text-primary">Plat</span>
+      </a>
+    </div>
+    <div class="navbar-center hidden lg:flex">
+      <ul class="menu menu-horizontal px-1 gap-1">
+        <li><a href="#problems" class="font-medium text-base-content/70 hover:text-base-content rounded-lg">Muammolar</a></li>
+        <li><a href="#benefits" class="font-medium text-base-content/70 hover:text-base-content rounded-lg">Foydalar</a></li>
+        <li><a href="#howworks" class="font-medium text-base-content/70 hover:text-base-content rounded-lg">Qanday Ishlaydi</a></li>
+        <li><a href="#roles" class="font-medium text-base-content/70 hover:text-base-content rounded-lg">Kim Uchun</a></li>
+        <li><a href="#contact" class="font-medium text-base-content/70 hover:text-base-content rounded-lg">Bog'lanish</a></li>
+      </ul>
+    </div>
+    <div class="navbar-end gap-2">
+      <button id="themeToggle" class="btn btn-ghost btn-circle btn-sm" aria-label="Mavzuni o'zgartirish">
+        <svg class="w-5 h-5 dark-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        <svg class="w-5 h-5 light-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+      </button>
+      <a href="#contact" class="btn btn-primary btn-sm font-bold shadow-lg shadow-primary/30 hidden sm:inline-flex">Bepul Ko'rish</a>
+    </div>
+  </div>
+
+  <!-- ==================== HERO ==================== -->
+  <section class="min-h-screen hero-glow pt-20" id="home">
+    <div class="max-w-7xl mx-auto px-4 py-20 flex flex-col lg:flex-row items-center gap-16">
+      <div class="flex-1 max-w-xl">
+        <div class="badge badge-success gap-2 mb-6 py-3 px-4 font-medium">
+          <span class="w-2 h-2 rounded-full bg-success pulse-dot inline-block"></span>
+          100+ kafe uchun tayyor yechim
+        </div>
+        <h1 class="text-5xl lg:text-6xl font-black font-display leading-tight mb-6">
+          Buyurtma Yo'qolmaydi.<br/>Xodim Adashmaydi.<br/>
+          <span class="gradient-text">Siz Yutasiz.</span>
+        </h1>
+        <p class="text-base-content/60 text-lg leading-relaxed mb-8">
+          Kafe va restoranlar uchun maxsus yaratilgan zamonaviy POS tizim. 
+          Kassir tezroq xizmat ko'rsatadi, oshxona chalkashmaydi, cheklar
+          avtomatik chop etiladi. Barcha jarayonlar bitta ekranda.
+        </p>
+        <div class="flex flex-wrap gap-3 mb-10">
+          <a href="#contact" class="btn btn-primary btn-lg font-bold shadow-xl shadow-primary/30 gap-2">
+            Bepul Demo Ko'rish
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#howworks" class="btn btn-outline btn-lg font-bold">Qanday Ishlashini Ko'rish</a>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-3 text-sm">
+            <div class="ibox ibox-sm ibox-green">
+              <svg class="w-4 h-4 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="text-base-content/60">Unutilgan buyurtmalar — <strong class="text-success">yo'qoldi</strong></span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <div class="ibox ibox-sm ibox-green">
+              <svg class="w-4 h-4 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="text-base-content/60">Qog'oz chek yozish — <strong class="text-success">avtomatik</strong></span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <div class="ibox ibox-sm ibox-green">
+              <svg class="w-4 h-4 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="text-base-content/60">Xodimlar orasidagi chalkashlik — <strong class="text-success">tugadi</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Mockup -->
+      <div class="flex-1 max-w-lg w-full">
+        <div class="card glass-card border border-base-300 shadow-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-4 py-3 bg-base-300 border-b border-base-100/20">
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 rounded-full bg-error opacity-80"></div>
+              <div class="w-3 h-3 rounded-full bg-warning opacity-80"></div>
+              <div class="w-3 h-3 rounded-full bg-success opacity-80"></div>
+            </div>
+            <span class="text-xs text-base-content/40 flex-1 text-center">KafePlat — Bugungi Holat</span>
+            <div class="flex items-center gap-1.5 text-xs text-success font-semibold">
+              <span class="w-1.5 h-1.5 bg-success rounded-full pulse-dot inline-block"></span>Jonli
+            </div>
+          </div>
+          <div class="flex">
+            <div class="w-32 bg-base-300/50 border-r border-base-100/10 p-2 flex-shrink-0">
+              <div class="text-xs font-semibold px-2 py-2 rounded-lg bg-primary/10 text-primary border-r-2 border-primary mb-1">
+                <svg class="w-3 h-3 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Umumiy
+              </div>
+              <div class="text-xs text-base-content/40 px-2 py-2 rounded-lg mb-1">
+                <svg class="w-3 h-3 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                Buyurtmalar
+              </div>
+              <div class="text-xs text-base-content/40 px-2 py-2 rounded-lg mb-1">
+                <svg class="w-3 h-3 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/></svg>
+                Menyu
+              </div>
+              <div class="text-xs text-base-content/40 px-2 py-2 rounded-lg mb-1">
+                <svg class="w-3 h-3 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Xodimlar
+              </div>
+              <div class="text-xs text-base-content/40 px-2 py-2 rounded-lg">
+                <svg class="w-3 h-3 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Hisobot
+              </div>
+            </div>
+            <div class="flex-1 p-3">
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="bg-success/10 border border-success/20 rounded-xl p-2.5 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-success flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  <div><div class="text-xs font-bold">4,850,000</div><div class="text-[10px] text-base-content/40">Bugungi daromad</div></div>
+                </div>
+                <div class="bg-info/10 border border-info/20 rounded-xl p-2.5 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-info flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  <div><div class="text-xs font-bold">8 min</div><div class="text-[10px] text-base-content/40">O'rtacha xizmat</div></div>
+                </div>
+                <div class="bg-warning/10 border border-warning/20 rounded-xl p-2.5 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-warning flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <div><div class="text-xs font-bold">98%</div><div class="text-[10px] text-base-content/40">Mamnuniyat</div></div>
+                </div>
+                <div class="bg-primary/10 border border-primary/20 rounded-xl p-2.5 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  <div><div class="text-xs font-bold" id="orderCount">63</div><div class="text-[10px] text-base-content/40">Buyurtmalar</div></div>
+                </div>
+              </div>
+              <div id="liveOrders">
+                <div class="text-[10px] font-bold text-base-content/40 mb-1.5">Hozir kelayotgan</div>
+                <div class="order-row flex items-center gap-2 p-2 rounded-lg bg-base-100/30 border border-base-content/5 mb-1.5 text-[11px]">
+                  <span class="text-base-content/40 w-8">#1042</span>
+                  <span class="flex-1">Lag'mon × 2, Cola</span>
+                  <span class="badge badge-warning badge-sm">Oshxonada</span>
+                </div>
+                <div class="order-row flex items-center gap-2 p-2 rounded-lg bg-base-100/30 border border-base-content/5 mb-1.5 text-[11px]">
+                  <span class="text-base-content/40 w-8">#1043</span>
+                  <span class="flex-1">Shashlik × 3</span>
+                  <span class="badge badge-success badge-sm">✓ Tayyor</span>
+                </div>
+                <div class="order-row flex items-center gap-2 p-2 rounded-lg bg-base-100/30 border border-info/40 text-[11px] new-order-blink">
+                  <span class="text-base-content/40 w-8">#1044</span>
+                  <span class="flex-1">Somsa × 5</span>
+                  <span class="badge badge-info badge-sm">Yangi</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 flex justify-end" id="printerPopup">
+          <div class="badge badge-success gap-2 py-3 px-4 text-sm font-semibold shadow-lg shadow-success/20 float-anim">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Chek avtomatik chiqdi!
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PROBLEMS ==================== -->
+  <section class="py-24 section-glow-red" id="problems">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="text-center mb-16">
+        <div class="badge badge-error gap-2 mb-4 py-3 px-4 font-bold text-sm">Tanish muammolar?</div>
+        <h2 class="text-4xl lg:text-5xl font-black font-display mb-4">Ko'p Kafeda Shunday <span class="gradient-text-red">Muammolar</span> Bor</h2>
+        <p class="text-base-content/60 max-w-xl mx-auto text-lg">Agar kafengizda quyidagilardan biri bo'lsa — KafePlat aynan siz uchun</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="card glass-card border border-error/10 card-hover" data-reveal data-reveal-delay="1">
+          <div class="card-body">
+            <div class="ibox ibox-lg ibox-red mb-4">
+              <svg class="w-9 h-9 ic-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h3 class="card-title font-bold text-lg">"Buyurtmamni unutib qo'yishdi"</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Qog'oz qayerga ketdi, kim yozdi, kim olib ketdi — hech kim bilmaydi. Mijoz kutadi, g'azablanadi, chiqib ketadi.</p>
+            <div class="alert alert-success py-2 mt-3 text-xs gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              KafePlat: hamma buyurtma ekranda, hech qayoqqa ketmaydi
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-error/10 card-hover" data-reveal data-reveal-delay="2">
+          <div class="card-body">
+            <div class="ibox ibox-lg ibox-orange mb-4">
+              <svg class="w-9 h-9 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="11" y2="11"/>
+                <line x1="13" y1="13" x2="15" y2="11"/>
+              </svg>
+            </div>
+            <h3 class="card-title font-bold text-lg">Qo'lda yoziladigan cheklar</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Kassir qo'lda yozadi, xato qiladi, mijoz shikoyat qiladi. Yoki chek yo'qoladi — hisob-kitob noto'g'ri chiqadi.</p>
+            <div class="alert alert-success py-2 mt-3 text-xs gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              KafePlat: buyurtma tushishi bilanoq printer avtomatik chiqaradi
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-error/10 card-hover" data-reveal data-reveal-delay="3">
+          <div class="card-body">
+            <div class="ibox ibox-lg ibox-yellow mb-4">
+              <svg class="w-9 h-9 ic-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 class="card-title font-bold text-lg">"Bu buyurtma kimniki?"</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Ofitsiant oshxonaga qichqiradi, oshpaz tushunmaydi, mijoz kutadi. Chalkashlik — har kuni, har soat.</p>
+            <div class="alert alert-success py-2 mt-3 text-xs gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              KafePlat: oshxona ekranida aniq kim, nima buyurganini ko'radi
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-error/10 card-hover" data-reveal data-reveal-delay="4">
+          <div class="card-body">
+            <div class="ibox ibox-lg ibox-purple mb-4">
+              <svg class="w-9 h-9 ic-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+              </svg>
+            </div>
+            <h3 class="card-title font-bold text-lg">Kecha qancha daromad bo'ldi?</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Kassadan pul sanash kerak, qo'lda hisob-kitob. Aniq raqamni bilish uchun soatlab vaqt ketadi.</p>
+            <div class="alert alert-success py-2 mt-3 text-xs gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              KafePlat: har kuni, har soatlik daromad statistikasi tayyor
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-error/10 card-hover" data-reveal data-reveal-delay="5">
+          <div class="card-body">
+            <div class="ibox ibox-lg ibox-blue mb-4">
+              <svg class="w-9 h-9 ic-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="3" width="15" height="13" rx="1"/>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+            </div>
+            <h3 class="card-title font-bold text-lg">Kassada uzun navbatlar</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Sekin ishlash va eski dasturlar tufayli mijozlar kassada uzoq kutib qolishadi.</p>
+            <div class="alert alert-success py-2 mt-3 text-xs gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              KafePlat: POS terminalda atigi 3 ta bosish orqali tezkor to'lov
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-error/10 card-hover" data-reveal data-reveal-delay="6">
+          <div class="card-body">
+            <div class="ibox ibox-lg ibox-teal mb-4">
+              <svg class="w-9 h-9 ic-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.23h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.84-.84a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </div>
+            <h3 class="card-title font-bold text-lg">Omborxonadagi kamomad</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Qaysi mahsulot tugayotganini va qancha sarflanganini aniq hisobga olish juda qiyin.</p>
+            <div class="alert alert-success py-2 mt-3 text-xs gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              KafePlat: Retsept asosida avtomatik ombor hisobi yuritiladi
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BENEFITS ==================== -->
+  <section class="py-24 bg-base-200/40 relative" id="benefits">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="text-center mb-16">
+        <div class="badge badge-primary gap-2 mb-4 py-3 px-4 font-bold text-sm">Sizga Foydasi</div>
+        <h2 class="text-4xl lg:text-5xl font-black font-display mb-4">KafePlat Bilan <span class="gradient-text">Nima O'zgaradi?</span></h2>
+        <p class="text-base-content/60 max-w-xl mx-auto text-lg">Raqamlarda ko'ring — nechta xato kamayadi, qancha vaqt tejaladi</p>
+      </div>
+
+      <div class="stats stats-vertical lg:stats-horizontal shadow glass-card w-full mb-8 border border-base-300">
+        <div class="stat">
+          <div class="stat-figure">
+            <div class="ibox ibox-md ibox-orange">
+              <svg class="w-7 h-7 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+          </div>
+          <div class="stat-title">Xizmat tezligi</div>
+          <div class="stat-value text-primary">3x</div>
+          <div class="stat-desc">24 daqiqadan 8 daqiqaga</div>
+        </div>
+        <div class="stat">
+          <div class="stat-figure">
+            <div class="ibox ibox-md ibox-green">
+              <svg class="w-7 h-7 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+          </div>
+          <div class="stat-title">Daromad o'sishi</div>
+          <div class="stat-value text-success">+35%</div>
+          <div class="stat-desc">Birinchi oyda o'rtacha</div>
+        </div>
+        <div class="stat">
+          <div class="stat-figure">
+            <div class="ibox ibox-md ibox-red">
+              <svg class="w-7 h-7 ic-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+          </div>
+          <div class="stat-title">Xatolar</div>
+          <div class="stat-value text-error">0</div>
+          <div class="stat-desc">Kuniga 15-20 xato → 0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-figure">
+            <div class="ibox ibox-md ibox-pink">
+              <svg class="w-7 h-7 ic-pink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+          </div>
+          <div class="stat-title">Qaytib keluvchilar</div>
+          <div class="stat-value text-info">+40%</div>
+          <div class="stat-desc">Mijoz mamnuniyati oshadi</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="card glass-card border border-base-300 card-hover" data-reveal>
+          <div class="card-body">
+            <div class="ibox ibox-md ibox-red mb-3">
+              <svg class="w-7 h-7 ic-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <h3 class="text-xl font-bold">Nol Xato</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Xodim noto'g'ri eshitib yozgan buyurtma, yo'qolgan chek — bular o'tmishda qoladi.</p>
+            <div class="badge badge-error badge-outline mt-2">Kuniga 15-20 xato → 0</div>
+          </div>
+        </div>
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="1">
+          <div class="card-body">
+            <div class="ibox ibox-md ibox-blue mb-3">
+              <svg class="w-7 h-7 ic-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <h3 class="text-xl font-bold">Hamma Narsani Ko'rasiz</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Uyda o'tirib ham kafengiz nima holatda ekanini bilasiz. Har bir buyurtma, har bir so'm — nazoratda.</p>
+            <div class="badge badge-info badge-outline mt-2">Istalgan joydan — telefonda</div>
+          </div>
+        </div>
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="2">
+          <div class="card-body">
+            <div class="ibox ibox-md ibox-yellow mb-3">
+              <svg class="w-7 h-7 ic-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h3 class="text-xl font-bold">Vaqt Tejash</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Kassir har bir chekni qo'lda yozmaydi. Ofitsiant oshxonaga chopib bormaydi.</p>
+            <div class="badge badge-warning badge-outline mt-2">Har buyurtmada 5-7 daqiqa tejaladi</div>
+          </div>
+        </div>
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="3">
+          <div class="card-body">
+            <div class="ibox ibox-md ibox-pink mb-3">
+              <svg class="w-7 h-7 ic-pink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold">Mijoz Qaytib Keladi</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Tez va xatosiz xizmat — mijoz mamnun bo'ladi. Mamnun mijoz yana keladi va do'stlariga maslahat beradi.</p>
+            <div class="badge badge-secondary badge-outline mt-2">Qaytib keluvchi mijozlar +40%</div>
+          </div>
+        </div>
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="4">
+          <div class="card-body">
+            <div class="ibox ibox-md ibox-teal mb-3">
+              <svg class="w-7 h-7 ic-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold">Internet Yo'q Bo'lsa Ham</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Desktop versiyada lokal tarmoqda ishlash mumkin. Internet uzilsa ham kafengiz to'xtamaydi.</p>
+            <div class="badge badge-primary badge-outline mt-2">Oflayn rejim — Windows</div>
+          </div>
+        </div>
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="5">
+          <div class="card-body">
+            <div class="ibox ibox-md ibox-purple mb-3">
+              <svg class="w-7 h-7 ic-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold">Kafengizga Moslashadi</h3>
+            <p class="text-base-content/60 text-sm leading-relaxed">Nomi, logotipi, menyu va boshqa barcha narsalar kafengizga moslashtiriladi.</p>
+            <div class="badge badge-secondary badge-outline mt-2">Bepul moslash xizmati</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== HOW IT WORKS ==================== -->
+  <section class="py-24" id="howworks">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="text-center mb-16">
+        <div class="badge badge-primary gap-2 mb-4 py-3 px-4 font-bold text-sm">Jarayon</div>
+        <h2 class="text-4xl lg:text-5xl font-black font-display mb-4">Buyurtma Qanday <span class="gradient-text">Ishlaydi?</span></h2>
+        <p class="text-base-content/60 max-w-xl mx-auto text-lg">Hamma narsa avtomatik — birorta ham qadam qo'lda emas</p>
+      </div>
+      <ul class="timeline timeline-vertical lg:timeline-horizontal w-full">
+        <li>
+          <div class="timeline-start timeline-box glass-card border-primary/20">
+            <div class="ibox ibox-md ibox-orange mb-3 mx-auto">
+              <svg class="w-7 h-7 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="font-bold text-base font-display text-center">Kassir Buyurtma Kiritdi</div>
+            <p class="text-xs text-base-content/60 mt-1 text-center">POS ekranda 3 marta bosish orqali buyurtmani tezda kiritadi.</p>
+            <div class="badge badge-success badge-sm mt-2 mx-auto block w-fit">30 soniya</div>
+          </div>
+          <div class="timeline-middle"><div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">1</div></div>
+          <hr class="bg-primary"/>
+        </li>
+        <li>
+          <hr class="bg-primary"/>
+          <div class="timeline-middle"><div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">2</div></div>
+          <div class="timeline-end timeline-box glass-card border-primary/20">
+            <div class="ibox ibox-md ibox-yellow mb-3 mx-auto">
+              <svg class="w-7 h-7 ic-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12"/><path d="M12 6v6l4 2"/><path d="M2 2l4 4"/></svg>
+            </div>
+            <div class="font-bold text-base font-display text-center">Oshxona Ko'rdi</div>
+            <p class="text-xs text-base-content/60 mt-1 text-center">Bir zumda oshxona ekranida buyurtma paydo bo'ladi.</p>
+            <div class="badge badge-success badge-sm mt-2 mx-auto block w-fit">0 soniya kechikish</div>
+          </div>
+          <hr class="bg-primary"/>
+        </li>
+        <li>
+          <hr class="bg-primary"/>
+          <div class="timeline-start timeline-box glass-card border-primary/20">
+            <div class="ibox ibox-md ibox-green mb-3 mx-auto">
+              <svg class="w-7 h-7 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            </div>
+            <div class="font-bold text-base font-display text-center">Chek Avtomatik</div>
+            <p class="text-xs text-base-content/60 mt-1 text-center">Printer o'zi chek bosadi va signal beradi.</p>
+            <div class="badge badge-success badge-sm mt-2 mx-auto block w-fit">2 soniyada</div>
+          </div>
+          <div class="timeline-middle"><div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">3</div></div>
+          <hr class="bg-primary"/>
+        </li>
+        <li>
+          <hr class="bg-primary"/>
+          <div class="timeline-middle"><div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">4</div></div>
+          <div class="timeline-end timeline-box glass-card border-primary/20">
+            <div class="ibox ibox-md ibox-blue mb-3 mx-auto">
+              <svg class="w-7 h-7 ic-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            </div>
+            <div class="font-bold text-base font-display text-center">Buyurtma Tayyor</div>
+            <p class="text-xs text-base-content/60 mt-1 text-center">Ekranda buyurtma raqami yonadi va mijoz taomini oladi.</p>
+            <div class="badge badge-success badge-sm mt-2 mx-auto block w-fit">Darhol</div>
+          </div>
+          <hr class="bg-primary"/>
+        </li>
+        <li>
+          <hr class="bg-primary"/>
+          <div class="timeline-start timeline-box bg-primary/10 border-primary/40">
+            <div class="ibox ibox-md ibox-orange mb-3 mx-auto">
+              <svg class="w-7 h-7 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div class="font-bold text-base font-display text-center text-primary">Siz Ko'rib Turasiz</div>
+            <p class="text-xs text-base-content/60 mt-1 text-center">Daromad, buyurtmalar, xodimlar — real vaqtda telefoningizda.</p>
+            <div class="badge badge-primary badge-sm mt-2 mx-auto block w-fit">24/7</div>
+          </div>
+          <div class="timeline-middle"><div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">5</div></div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ==================== ROLES ==================== -->
+  <section class="py-24 bg-base-200/40 relative" id="roles">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="text-center mb-16">
+        <div class="badge badge-primary gap-2 mb-4 py-3 px-4 font-bold text-sm">Kim Uchun</div>
+        <h2 class="text-4xl lg:text-5xl font-black font-display mb-4">Har Bir Xodim <span class="gradient-text">O'z Ishini</span> Qiladi</h2>
+        <p class="text-base-content/60 max-w-xl mx-auto text-lg">Hech kim boshqaning ishiga aralashmaydi — hamma o'z ekraniga qaraydi</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="card glass-card border-2 border-primary/20 card-hover shadow-lg shadow-primary/5" data-reveal>
+          <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="ibox ibox-lg ibox-orange">
+                <svg class="w-9 h-9 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div><h3 class="text-xl font-bold font-display">Siz — Egasi</h3><div class="badge badge-primary badge-sm">Asosiy nazorat</div></div>
+            </div>
+            <ul class="space-y-2 text-sm text-base-content/70">
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Kunlik, haftalik daromad grafigi</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Uydan turib hamma narsani ko'rish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Menyu narxlarini o'zgartirish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Xodimlarni boshqarish</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="1">
+          <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="ibox ibox-lg ibox-purple">
+                <svg class="w-9 h-9 ic-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+              </div>
+              <div><h3 class="text-xl font-bold font-display">Ofitsiant</h3><div class="badge badge-secondary badge-sm">Stol xizmati</div></div>
+            </div>
+            <ul class="space-y-2 text-sm text-base-content/70">
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Stollar holati bir ekranda</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Buyurtmani to'g'ri kiritish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Tayyor buyurtma xabari</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Hisob-kitob va to'lov</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="2">
+          <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="ibox ibox-lg ibox-yellow">
+                <svg class="w-9 h-9 ic-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>
+              </div>
+              <div><h3 class="text-xl font-bold font-display">Oshpaz</h3><div class="badge badge-warning badge-sm">Oshxona</div></div>
+            </div>
+            <ul class="space-y-2 text-sm text-base-content/70">
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-warning flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Yangi buyurtma darhol ko'rinadi</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-warning flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Nima tayyorlashni aniq biladi</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-warning flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Tayyor bo'lganda belgilaydi</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-warning flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Signal bilan yangi buyurtma</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="3">
+          <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="ibox ibox-lg ibox-green">
+                <svg class="w-9 h-9 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="6" y1="16" x2="8" y2="16"/><line x1="10" y1="16" x2="12" y2="16"/></svg>
+              </div>
+              <div><h3 class="text-xl font-bold font-display">Kassir</h3><div class="badge badge-success badge-sm">To'lov</div></div>
+            </div>
+            <ul class="space-y-2 text-sm text-base-content/70">
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-success flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Chek avtomatik chiqadi</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-success flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> To'lovni qabul qilish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-success flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Qo'lda yozish shart emas</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-success flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Kassa hisoboti tayyor</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="4">
+          <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="ibox ibox-lg ibox-blue">
+                <svg class="w-9 h-9 ic-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div><h3 class="text-xl font-bold font-display">Omborchi</h3><div class="badge badge-info badge-sm">Sklad hisobi</div></div>
+            </div>
+            <ul class="space-y-2 text-sm text-base-content/70">
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-info flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Maxsulotlar qoldig'ini ko'rish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-info flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Retsept orqali avto-ayirish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-info flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Invertarizatsiya kiritish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-info flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Oziq-ovqat narxini nazorati</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-base-300 card-hover" data-reveal data-reveal-delay="5">
+          <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="ibox ibox-lg ibox-pink">
+                <svg class="w-9 h-9 ic-pink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+              </div>
+              <div><h3 class="text-xl font-bold font-display">Mijoz Ekrani</h3><div class="badge badge-accent badge-sm">Qulaylik</div></div>
+            </div>
+            <ul class="space-y-2 text-sm text-base-content/70">
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Kassada o'z buyurtmasini ko'rish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Narxlardagi shaffoflik</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Tayyor buyurtmani ekranda kutish</li>
+              <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> QR kod orqali oson to'lov</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PLATFORMS ==================== -->
+  <section class="py-24">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="text-center mb-16">
+        <div class="badge badge-primary gap-2 mb-4 py-3 px-4 font-bold text-sm">Qurilmalar</div>
+        <h2 class="text-4xl lg:text-5xl font-black font-display mb-4">Qaysi Qurilmada <span class="gradient-text">Ishlaydi?</span></h2>
+        <p class="text-base-content/60 max-w-xl mx-auto text-lg">Hamma joyda ishlaydi — telefon, kompyuter, planshet, Telegram</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <div class="card glass-card border border-info/20 card-hover text-center">
+          <div class="card-body items-center">
+            <div class="ibox ibox-lg ibox-sky mb-3">
+              <svg class="w-9 h-9 ic-sky" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3 class="card-title font-display">Brauzerdan</h3>
+            <p class="text-sm text-base-content/60">Admin, ofitsiant, kassir, oshpaz — hammasi oddiy brauzerda ishlaydi.</p>
+            <div class="flex flex-wrap gap-1 justify-center mt-3">
+              <div class="badge badge-ghost text-xs">Admin</div><div class="badge badge-ghost text-xs">Ofitsiant</div>
+              <div class="badge badge-ghost text-xs">Kassir</div><div class="badge badge-ghost text-xs">Oshpaz</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-success/20 card-hover text-center">
+          <div class="card-body items-center">
+            <div class="ibox ibox-lg ibox-green mb-3">
+              <svg class="w-9 h-9 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <h3 class="card-title font-display">Planshetdan</h3>
+            <p class="text-sm text-base-content/60">Ofitsiantlar uchun qulay planshet dasturi (iOS va Android).</p>
+            <div class="flex flex-wrap gap-1 justify-center mt-3">
+              <div class="badge badge-ghost text-xs">iOS</div><div class="badge badge-ghost text-xs">Android</div><div class="badge badge-ghost text-xs">Ofitsiant</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-secondary/20 card-hover text-center">
+          <div class="card-body items-center">
+            <div class="ibox ibox-lg ibox-purple mb-3">
+              <svg class="w-9 h-9 ic-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h3 class="card-title font-display">POS Terminal</h3>
+            <p class="text-sm text-base-content/60">Kassada foydalanish uchun sensorli monoblok va Windows dasturi.</p>
+            <div class="flex flex-wrap gap-1 justify-center mt-3">
+              <div class="badge badge-ghost text-xs">Windows</div><div class="badge badge-ghost text-xs">Printer</div><div class="badge badge-ghost text-xs">Monoblok</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass-card border border-primary/20 card-hover text-center">
+          <div class="card-body items-center">
+            <div class="ibox ibox-lg ibox-blue mb-3">
+              <svg class="w-9 h-9 ic-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div>
+            <h3 class="card-title font-display">Oshxona Ekrani (KDS)</h3>
+            <p class="text-sm text-base-content/60">Oshpazlar uchun buyurtmalar oqimini ko'rsatuvchi devor ekrani.</p>
+            <div class="flex flex-wrap gap-1 justify-center mt-3">
+              <div class="badge badge-ghost text-xs">Smart TV</div><div class="badge badge-ghost text-xs">Planshet</div><div class="badge badge-ghost text-xs">KDS</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PRINTER ==================== -->
+  <section class="py-24 bg-base-200/40 relative" id="printer">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex flex-col lg:flex-row items-center gap-16">
+        <div class="flex-1">
+          <div class="badge badge-primary gap-2 mb-6 py-3 px-4 font-bold text-sm">Avtomatik Printer</div>
+          <h2 class="text-4xl lg:text-5xl font-black font-display mb-6">Chek Bosish — <span class="gradient-text">Kassirning Ishi Emas</span></h2>
+          <p class="text-base-content/60 text-lg leading-relaxed mb-8">Kassir endi chek yozmaydi. Buyurtma tushishi bilanoq printer o'zi chek bosadi va signal beradi. Xato bo'lmaydi, vaqt tejaladi.</p>
+          <div class="space-y-5">
+            <div class="flex items-start gap-4">
+              <div class="ibox ibox-sm ibox-green flex-shrink-0">
+                <svg class="w-5 h-5 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div><div class="font-bold mb-1">Xatolardan xalos</div><div class="text-sm text-base-content/60">Qo'lda yozilgan chekdagi xatolar yo'qoladi</div></div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div class="ibox ibox-sm ibox-yellow flex-shrink-0">
+                <svg class="w-5 h-5 ic-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div><div class="font-bold mb-1">2 soniyada tayyor</div><div class="text-sm text-base-content/60">Buyurtma kiritilgandan 2 soniyada chek chiqadi</div></div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div class="ibox ibox-sm ibox-blue flex-shrink-0">
+                <svg class="w-5 h-5 ic-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div><div class="font-bold mb-1">Signal beradi</div><div class="text-sm text-base-content/60">Printer beep ovoz bilan oshxonani xabardor qiladi</div></div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div class="ibox ibox-sm ibox-orange flex-shrink-0">
+                <svg class="w-5 h-5 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div><div class="font-bold mb-1">Xarajat kamaytiradi</div><div class="text-sm text-base-content/60">Kassir qo'lda yozishga vaqt sarflamaydi</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex-shrink-0 flex flex-col items-center gap-4">
+          <div class="mockup-window bg-base-300 border border-base-100 w-72">
+            <div class="bg-base-200 px-6 py-4 text-center">
+              <div class="ibox ibox-md ibox-green mx-auto mb-1">
+                <svg class="w-7 h-7 ic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              </div>
+            </div>
+            <div class="bg-white text-gray-800 receipt-animate">
+              <div class="p-4 font-mono text-xs leading-relaxed">
+                <div class="text-center font-bold text-sm mb-1">KAFEPLAT</div>
+                <div class="text-center text-gray-500 text-[10px] mb-2">================================</div>
+                <div class="text-center font-bold mb-1">BUYURTMA #1044</div>
+                <div class="text-center text-gray-400 text-[10px] mb-2">29.07.2026 · 14:35</div>
+                <div class="text-[10px] text-gray-400 mb-1">--------------------------------</div>
+                <div class="flex justify-between text-[11px]"><span>Lag'mon ×2</span><span>40,000</span></div>
+                <div class="flex justify-between text-[11px]"><span>Shashlik ×1</span><span>35,000</span></div>
+                <div class="flex justify-between text-[11px]"><span>Cola ×2</span><span>12,000</span></div>
+                <div class="text-[10px] text-gray-400 my-1">================================</div>
+                <div class="flex justify-between font-bold text-[12px]"><span>JAMI:</span><span>87,000 so'm</span></div>
+                <div class="text-center text-gray-400 text-[10px] mt-3">Xaridingiz uchun rahmat!</div>
+              </div>
+            </div>
+          </div>
+          <div class="badge badge-success gap-2 py-3 px-5 text-sm font-semibold">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Avtomatik chiqdi
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STATS ==================== -->
+  <div class="bg-primary/10 border-y border-primary/20 py-12">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="stats stats-vertical lg:stats-horizontal bg-transparent w-full">
+        <div class="stat text-center">
+          <div class="stat-value text-primary">2 soniya</div>
+          <div class="stat-desc text-base-content/60 text-sm">Buyurtmadan chekgacha</div>
+        </div>
+        <div class="stat text-center">
+          <div class="stat-value text-success">0 ta</div>
+          <div class="stat-desc text-base-content/60 text-sm">Unutilgan buyurtma</div>
+        </div>
+        <div class="stat text-center">
+          <div class="stat-value text-info">POS</div>
+          <div class="stat-desc text-base-content/60 text-sm">Komplekt boshqaruv tizimi</div>
+        </div>
+        <div class="stat text-center">
+          <div class="stat-value text-warning">5 daqiqa</div>
+          <div class="stat-desc text-base-content/60 text-sm">O'rnatish vaqti</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CTA ==================== -->
+  <section class="py-24" id="contact">
+    <div class="max-w-4xl mx-auto px-4">
+      <div class="card bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 shadow-2xl">
+        <div class="card-body items-center text-center py-16">
+          <div class="ibox ibox-lg ibox-orange mb-6 float-anim">
+            <svg class="w-9 h-9 ic-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+          </div>
+          <h2 class="text-4xl lg:text-5xl font-black font-display mb-4">Kafengizga Moslab Beramiz</h2>
+          <p class="text-base-content/60 text-lg max-w-md mb-8 leading-relaxed">Nomi, logotipi, menyu — hamma narsa sizning kafengizga moslashtiriladi. Bepul demo ko'rish uchun Telegram orqali yozing.</p>
+          <div class="flex flex-wrap gap-3 justify-center mb-8">
+            <div class="badge badge-outline py-3 px-4 font-semibold">✓ Bepul demo</div>
+            <div class="badge badge-outline py-3 px-4 font-semibold">✓ O'rnatishda yordam</div>
+            <div class="badge badge-outline py-3 px-4 font-semibold">✓ Kafengiz nomiga moslash</div>
+            <div class="badge badge-outline py-3 px-4 font-semibold">✓ Texnik qo'llab-quvvatlash</div>
+          </div>
+          <div class="flex flex-wrap gap-4 justify-center">
+            <a href="https://t.me/ruslan_xusenov" target="_blank" class="btn btn-primary btn-lg font-bold gap-3 shadow-xl shadow-primary/30">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Telegramda Yozish
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer footer-center p-10 bg-base-200 border-t border-base-300 text-base-content">
+    <nav class="grid grid-flow-col gap-4">
+      <a href="#problems" class="link link-hover text-sm">Muammolar</a>
+      <a href="#benefits" class="link link-hover text-sm">Foydalar</a>
+      <a href="#howworks" class="link link-hover text-sm">Jarayon</a>
+      <a href="#roles" class="link link-hover text-sm">Kim uchun</a>
+      <a href="#contact" class="link link-hover text-sm">Bog'lanish</a>
+    </nav>
+    <nav class="grid grid-flow-col gap-4 mt-2">
+      <a href="https://t.me/ruslan_xusenov" target="_blank" class="btn btn-ghost btn-sm gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Telegram
+      </a>
+    </nav>
+    <aside>
+      <p class="text-base-content/40 text-sm">© 2026 KafePlat · Ruslan Xusenov · v1.0.0</p>
+      <p class="text-base-content/30 text-xs mt-1">Kafengizni aqlli tizimga o'tkazing</p>
+    </aside>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

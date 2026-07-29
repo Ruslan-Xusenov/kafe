@@ -56,7 +56,7 @@ const Printer = () => {
       {latestOrder && (
         <div className="print-area">
           <div className="receipt">
-            <h2 className="cafe-name">Mangal</h2>
+            <h2 className="cafe-name">{import.meta.env.VITE_CAFE_NAME || 'Kafe'}</h2>
             <div className="receipt-divider">======================</div>
             <p className="receipt-text">Заказ #{latestOrder.id}</p>
             <p className="receipt-text">Дата: {new Date(latestOrder.created_at).toLocaleString()}</p>

@@ -13,9 +13,19 @@ import (
 )
 
 func (b *Bot) handleStart(chatID int64) {
-	text := "🍽 <b>Добро пожаловать в Kafe Bot!</b>\n\nИспользуйте кнопки ниже для заказа или связи с нами."
+	cafeName := os.Getenv("CAFE_NAME")
+	if cafeName == "" {
+		cafeName = "Kafe"
+	}
+	cafeWebsite := os.Getenv("CAFE_WEBSITE")
+	if cafeWebsite == "" {
+		cafeWebsite = "localhost:5173"
+	}
+	webAppURL := "https://" + cafeWebsite
+
+	text := fmt.Sprintf("🍽 <b>Добро пожаловать в %s Bot!</b>\n\nИспользуйте кнопки ниже для заказа или связи с нами.", cafeName)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Онлайн заказ", tgbotapi.WebAppInfo{URL: "https://kafe.securehub.uz"})),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonWebApp("🌐 Онлайн заказ", tgbotapi.WebAppInfo{URL: webAppURL})),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("📞 Связаться", "contact_info"),
 			tgbotapi.NewInlineKeyboardButtonData("📖 Как пользоваться", "how_to_use"),
@@ -174,8 +184,14 @@ func (b *Bot) placeOrder(chatID int64) {
 
 func (b *Bot) notifyAPI(orderID int) {
 	key := os.Getenv("PRINTER_SECRET")
-	// Prefer internal localhost for speed, but fallback to public IP if needed
-	url := fmt.Sprintf("http://46.224.133.140:8080/api/notify-order/%d?key=%s", orderID, key)
+	backendURL := os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		backendURL = os.Getenv("API_URL")
+	}
+	if backendURL == "" {
+		backendURL = "http://localhost:8080"
+	}
+	url := fmt.Sprintf("%s/api/notify-order/%d?key=%s", backendURL, orderID, key)
 	
 	resp, err := http.Get(url)
 	if err != nil {

@@ -1,0 +1,15 @@
+{
+  "name": "kafeplat-desktop",
+  "version": "1.0.0",
+  "description": "KafePlat - Kafe boshqaruv tizimi",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:win": "tauri build --target x86_64-pc-windows-msvc"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

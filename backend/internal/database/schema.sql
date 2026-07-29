@@ -84,6 +84,17 @@ CREATE TABLE order_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Order Payments Table
+CREATE TABLE order_payments (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    method VARCHAR(20) NOT NULL CHECK (method IN ('cash', 'card', 'click', 'nasiya')),
+    amount DECIMAL(12, 2) NOT NULL CHECK (amount > 0),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX idx_order_payments_order_id ON order_payments(order_id);
+CREATE INDEX idx_order_payments_method ON order_payments(method);
+
 -- Settings Table
 CREATE TABLE settings (
     key VARCHAR(50) PRIMARY KEY,
@@ -133,6 +144,22 @@ CREATE TABLE expenses (
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Audit Logs Table
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    actor_role VARCHAR(50),
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id INTEGER,
+    details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    ip_address VARCHAR(64),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX idx_audit_logs_actor ON audit_logs(actor_id);
 
 -- Ingredients Table (Sklad)
 CREATE TABLE ingredients (

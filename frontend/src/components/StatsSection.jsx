@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
-import { motion } from 'framer-motion';
 import { Calendar, Clock, BarChart3, TrendingUp, Award } from 'lucide-react';
 
 const StatsSection = ({ role }) => {
@@ -12,7 +11,6 @@ const StatsSection = ({ role }) => {
     try {
       const res = await api.get('/orders/stats');
       setStats(res.data);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error('Failed to fetch stats', err);
     } finally {

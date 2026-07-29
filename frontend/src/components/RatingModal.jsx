@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, X, Send, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import api from '../store/authStore';
 
 const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
@@ -28,7 +28,6 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
               setCourierComment(r.comment || '');
             }
           });
-      // eslint-disable-next-line no-unused-vars
         } catch (err) {
           console.error('Failed to fetch existing ratings:', err);
         } finally {
@@ -82,7 +81,6 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
       })));
       onSuccess();
       onClose();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error('Rating failed:', err);
       const serverMsg = err.response?.data?.error || "Попробуйте еще раз.";

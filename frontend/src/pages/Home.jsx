@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api, { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { Plus, ShoppingCart, Loader2, Search, SlidersHorizontal, Eye } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 const Home = () => {
   const { user } = useAuthStore();
@@ -40,7 +40,6 @@ const Home = () => {
         initialUnits[p.id] = p.unit || 'dona';
       });
       setSelectedUnits(initialUnits);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {

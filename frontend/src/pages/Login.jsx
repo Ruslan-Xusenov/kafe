@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { validatePhone, validatePassword } from '../utils/validation';
-import { motion } from 'framer-motion';
 import { LogIn, Phone, Lock, Utensils, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {

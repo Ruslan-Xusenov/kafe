@@ -9,26 +9,46 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
-var networkPrinters = []string{
-	"192.168.1.10:9100",
-	"192.168.1.11:9100",
-}
+var networkPrinters []string
 
-const (
-	serverAddr    = "kafe.securehub.uz"
-	printerDevice = "\\\\localhost\\XP-80C"
+var (
+	serverAddr    string
+	printerDevice string
 )
 
 var printerKey = os.Getenv("PRINTER_SECRET")
 
 func init() {
+	serverAddr = os.Getenv("API_HOST")
+	if serverAddr == "" {
+		serverAddr = "localhost:8080"
+	}
+
+	printerDevice = os.Getenv("PRINTER_DEVICE")
+	if printerDevice == "" {
+		printerDevice = "\\\\localhost\\XP-80C"
+	}
+
 	if printerKey == "" {
-		printerKey = "YetukKafe2026"
+		printerKey = os.Getenv("PRINTER_KEY")
+	}
+
+	// Parse NETWORK_PRINTERS from env (comma separated, e.g. "192.168.1.10:9100,192.168.1.11:9100")
+	np := os.Getenv("NETWORK_PRINTERS")
+	if np != "" {
+		for _, p := range strings.Split(np, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				networkPrinters = append(networkPrinters, p)
+			}
+		}
 	}
 }
 
@@ -49,13 +69,20 @@ var (
 )
 
 func main() {
+	godotenv.Load("../backend/.env")
+	godotenv.Load()
+
 	log.Println("🚀 Kafe Printer Bridge Master v8.5 (Ultra Latin) ishga tushdi...")
 	log.Printf("📍 Server: %s\n", serverAddr)
 	log.Printf("📍 Printer: %s\n\n", printerDevice)
 
 	for {
-		// 1. Health Check (using https:// because server uses HTTPS)
-		testURL := fmt.Sprintf("https://%s/api/ws-test", serverAddr)
+		// 1. Health Check
+		scheme := "https"
+		if os.Getenv("USE_SSL") == "false" {
+			scheme = "http"
+		}
+		testURL := fmt.Sprintf("%s://%s/api/ws-test", scheme, serverAddr)
 		resp, err := http.Get(testURL)
 		if err != nil {
 			log.Printf("❌ Server topilmadi: %v. Qayta urinish (10s)...\n", err)
@@ -64,8 +91,12 @@ func main() {
 		}
 		resp.Body.Close()
 
-		// 2. WebSocket Handshake (using wss:// because server uses HTTPS)
-		u := url.URL{Scheme: "wss", Host: serverAddr, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
+		// 2. WebSocket Handshake
+		wsScheme := "wss"
+		if os.Getenv("USE_SSL") == "false" {
+			wsScheme = "ws"
+		}
+		u := url.URL{Scheme: wsScheme, Host: serverAddr, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
 		c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
 			log.Printf("❌ Ulanishda xatolik: %v. Qayta urinish (5s)...\n", err)
@@ -283,7 +314,14 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	if isFinal {
 		f.Write(ALIGN_CENTER)
 		f.Write(FONT_BIG)
-		f.Write(toCP866("Mangal kafe\n"))
+		cafeFullName := os.Getenv("CAFE_FULL_NAME")
+		if cafeFullName == "" {
+			cafeFullName = os.Getenv("CAFE_NAME")
+		}
+		if cafeFullName == "" {
+			cafeFullName = "Kafe"
+		}
+		f.Write(toCP866(cafeFullName + "\n"))
 		f.Write(FONT_NORMAL)
 		f.Write(toCP866("------------------------------------------------\n"))
 	}
@@ -321,7 +359,13 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	f.Write(toCP866(fmt.Sprintf("Стол: %s\n", tableNumber)))
 
 	// Waiter name
-	waiterName := "Mangal kafe"
+	waiterName := os.Getenv("CAFE_FULL_NAME")
+	if waiterName == "" {
+		waiterName = os.Getenv("CAFE_NAME")
+	}
+	if waiterName == "" {
+		waiterName = "Kafe"
+	}
 	if wn, ok := order["waiter_name"]; ok && wn != nil {
 		if s, ok := wn.(string); ok && s != "" {
 			waiterName = s

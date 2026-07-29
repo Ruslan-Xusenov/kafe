@@ -7,15 +7,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/username/kafe-backend/internal/models"
+	"github.com/username/kafe-backend/internal/repository"
 	"github.com/username/kafe-backend/internal/service"
 )
 
 type OrderHandler struct {
-	service *service.OrderService
+	service   *service.OrderService
+	auditRepo *repository.AuditRepository
 }
 
-func NewOrderHandler(s *service.OrderService) *OrderHandler {
-	return &OrderHandler{service: s}
+func NewOrderHandler(s *service.OrderService, auditRepo *repository.AuditRepository) *OrderHandler {
+	return &OrderHandler{service: s, auditRepo: auditRepo}
 }
 
 func (h *OrderHandler) Service() *service.OrderService {
@@ -44,6 +46,15 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	writeAudit(c, h.auditRepo, "order.create", "order", &order.ID, gin.H{
+		"table_id":     order.TableID,
+		"waiter_id":    order.WaiterID,
+		"customer_id":  order.CustomerID,
+		"total_price":  order.TotalPrice,
+		"items_count":  len(order.Items),
+		"order_status": order.Status,
+	})
 
 	c.JSON(http.StatusCreated, order)
 }
@@ -118,6 +129,10 @@ func (h *OrderHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "order.status.update", "order", &id, gin.H{
+		"status": req.Status,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Статус обновлен"})
 }
 
@@ -129,7 +144,9 @@ func (h *OrderHandler) SubmitRating(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.SubmitRating(id, ratings); err != nil {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	if err := h.service.SubmitRating(id, userID.(int), role.(string), ratings); err != nil {
 		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -159,6 +176,10 @@ func (h *OrderHandler) AssignCourier(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "order.courier.assign", "order", &id, gin.H{
+		"courier_id": courierID.(int),
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Курьер назначен"})
 }
 func (h *OrderHandler) GetStats(c *gin.Context) {
@@ -177,7 +198,9 @@ func (h *OrderHandler) GetStats(c *gin.Context) {
 
 func (h *OrderHandler) GetOrderRatings(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	ratings, err := h.service.GetRatingsByOrderID(id)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	ratings, err := h.service.GetRatingsByOrderID(id, userID.(int), role.(string))
 	if err != nil {
 		fmt.Printf("CREATE_ORDER_ERROR: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -202,6 +225,7 @@ func (h *OrderHandler) ReprintOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	writeAudit(c, h.auditRepo, "order.reprint", "order", &id, nil)
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ отправлен на печать"})
 }
 
@@ -221,6 +245,12 @@ func (h *OrderHandler) SetServiceFee(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	writeAudit(c, h.auditRepo, "order.service_fee.update", "order", &id, gin.H{
+		"percentage":  req.Percentage,
+		"service_fee": order.ServiceFee,
+		"total_price": order.TotalPrice,
+	})
 
 	c.JSON(http.StatusOK, order)
 }
@@ -292,6 +322,11 @@ func (h *OrderHandler) CancelOrderItem(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "order.item.cancel", "order", &orderID, gin.H{
+		"item_id":  itemID,
+		"quantity": req.Quantity,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Продукт отменен из заказа"})
 }
 
@@ -344,6 +379,10 @@ func (h *OrderHandler) AddItemsToOrder(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "order.items.add", "order", &orderID, gin.H{
+		"items_count": len(req.Items),
+	})
+
 	c.JSON(http.StatusOK, updatedOrder)
 }
 func (h *OrderHandler) CancelProductFromOrder(c *gin.Context) {
@@ -371,6 +410,11 @@ func (h *OrderHandler) CancelProductFromOrder(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "order.product.cancel", "order", &orderID, gin.H{
+		"product_id": productID,
+		"quantity":   req.Quantity,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Product items cancelled successfully"})
 }
 
@@ -388,6 +432,11 @@ func (h *OrderHandler) TransferOrderTable(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	writeAudit(c, h.auditRepo, "order.table.transfer", "table", &req.FromTableID, gin.H{
+		"from_table_id": req.FromTableID,
+		"to_table_id":   req.ToTableID,
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Buyurtma muvaffaqiyatli ko'chirildi"})
 }

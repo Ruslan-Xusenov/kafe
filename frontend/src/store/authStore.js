@@ -43,7 +43,6 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', token);
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true, role: user.role };
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       const msg = translateError(err) || 'Ошибка при входе';
       set({ error: msg, loading: false });
@@ -59,7 +58,6 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', token);
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true };
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       const msg = translateError(err) || 'Ошибка при регистрации';
       set({ error: msg, loading: false });

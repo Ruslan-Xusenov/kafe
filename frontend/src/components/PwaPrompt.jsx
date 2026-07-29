@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share, PlusSquare } from 'lucide-react';
 
+const CAFE_NAME = import.meta.env.VITE_CAFE_NAME || 'KafePlat';
+
+const isIOSDevice = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+
 const PwaPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [isIOS] = useState(isIOSDevice);
 
   useEffect(() => {
     // Check if the app is already installed (standalone mode)
@@ -23,11 +27,7 @@ const PwaPrompt = () => {
     }
 
     // iOS detection
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(isIosDevice);
-
-    if (isIosDevice) {
+    if (isIOS) {
       // iOS doesn't support beforeinstallprompt, show custom instruction immediately
       setTimeout(() => setShowPrompt(true), 3000); // 3 sec delay
     }
@@ -44,7 +44,7 @@ const PwaPrompt = () => {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [isIOS]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -94,9 +94,9 @@ const PwaPrompt = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <img src="/icon-192x192.png" alt="KafePlat" style={{ width: '48px', height: '48px', borderRadius: '10px' }} />
+              <img src="/icon-192x192.png" alt={CAFE_NAME} style={{ width: '48px', height: '48px', borderRadius: '10px' }} />
               <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1a1a1a' }}>KafePlat</h3>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1a1a1a' }}>{CAFE_NAME}</h3>
                 <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Ilovani o'rnating va tezroq kiring</p>
               </div>
             </div>

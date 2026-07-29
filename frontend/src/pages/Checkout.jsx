@@ -4,7 +4,6 @@ import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import api from '../store/authStore';
 import { validatePhone, validateAddress } from '../utils/validation';
-import { motion } from 'framer-motion';
 import { MapPin, Phone, CreditCard, Send, Loader2 } from 'lucide-react';
 
 const Checkout = () => {
@@ -52,7 +51,6 @@ const Checkout = () => {
         clearCart();
         navigate('/success', { state: { orderId: res.data.id } });
       }
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert(err.response?.data?.error || 'Произошла ошибка при оформлении заказа');
     } finally {

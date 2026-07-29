@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { ChefHat, Clock, CheckCircle2, RefreshCw, Flame, Zap } from 'lucide-react';
 import StatsSection from '../components/StatsSection';
 
@@ -36,7 +36,6 @@ const Kitchen = () => {
         (o.status === 'new' || o.status === 'preparing' || o.status === 'ready') && !o.table_id
       );
       setOrders(kitchenOrders);
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       console.error(err);
     } finally {

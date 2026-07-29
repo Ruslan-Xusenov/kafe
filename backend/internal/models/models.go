@@ -12,6 +12,7 @@ const (
 	RoleCourier  UserRole = "courier"
 	RoleAdmin    UserRole = "admin"
 	RoleWaiter   UserRole = "waiter"
+	RoleCashier  UserRole = "cashier"
 )
 
 type User struct {
@@ -32,6 +33,14 @@ type Table struct {
 	Status    string    `json:"status" db:"status"` // "free", "occupied"
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	ActiveWaiterID *int `json:"active_waiter_id" db:"active_waiter_id"`
+	// Floor plan layout fields
+	PosX     float64 `json:"pos_x" db:"pos_x"`
+	PosY     float64 `json:"pos_y" db:"pos_y"`
+	Shape    string  `json:"shape" db:"shape"`       // round, square, rectangle
+	Width    float64 `json:"width" db:"width"`
+	Height   float64 `json:"height" db:"height"`
+	Floor    int     `json:"floor" db:"floor"`
+	Rotation float64 `json:"rotation" db:"rotation"`
 }
 
 type Category struct {
@@ -86,6 +95,9 @@ type Order struct {
 	CookID      *int        `json:"cook_id" db:"cook_id"`
 	TableID     *int        `json:"table_id" db:"table_id"`
 	WaiterID    *int        `json:"waiter_id" db:"waiter_id"`
+	ShiftID     *int        `json:"shift_id" db:"shift_id"`            // Cashier shift (financial accountability)
+	IdempotencyKey *string  `json:"idempotency_key,omitempty" db:"idempotency_key"` // Offline deduplication
+	StockRestored  bool     `json:"-" db:"stock_restored"`             // Prevent double stock restore on cancel
 	CourierName string     `json:"courier_name" db:"courier_name"` // Joined field
 	CookName    string     `json:"cook_name" db:"cook_name"`       // Joined field
 	WaiterName  string     `json:"waiter_name" db:"waiter_name"`   // Joined field

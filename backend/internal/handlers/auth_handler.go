@@ -14,12 +14,14 @@ import (
 type AuthHandler struct {
 	authService *service.AuthService
 	userRepo    *repository.UserRepository
+	auditRepo   *repository.AuditRepository
 }
 
-func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserRepository) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserRepository, auditRepo *repository.AuditRepository) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		userRepo:    userRepo,
+		auditRepo:   auditRepo,
 	}
 }
 
@@ -41,6 +43,23 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		req.Role = models.RoleCustomer
 	}
 
+	// Public registration may only create customers. Staff accounts must be
+	// created through the admin-only /catalog/staff route. The first account is
+	// still promoted to admin by AuthService for initial installation.
+	actorRole, authenticated := c.Get("role")
+	if !authenticated || actorRole != string(models.RoleAdmin) {
+		req.Role = models.RoleCustomer
+	}
+
+	switch req.Role {
+	case models.RoleCustomer, models.RoleCook, models.RoleCourier,
+		models.RoleAdmin, models.RoleWaiter, models.RoleCashier:
+		// Valid role.
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user role"})
+		return
+	}
+
 	user, token, err := h.authService.Register(req.FullName, req.Phone, req.Password, req.Role)
 	if err != nil {
 		msg := err.Error()
@@ -51,6 +70,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
+
+	action := "auth.register"
+	if actorID, _ := auditActor(c); actorID != nil && user.Role != models.RoleCustomer {
+		action = "staff.create"
+	}
+	writeAudit(c, h.auditRepo, action, "user", &user.ID, gin.H{
+		"full_name": user.FullName,
+		"phone":     user.Phone,
+		"role":      user.Role,
+	})
 
 	c.JSON(http.StatusCreated, gin.H{
 		"user":  user,
@@ -118,6 +147,11 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "profile.update", "user", &user.ID, gin.H{
+		"full_name": user.FullName,
+		"phone":     user.Phone,
+	})
+
 	c.JSON(http.StatusOK, user)
 }
 
@@ -136,6 +170,7 @@ func (h *AuthHandler) DeleteStaff(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	writeAudit(c, h.auditRepo, "staff.delete", "user", &id, nil)
 	c.JSON(http.StatusOK, gin.H{"message": "Сотрудник удален"})
 }
 
@@ -153,5 +188,8 @@ func (h *AuthHandler) UpdateDefaultServiceFee(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	writeAudit(c, h.auditRepo, "staff.default_service_fee.update", "user", &id, gin.H{
+		"percentage": req.Percentage,
+	})
 	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully"})
 }

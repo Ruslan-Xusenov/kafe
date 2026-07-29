@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { CheckCircle, Package, ArrowLeft, Ticket } from 'lucide-react';
 
 const Success = () => {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/username/kafe-backend/internal/models"
 )
@@ -42,6 +43,11 @@ func (h *OrderHandler) BulkEditOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	writeAudit(c, h.auditRepo, "order.bulk_edit", "order", &orderID, gin.H{
+		"add_items_count":    len(req.AddItems),
+		"cancel_items_count": len(req.CancelItems),
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Order bulk updated successfully"})
 }

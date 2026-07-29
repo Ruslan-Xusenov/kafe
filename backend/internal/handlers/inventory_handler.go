@@ -10,11 +10,12 @@ import (
 )
 
 type InventoryHandler struct {
-	repo repository.InventoryRepository
+	repo      repository.InventoryRepository
+	auditRepo *repository.AuditRepository
 }
 
-func NewInventoryHandler(repo repository.InventoryRepository) *InventoryHandler {
-	return &InventoryHandler{repo: repo}
+func NewInventoryHandler(repo repository.InventoryRepository, auditRepo *repository.AuditRepository) *InventoryHandler {
+	return &InventoryHandler{repo: repo, auditRepo: auditRepo}
 }
 
 // Ingredients
@@ -40,6 +41,13 @@ func (h *InventoryHandler) CreateIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании ингредиента"})
 		return
 	}
+	writeAudit(c, h.auditRepo, "ingredient.create", "ingredient", &input.ID, gin.H{
+		"name":       input.Name,
+		"stock":      input.Stock,
+		"unit":       input.Unit,
+		"min_stock":  input.MinStock,
+		"cost_price": input.CostPrice,
+	})
 	c.JSON(http.StatusCreated, input)
 }
 
@@ -59,6 +67,13 @@ func (h *InventoryHandler) UpdateIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении ингредиента"})
 		return
 	}
+	writeAudit(c, h.auditRepo, "ingredient.update", "ingredient", &input.ID, gin.H{
+		"name":       input.Name,
+		"stock":      input.Stock,
+		"unit":       input.Unit,
+		"min_stock":  input.MinStock,
+		"cost_price": input.CostPrice,
+	})
 	c.JSON(http.StatusOK, input)
 }
 
@@ -72,6 +87,7 @@ func (h *InventoryHandler) DeleteIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении ингредиента"})
 		return
 	}
+	writeAudit(c, h.auditRepo, "ingredient.delete", "ingredient", &id, nil)
 	c.JSON(http.StatusOK, gin.H{"message": "Успешно удалено"})
 }
 
@@ -103,6 +119,12 @@ func (h *InventoryHandler) AddProductIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении ингредиента продукта"})
 		return
 	}
+	writeAudit(c, h.auditRepo, "recipe.ingredient.add", "recipe", &input.ID, gin.H{
+		"product_id":    input.ProductID,
+		"ingredient_id": input.IngredientID,
+		"quantity":      input.Quantity,
+		"unit":          input.Unit,
+	})
 	c.JSON(http.StatusCreated, input)
 }
 
@@ -116,6 +138,7 @@ func (h *InventoryHandler) DeleteProductIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении ингредиента продукта"})
 		return
 	}
+	writeAudit(c, h.auditRepo, "recipe.ingredient.delete", "recipe", &id, nil)
 	c.JSON(http.StatusOK, gin.H{"message": "Успешно удалено"})
 }
 
@@ -136,5 +159,8 @@ func (h *InventoryHandler) RestockIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при пополнении ингредиента"})
 		return
 	}
+	writeAudit(c, h.auditRepo, "ingredient.restock", "ingredient", &id, gin.H{
+		"amount": req.Amount,
+	})
 	c.JSON(http.StatusOK, gin.H{"message": "Успешно пополнено"})
 }

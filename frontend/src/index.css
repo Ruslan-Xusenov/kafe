@@ -530,3 +530,335 @@ input:focus, textarea:focus, select:focus {
 .pd-unit-selector .unit-selector-btn-group button:hover:not(.active) {
   border-color: var(--text-muted);
 }
+
+/* ─────────────────── FLOOR PLAN ─────────────────── */
+.floor-plan-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.floor-plan-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fp-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fp-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.fp-floor-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-surface);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.fp-floor-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  background: none;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.fp-floor-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.fp-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.fp-legend {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.fp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.fp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.fp-dot.free { background: #10b981; }
+.fp-dot.occupied { background: #f97316; }
+
+.fp-zoom-btn {
+  padding: 0.4rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fp-zoom-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.fp-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.fp-edit-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.fp-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  background: var(--grad-brand);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
+}
+
+.fp-save-btn:hover { transform: translateY(-1px); }
+.fp-save-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.fp-cancel-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.fp-cancel-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Floor Plan Canvas */
+.floor-plan-canvas-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  min-height: 400px;
+  position: relative;
+}
+
+.floor-plan-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: block;
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(249,115,22,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(16,185,129,0.03) 0%, transparent 50%),
+    var(--bg-card);
+}
+
+/* Edit Panel */
+.fp-edit-panel {
+  padding: 0.75rem 1rem;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  border-radius: 0;
+}
+
+.fp-edit-label {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fp-edit-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.fp-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fp-control-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.fp-control-group input[type="range"] {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  background: var(--border);
+  border-radius: 4px;
+  outline: none;
+  padding: 0;
+  border: none;
+}
+
+.fp-control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(249, 115, 22, 0.4);
+}
+
+.fp-rotation-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 28px;
+}
+
+.fp-shape-btns {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.fp-shape-btn {
+  padding: 0.35rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fp-shape-btn.active {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.fp-shape-btn:hover:not(.active) {
+  border-color: var(--text-muted);
+}
+
+/* Floor Plan View Toggle Tabs */
+.fp-view-toggle {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.fp-view-toggle button {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  background: none;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.fp-view-toggle button.active {
+  background: var(--bg-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .floor-plan-toolbar {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .fp-edit-panel {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .fp-edit-controls {
+    gap: 0.75rem;
+  }
+
+  .floor-plan-canvas-wrap {
+    min-height: 300px;
+  }
+
+  .floor-plan-svg {
+    min-height: 300px;
+  }
+
+  .fp-legend {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .fp-toolbar-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .fp-control-group input[type="range"] {
+    width: 60px;
+  }
+}

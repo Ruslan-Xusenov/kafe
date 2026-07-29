@@ -6,12 +6,19 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/username/kafe-backend/internal/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/username/kafe-backend/internal/models"
 )
 
 type OrderRepository struct {
 	db *sqlx.DB
+}
+
+type ingredientStockRow struct {
+	IngredientID   int     `db:"ingredient_id"`
+	IngredientName string  `db:"ingredient_name"`
+	Stock          float64 `db:"stock"`
+	RequiredQty    float64 `db:"required_qty"`
 }
 
 func NewOrderRepository(db *sqlx.DB) *OrderRepository {
@@ -22,7 +29,84 @@ func (r *OrderRepository) GetDB() *sqlx.DB {
 	return r.db
 }
 
+func deductStockForProductTx(tx *sqlx.Tx, productID int, productQuantity float64) error {
+	if productQuantity <= 0 {
+		return fmt.Errorf("product quantity must be greater than zero")
+	}
+
+	var ingredients []ingredientStockRow
+	err := tx.Select(&ingredients, `
+		SELECT
+			i.id as ingredient_id,
+			i.name as ingredient_name,
+			i.stock,
+			(pi.quantity * $2) as required_qty
+		FROM product_ingredients pi
+		JOIN ingredients i ON i.id = pi.ingredient_id
+		WHERE pi.product_id = $1
+		FOR UPDATE OF i
+	`, productID, productQuantity)
+	if err != nil {
+		return err
+	}
+
+	for _, ing := range ingredients {
+		if ing.Stock < ing.RequiredQty {
+			return fmt.Errorf("skladda %s yetarli emas: kerak %.3f, mavjud %.3f", ing.IngredientName, ing.RequiredQty, ing.Stock)
+		}
+	}
+
+	for _, ing := range ingredients {
+		if _, err := tx.Exec(`
+			UPDATE ingredients
+			SET stock = stock - $1, updated_at = NOW()
+			WHERE id = $2
+		`, ing.RequiredQty, ing.IngredientID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func restoreStockForProductTx(tx *sqlx.Tx, productID int, productQuantity float64) error {
+	if productQuantity <= 0 {
+		return nil
+	}
+
+	_, err := tx.Exec(`
+		UPDATE ingredients
+		SET stock = stock + (pi.quantity * $2), updated_at = NOW()
+		FROM product_ingredients pi
+		WHERE ingredients.id = pi.ingredient_id AND pi.product_id = $1
+	`, productID, productQuantity)
+	return err
+}
+
 func (r *OrderRepository) Create(order *models.Order) error {
+	return r.create(order, nil)
+}
+
+// CreateWithPayments creates an order, deducts stock and records all payments
+// in one transaction. This is used by POS sales so a failed payment cannot
+// leave behind an unpaid order or a partially deducted stock balance.
+func (r *OrderRepository) CreateWithPayments(order *models.Order, payments []models.PaymentInput) error {
+	return r.create(order, payments)
+}
+
+func (r *OrderRepository) create(order *models.Order, payments []models.PaymentInput) error {
+	if len(payments) > 0 {
+		validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+		for _, payment := range payments {
+			if !validMethods[payment.Method] {
+				return fmt.Errorf("noto'g'ri to'lov usuli: %s", payment.Method)
+			}
+			if payment.Amount <= 0 {
+				return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+			}
+		}
+	}
+
 	// Fetch table service percentage from settings for table orders
 	var defaultPercentage float64
 	if order.TableID != nil {
@@ -47,9 +131,9 @@ func (r *OrderRepository) Create(order *models.Order) error {
 	defer tx.Rollback()
 
 	// Insert Order
-	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment, table_id, waiter_id, service_percentage, service_fee) 
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, created_at, updated_at`
-	err = tx.QueryRow(query, order.CustomerID, order.TotalPrice, order.Status, order.Address, order.Phone, order.Lat, order.Lng, order.Comment, order.TableID, order.WaiterID, order.ServicePercentage, order.ServiceFee).
+	query := `INSERT INTO orders (customer_id, total_price, status, address, phone, lat, lng, comment, table_id, waiter_id, service_percentage, service_fee, shift_id, idempotency_key) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, created_at, updated_at`
+	err = tx.QueryRow(query, order.CustomerID, order.TotalPrice, order.Status, order.Address, order.Phone, order.Lat, order.Lng, order.Comment, order.TableID, order.WaiterID, order.ServicePercentage, order.ServiceFee, order.ShiftID, order.IdempotencyKey).
 		Scan(&order.ID, &order.CreatedAt, &order.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert order: %w", err)
@@ -65,6 +149,27 @@ func (r *OrderRepository) Create(order *models.Order) error {
 		if err != nil {
 			return fmt.Errorf("failed to insert order item: %w", err)
 		}
+		if err := deductStockForProductTx(tx, item.ProductID, item.Quantity); err != nil {
+			return fmt.Errorf("failed to deduct stock for product %d: %w", item.ProductID, err)
+		}
+	}
+
+	if len(payments) > 0 {
+		primaryMethod := payments[0].Method
+		if len(payments) > 1 {
+			primaryMethod = "mixed"
+		}
+		for _, payment := range payments {
+			if _, err := tx.Exec(`
+				INSERT INTO order_payments (order_id, method, amount)
+				VALUES ($1, $2, $3)
+			`, order.ID, payment.Method, payment.Amount); err != nil {
+				return fmt.Errorf("to'lov saqlashda xatolik: %w", err)
+			}
+		}
+		if _, err := tx.Exec(`UPDATE orders SET payment_method = $1, updated_at = NOW() WHERE id = $2`, primaryMethod, order.ID); err != nil {
+			return fmt.Errorf("to'lov usulini saqlashda xatolik: %w", err)
+		}
 	}
 
 	return tx.Commit()
@@ -74,7 +179,9 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	var order models.Order
 	query := `
 		SELECT o.id, o.customer_id, o.total_price, o.status, o.address, o.phone, 
-			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id, COALESCE(o.comment, '') as comment, 
+			   o.lat, o.lng, o.courier_id, o.cook_id, o.table_id, o.waiter_id,
+			   o.shift_id, o.idempotency_key, COALESCE(o.stock_restored, false) as stock_restored,
+			   COALESCE(o.comment, '') as comment, 
 			   COALESCE(o.service_percentage, 0) as service_percentage, COALESCE(o.service_fee, 0) as service_fee,
 			   COALESCE(o.payment_method, '') as payment_method,
 			   o.created_at, o.updated_at,
@@ -188,7 +295,7 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	}
 
 	fmt.Printf("DATABASE_DEBUG: GetAll returned %d orders from DB\n", len(orders))
-	
+
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
@@ -204,7 +311,7 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 		_ = r.db.Select(&items, itemQuery, orders[i].ID)
 		orders[i].Items = items
 	}
-	
+
 	return orders, nil
 }
 
@@ -255,13 +362,56 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 func (r *OrderRepository) UpdateStatus(orderID int, status models.OrderStatus, cookID *int) error {
 	var query string
 	if cookID != nil {
-		query = `UPDATE orders SET status = $1, cook_id = $2, updated_at = NOW() WHERE id = $3`
-		_, err := r.db.Exec(query, status, *cookID, orderID)
+		query = `UPDATE orders SET status = $1, cook_id = $2, updated_at = NOW() WHERE id = $3 AND status NOT IN ('delivered', 'cancelled')`
+		result, err := r.db.Exec(query, status, *cookID, orderID)
+		if err == nil {
+			rows, rowsErr := result.RowsAffected()
+			if rowsErr == nil && rows == 0 {
+				return errors.New("order yopilgan yoki topilmadi")
+			}
+		}
 		return err
 	}
-	query = `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`
-	_, err := r.db.Exec(query, status, orderID)
+	query = `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 AND status NOT IN ('delivered', 'cancelled')`
+	result, err := r.db.Exec(query, status, orderID)
+	if err == nil {
+		rows, rowsErr := result.RowsAffected()
+		if rowsErr == nil && rows == 0 {
+			return errors.New("order yopilgan yoki topilmadi")
+		}
+	}
 	return err
+}
+
+// MarkStockRestored atomically marks an order's stock as restored.
+// Returns false if the stock was already restored (idempotent).
+func (r *OrderRepository) MarkStockRestored(orderID int) (bool, error) {
+	result, err := r.db.Exec(
+		`UPDATE orders SET stock_restored = TRUE WHERE id = $1 AND stock_restored = FALSE`,
+		orderID,
+	)
+	if err != nil {
+		return false, err
+	}
+	rows, _ := result.RowsAffected()
+	return rows > 0, nil
+}
+
+// FindByIdempotencyKey looks up an existing order by idempotency key.
+// Returns nil (not an error) when no order is found.
+func (r *OrderRepository) FindByIdempotencyKey(key string) (*models.Order, error) {
+	if key == "" {
+		return nil, nil
+	}
+	var id int
+	err := r.db.Get(&id, `SELECT id FROM orders WHERE idempotency_key = $1 LIMIT 1`, key)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return r.GetByID(id)
 }
 
 func (r *OrderRepository) AddStaffRating(rating *models.StaffRating) error {
@@ -528,13 +678,27 @@ func (r *OrderRepository) CancelItem(orderID, itemID int, cancelQty float64) err
 	defer tx.Rollback()
 
 	// Get current quantity
-	var currentQty float64
-	err = tx.Get(&currentQty, `SELECT quantity FROM order_items WHERE id = $1 AND order_id = $2`, itemID, orderID)
+	var item struct {
+		ProductID int     `db:"product_id"`
+		Quantity  float64 `db:"quantity"`
+	}
+	err = tx.Get(&item, `
+		SELECT oi.product_id, oi.quantity
+		FROM order_items oi
+		JOIN orders o ON o.id = oi.order_id
+		WHERE oi.id = $1 AND oi.order_id = $2
+		  AND o.status NOT IN ('delivered', 'cancelled')
+	`, itemID, orderID)
 	if err != nil {
 		return errors.New("item not found")
 	}
 
-	if cancelQty >= currentQty {
+	restoreQty := cancelQty
+	if restoreQty > item.Quantity {
+		restoreQty = item.Quantity
+	}
+
+	if cancelQty >= item.Quantity {
 		// Delete item
 		_, err := tx.Exec(`DELETE FROM order_items WHERE id = $1`, itemID)
 		if err != nil {
@@ -546,6 +710,10 @@ func (r *OrderRepository) CancelItem(orderID, itemID int, cancelQty float64) err
 		if err != nil {
 			return err
 		}
+	}
+
+	if err := restoreStockForProductTx(tx, item.ProductID, restoreQty); err != nil {
+		return fmt.Errorf("failed to restore stock for product %d: %w", item.ProductID, err)
 	}
 
 	// Recalculate order total price
@@ -639,6 +807,9 @@ func (r *OrderRepository) AddItemsToOrder(orderID int, items []models.OrderItem)
 			Scan(&item.ID, &item.CreatedAt)
 		if err != nil {
 			return fmt.Errorf("failed to insert order item: %w", err)
+		}
+		if err := deductStockForProductTx(tx, item.ProductID, item.Quantity); err != nil {
+			return fmt.Errorf("failed to deduct stock for product %d: %w", item.ProductID, err)
 		}
 	}
 

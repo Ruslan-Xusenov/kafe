@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import StatsSection from '../components/StatsSection';
 import InventorySection from '../components/InventorySection';
+import DebtsSection from '../components/DebtsSection';
+import RefundsSection from '../components/RefundsSection';
 import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from '../utils/validation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
-  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer, CreditCard
+  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer, CreditCard, FileText
 } from 'lucide-react';
 
 const STATUS_MAP = {
@@ -70,11 +72,13 @@ const Admin = () => {
   const [salaryStartDate, setSalaryStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [salaryEndDate, setSalaryEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [salariesLoading, setSalariesLoading] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const handleCloseShift = async () => {
@@ -144,6 +148,9 @@ const Admin = () => {
         setWaiterDefaultFees(defaults);
       } else if (activeTab === 'salary') {
         fetchWaiterSalaries();
+      } else if (activeTab === 'audit') {
+        const res = await api.get('/audit/logs?limit=200');
+        setAuditLogs(res.data || []);
       }
     } catch (err) {
       console.error(err);
@@ -177,7 +184,7 @@ const Admin = () => {
       const fees = {};
       orders.forEach(o => { fees[o.id] = o.service_percentage || 0; });
       setWaiterOrderFees(fees);
-    } catch (err) {
+    } catch {
       alert("Ошибка при загрузке заказов официанта");
     } finally {
       setWaiterOrdersLoading(false);
@@ -363,7 +370,6 @@ const Admin = () => {
     try {
       await api.delete(`/catalog/staff/${id}`);
       fetchData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert(err.response?.data?.error || 'Ошибка при удалении сотрудника');
     }
@@ -374,7 +380,6 @@ const Admin = () => {
     try {
       await api.delete(`/catalog/categories/${id}`);
       fetchData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert(err.response?.data?.error || 'Ошибка при удалении категории. Сначала удалите продукты в ней.');
     }
@@ -400,7 +405,6 @@ const Admin = () => {
         table_service_percentage: tableServicePercentage
       });
       alert('Настройки сохранены');
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Ошибка: ' + (err.response?.data?.error || 'Не удалось сохранить'));
     } finally {
@@ -423,7 +427,6 @@ const Admin = () => {
       setNewExpense({ amount: '', category: 'mahsulot', description: '' });
       setErrors({});
       fetchData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert('Ошибка при добавлении расхода: ' + (err.response?.data?.error || ''));
     }
@@ -447,7 +450,6 @@ const Admin = () => {
       setNewTable({ name: '', capacity: '' });
       setEditingTableId(null);
       fetchData();
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert(err.response?.data?.error || 'Ошибка при сохранении стола');
     }
@@ -492,7 +494,7 @@ const Admin = () => {
       setSelectedOrderDetails(res.data);
       setShowOrderModal(true);
       setServiceFeePercent(res.data.service_percentage || 10);
-    } catch (err) {
+    } catch {
       alert("Ошибка при загрузке данных заказа");
     }
   };
@@ -501,7 +503,7 @@ const Admin = () => {
     try {
       await api.post(`/orders/${id}/print`);
       alert("Чек отправлен на принтер!");
-    } catch (err) {
+    } catch {
       alert("Ошибка при печати чека");
     }
   };
@@ -548,8 +550,20 @@ const Admin = () => {
       alert("Плата за обслуживание сохранена и чек отправлен на принтер!");
       setShowOrderModal(false);
       fetchData();
-    } catch (err) {
+    } catch {
       alert("Произошла ошибка");
+    }
+  };
+
+  const formatAuditDetails = (details) => {
+    if (!details || details === '{}') return '—';
+    try {
+      const parsed = JSON.parse(details);
+      const entries = Object.entries(parsed).filter(([, value]) => value !== null && value !== '' && value !== undefined);
+      if (entries.length === 0) return '—';
+      return entries.map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join(', ');
+    } catch {
+      return details;
     }
   };
 
@@ -590,8 +604,17 @@ const Admin = () => {
           <button className={activeTab === 'salary' ? 'active' : ''} onClick={() => setActiveTab('salary')}>
             <CreditCard size={20} /> Зарплата (Ойлик)
           </button>
+          <button className={activeTab === 'debts' ? 'active' : ''} onClick={() => setActiveTab('debts')}>
+            <Wallet size={20} /> Nasiya (Qarz)
+          </button>
+          <button className={activeTab === 'refunds' ? 'active' : ''} onClick={() => setActiveTab('refunds')}>
+            <RefreshCw size={20} /> Refund (Qaytarish)
+          </button>
           <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
             <Settings size={20} /> Настройки
+          </button>
+          <button className={activeTab === 'audit' ? 'active' : ''} onClick={() => setActiveTab('audit')}>
+            <FileText size={20} /> Журнал
           </button>
         </nav>
       </aside>
@@ -599,6 +622,14 @@ const Admin = () => {
       <main className="admin-main animate-fade">
         {activeTab === 'inventory' && (
           <InventorySection products={products} />
+        )}
+
+        {activeTab === 'debts' && (
+          <DebtsSection />
+        )}
+
+        {activeTab === 'refunds' && (
+          <RefundsSection />
         )}
 
         {activeTab === 'waiterMgmt' && (
@@ -1074,6 +1105,50 @@ const Admin = () => {
                   <Save size={18} /> Сохранить настройки
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'audit' && (
+          <div className="audit-mgmt animate-fade">
+            <div className="flex justify-between items-center mb-6">
+              <h2>Журнал действий</h2>
+              <button className="refresh-btn" onClick={fetchData}>
+                <RefreshCw size={18} /> Обновить
+              </button>
+            </div>
+            <div className="orders-table-wrapper premium-card">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Дата</th>
+                    <th>Пользователь</th>
+                    <th>Действие</th>
+                    <th>Объект</th>
+                    <th>Детали</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.length > 0 ? auditLogs.map(log => (
+                    <tr key={log.id}>
+                      <td>{new Date(log.created_at).toLocaleString()}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontWeight: 700 }}>{log.actor_name || 'System'}</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{log.actor_role || '—'}</span>
+                        </div>
+                      </td>
+                      <td><span className="status-badge preparing">{log.action}</span></td>
+                      <td>{log.entity_type}{log.entity_id ? ` #${log.entity_id}` : ''}</td>
+                      <td style={{ maxWidth: '360px', whiteSpace: 'normal' }}>{formatAuditDetails(log.details)}</td>
+                      <td>{log.ip_address || '—'}</td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan="6" className="text-center text-muted py-4">Журнал пуст</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -2087,4 +2162,3 @@ const Admin = () => {
 };
 
 export default Admin;
-

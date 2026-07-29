@@ -46,7 +46,7 @@ func main() {
 
 	apiHost := os.Getenv("API_HOST")
 	if apiHost == "" {
-		apiHost = "kafe.securehub.uz"
+		log.Fatal("ERROR: API_HOST is required in .env file")
 	}
 	printerKey := os.Getenv("PRINTER_KEY")
 	if printerKey == "" {
@@ -57,7 +57,7 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt)
 
 	scheme := "ws"
-	if strings.Contains(apiHost, "securehub.uz") {
+	if os.Getenv("USE_SSL") != "false" {
 		scheme = "wss"
 	}
 	u := url.URL{Scheme: scheme, Host: apiHost, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
@@ -157,7 +157,11 @@ func printOrder(order Order) {
 
 	conn.Write(ALIGN_CENTER)
 	conn.Write(FONT_BIG)
-	conn.Write([]byte("Mangal\n"))
+	cafeName := os.Getenv("CAFE_NAME")
+	if cafeName == "" {
+		cafeName = "Kafe"
+	}
+	conn.Write([]byte(cafeName + "\n"))
 	
 	conn.Write(FONT_NORMAL)
 	conn.Write(ALIGN_LEFT)

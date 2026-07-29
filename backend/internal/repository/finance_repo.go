@@ -3,8 +3,8 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"github.com/username/kafe-backend/internal/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/username/kafe-backend/internal/models"
 )
 
 type FinanceRepository interface {
@@ -12,6 +12,7 @@ type FinanceRepository interface {
 	GetExpenses() ([]models.Expense, error)
 	GetStats() (*models.FinanceStats, error)
 	GetWaiterSalaries(startDate, endDate string) ([]models.WaiterSalary, error)
+	CountActiveOrders() (int, error)
 	ForceCloseActiveOrders() error
 	CloseShift() error
 }
@@ -87,22 +88,34 @@ func (r *financeRepository) GetStats() (*models.FinanceStats, error) {
 
 	stats.NetProfit = stats.TotalRevenue - stats.TotalExpenses
 
-	// Payment method breakdown
+	// Payment method breakdown from order_payments table (supports mixed payments)
 	paymentQuery := `
 		SELECT 
-			COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_price ELSE 0 END), 0),
-			COALESCE(SUM(CASE WHEN payment_method = 'card' THEN total_price ELSE 0 END), 0),
-			COALESCE(SUM(CASE WHEN payment_method = 'click' THEN total_price ELSE 0 END), 0),
-			COALESCE(SUM(CASE WHEN payment_method = 'nasiya' THEN total_price ELSE 0 END), 0)
-		FROM orders 
-		WHERE status = 'delivered' AND created_at > COALESCE((SELECT value::timestamp FROM settings WHERE key = 'last_shift_closed_at'), '1970-01-01'::timestamp)
+			COALESCE(SUM(CASE WHEN op.method = 'cash' THEN op.amount ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN op.method = 'card' THEN op.amount ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN op.method = 'click' THEN op.amount ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN op.method = 'nasiya' THEN op.amount ELSE 0 END), 0)
+		FROM order_payments op
+		JOIN orders o ON op.order_id = o.id
+		WHERE o.status = 'delivered' AND o.created_at > COALESCE((SELECT value::timestamp FROM settings WHERE key = 'last_shift_closed_at'), '1970-01-01'::timestamp)
 	`
 	if err := r.db.QueryRow(paymentQuery).Scan(&stats.CashRevenue, &stats.CardRevenue, &stats.ClickRevenue, &stats.NasiyaRevenue); err != nil {
-		// Ignore error for backwards compatibility
-		stats.CashRevenue = 0
-		stats.CardRevenue = 0
-		stats.ClickRevenue = 0
-		stats.NasiyaRevenue = 0
+		// Fallback to old method for backward compat
+		fallbackQuery := `
+			SELECT 
+				COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_price ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN payment_method = 'card' THEN total_price ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN payment_method = 'click' THEN total_price ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN payment_method = 'nasiya' THEN total_price ELSE 0 END), 0)
+			FROM orders 
+			WHERE status = 'delivered' AND created_at > COALESCE((SELECT value::timestamp FROM settings WHERE key = 'last_shift_closed_at'), '1970-01-01'::timestamp)
+		`
+		if err2 := r.db.QueryRow(fallbackQuery).Scan(&stats.CashRevenue, &stats.CardRevenue, &stats.ClickRevenue, &stats.NasiyaRevenue); err2 != nil {
+			stats.CashRevenue = 0
+			stats.CardRevenue = 0
+			stats.ClickRevenue = 0
+			stats.NasiyaRevenue = 0
+		}
 	}
 
 	// Calculate Waiter Salaries for the current shift
@@ -155,12 +168,22 @@ func (r *financeRepository) GetWaiterSalaries(startDate, endDate string) ([]mode
 		}
 		salaries = append(salaries, s)
 	}
-	
+
 	if salaries == nil {
 		salaries = []models.WaiterSalary{}
 	}
-	
+
 	return salaries, nil
+}
+
+func (r *financeRepository) CountActiveOrders() (int, error) {
+	var count int
+	err := r.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM orders
+		WHERE status IN ('new', 'preparing', 'ready', 'on_way')
+	`).Scan(&count)
+	return count, err
 }
 
 func (r *financeRepository) CloseShift() error {

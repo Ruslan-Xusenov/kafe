@@ -12,13 +12,13 @@ import (
 )
 
 type OrderService struct {
-	orderRepo   *repository.OrderRepository
-	productRepo *repository.ProductRepository
-	settingsRepo *repository.SettingsRepository
-	inventoryRepo repository.InventoryRepository
-	tableRepo    *repository.TableRepository
-	wsService    *WebsocketService
-	botService   *BotService
+	orderRepo      *repository.OrderRepository
+	productRepo    *repository.ProductRepository
+	settingsRepo   *repository.SettingsRepository
+	inventoryRepo  repository.InventoryRepository
+	tableRepo      *repository.TableRepository
+	wsService      *WebsocketService
+	botService     *BotService
 	printerService *PrinterService
 }
 
@@ -36,6 +36,28 @@ func NewOrderService(orderRepo *repository.OrderRepository, productRepo *reposit
 }
 
 func (s *OrderService) CreateOrder(order *models.Order) error {
+	return s.createOrder(order, nil)
+}
+
+// CreatePaidOrder validates the total and persists the order with its
+// payments atomically. It is intended for cashier/POS sales.
+func (s *OrderService) CreatePaidOrder(order *models.Order, payments []models.PaymentInput) error {
+	return s.createOrder(order, payments)
+}
+
+func (s *OrderService) createOrder(order *models.Order, payments []models.PaymentInput) error {
+	// 0. Idempotency check: if a key is provided and an order already exists, return it.
+	if order.IdempotencyKey != nil && *order.IdempotencyKey != "" {
+		existing, err := s.orderRepo.FindByIdempotencyKey(*order.IdempotencyKey)
+		if err != nil {
+			return fmt.Errorf("idempotency tekshiruvida xatolik: %w", err)
+		}
+		if existing != nil {
+			// Order already exists for this key — return the existing order silently.
+			*order = *existing
+			return nil
+		}
+	}
 	// 1. Get container price and ID from settings
 	containerPrice := 1000.0
 	if cp, err := s.settingsRepo.Get("container_price"); err == nil && cp != "" {
@@ -44,7 +66,7 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		}
 	}
 
-	containerID := 7 
+	containerID := 7
 	if cid, err := s.settingsRepo.Get("container_product_id"); err == nil && cid != "" {
 		if id, err := strconv.Atoi(cid); err == nil {
 			containerID = id
@@ -52,7 +74,7 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	}
 
 	// Check for existing order from the same phone in the last 30 minutes (skip for cafe orders)
-	if os.Getenv("APP_ENV") != "development" && order.TableID == nil {
+	if os.Getenv("APP_ENV") != "development" && order.TableID == nil && order.Phone != "POS" {
 		lastOrder, err := s.orderRepo.GetLastOrderByPhone(order.Phone)
 		if err == nil && lastOrder != nil {
 			if time.Since(lastOrder.CreatedAt) < 30*time.Minute {
@@ -64,47 +86,49 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	// Business logic for mandatory containers (only for delivery/takeaway, skip for dine-in tables)
 	var itemsToAdd []models.OrderItem
 	if order.TableID == nil {
-	for _, item := range order.Items {
-		prod, err := s.productRepo.GetByID(item.ProductID)
-		if err != nil || prod == nil { continue }
-
-		if prod.HasMandatoryContainer {
-			totalPortions := 0.0
-			if item.Unit == "gr" {
-				totalPortions = item.Quantity / 100.0
-			} else if item.Unit == "kg" {
-				totalPortions = item.Quantity * 10.0
-			} else {
-				// For 'pors' and 'dona'
-				totalPortions = item.Quantity
+		for _, item := range order.Items {
+			prod, err := s.productRepo.GetByID(item.ProductID)
+			if err != nil || prod == nil {
+				continue
 			}
 
-			if totalPortions > 0 {
-				numContainers := math.Ceil(totalPortions) 
-				
-				itemsToAdd = append(itemsToAdd, models.OrderItem{
-					ProductID: containerID, // Use dynamic ID
-					Quantity:  numContainers,
-					Price:     containerPrice,
-				})
-			}
-		}
-	}
+			if prod.HasMandatoryContainer {
+				totalPortions := 0.0
+				if item.Unit == "gr" {
+					totalPortions = item.Quantity / 100.0
+				} else if item.Unit == "kg" {
+					totalPortions = item.Quantity * 10.0
+				} else {
+					// For 'pors' and 'dona'
+					totalPortions = item.Quantity
+				}
 
-	// Add containers to the order items if not already present
-	for _, newItem := range itemsToAdd {
-		found := false
-		for i, existingItem := range order.Items {
-			if existingItem.ProductID == newItem.ProductID {
-				order.Items[i].Quantity += newItem.Quantity
-				found = true
-				break
+				if totalPortions > 0 {
+					numContainers := math.Ceil(totalPortions)
+
+					itemsToAdd = append(itemsToAdd, models.OrderItem{
+						ProductID: containerID, // Use dynamic ID
+						Quantity:  numContainers,
+						Price:     containerPrice,
+					})
+				}
 			}
 		}
-		if !found {
-			order.Items = append(order.Items, newItem)
+
+		// Add containers to the order items if not already present
+		for _, newItem := range itemsToAdd {
+			found := false
+			for i, existingItem := range order.Items {
+				if existingItem.ProductID == newItem.ProductID {
+					order.Items[i].Quantity += newItem.Quantity
+					found = true
+					break
+				}
+			}
+			if !found {
+				order.Items = append(order.Items, newItem)
+			}
 		}
-	}
 	} // end if order.TableID == nil
 
 	var total float64
@@ -118,18 +142,35 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 			return fmt.Errorf("продукт не найден (ID: %d)", item.ProductID)
 		}
 
+		// Block orders for inactive products
+		if !prod.IsActive && item.ProductID != containerID {
+			return fmt.Errorf("mahsulot faol emas va buyurtma qilib bo'lmaydi: %s (ID: %d)", prod.Name, item.ProductID)
+		}
+
+		// Validate quantity against product rules
+		if prod.MinQuantity > 0 && item.Quantity < prod.MinQuantity {
+			return fmt.Errorf("%s: minimal miqdor %.2f, siz %.2f kiritdingiz", prod.Name, prod.MinQuantity, item.Quantity)
+		}
+		if prod.QuantityStep > 0 {
+			// Check that quantity is a multiple of step (within floating point tolerance)
+			remainder := math.Mod(item.Quantity-prod.MinQuantity, prod.QuantityStep)
+			if remainder > 0.001 && (prod.QuantityStep-remainder) > 0.001 {
+				return fmt.Errorf("%s: miqdor %.2f qadam bo'yicha kiritilishi kerak", prod.Name, prod.QuantityStep)
+			}
+		}
+
 		itemPrice := prod.Price
 		if item.Unit == "dona" && prod.Unit == "pors" {
 			itemPrice = prod.Price / 4.0
 		}
-		
+
 		item.Price = itemPrice
 		item.ProductName = prod.Name
 		total += item.Price * item.Quantity
 	}
-	
+
 	// Check minimum order value (40,000 UZS) for delivery customers
-	if os.Getenv("APP_ENV") != "development" && order.TableID == nil {
+	if os.Getenv("APP_ENV") != "development" && order.TableID == nil && order.Phone != "POS" {
 		if total < 40000 {
 			return fmt.Errorf("минимальная сумма заказа должна быть 40.000 сум")
 		}
@@ -139,8 +180,31 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 	order.Status = models.StatusNew
 	order.CreatedAt = time.Now()
 
-	if err := s.orderRepo.Create(order); err != nil {
-		return err
+	if len(payments) > 0 {
+		validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+		var paymentTotal float64
+		for _, payment := range payments {
+			if !validMethods[payment.Method] {
+				return fmt.Errorf("noto'g'ri to'lov usuli: %s", payment.Method)
+			}
+			if payment.Amount <= 0 {
+				return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+			}
+			paymentTotal += payment.Amount
+		}
+		if math.Abs(paymentTotal-order.TotalPrice) > 0.01 {
+			return fmt.Errorf("to'lov summasi order summasiga teng bo'lishi kerak: %.2f / %.2f", paymentTotal, order.TotalPrice)
+		}
+	}
+
+	var createErr error
+	if len(payments) > 0 {
+		createErr = s.orderRepo.CreateWithPayments(order, payments)
+	} else {
+		createErr = s.orderRepo.Create(order)
+	}
+	if createErr != nil {
+		return createErr
 	}
 
 	// Fetch fully populated order to get WaiterName and TableNumber
@@ -149,8 +213,8 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		order = populatedOrder
 	}
 
-	// Enrich order items with product names for notification
-	// And deduct inventory stock for each item
+	// Enrich order items with product names for notification.
+	// Stock deduction is handled atomically inside orderRepo.Create.
 	for i := range order.Items {
 		prod, _ := s.productRepo.GetByID(order.Items[i].ProductID)
 		if prod != nil {
@@ -163,9 +227,6 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		} else {
 			order.Items[i].PrinterTarget = "ALL"
 		}
-		
-		// Deduct inventory stock
-		_ = s.inventoryRepo.DeductStockForProduct(order.Items[i].ProductID, order.Items[i].Quantity)
 	}
 
 	// Trigger Task: Send Notification to Telegram
@@ -177,7 +238,7 @@ func (s *OrderService) CreateOrder(order *models.Order) error {
 		}
 	}
 	s.botService.SendNewOrderNotification(order, &firstImageUrl)
-	
+
 	// Real-time: Notify Cooks and Admin (Printer is notified separately via notifyAPI to avoid double printing for bot orders)
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
@@ -258,8 +319,38 @@ func (s *OrderService) GetActiveOrders() ([]models.Order, error) {
 }
 
 func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus, userID int, role string) error {
-	order, _ := s.orderRepo.GetByID(orderID)
-	if order != nil && role == "waiter" {
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil {
+		return err
+	}
+	if order == nil {
+		return fmt.Errorf("order %d not found", orderID)
+	}
+
+	if order.Status == status {
+		return nil
+	}
+	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
+		return fmt.Errorf("yopilgan buyurtma statusini o'zgartirib bo'lmaydi")
+	}
+
+	allowed := false
+	switch role {
+	case "admin":
+		allowed = true
+	case "cook":
+		allowed = (order.Status == models.StatusNew && status == models.StatusPreparing) ||
+			(order.Status == models.StatusPreparing && status == models.StatusReady)
+	case "courier":
+		allowed = (order.Status == models.StatusReady || order.Status == models.StatusOnWay) && status == models.StatusDelivered
+	case "cashier":
+		allowed = order.Status == models.StatusNew && status == models.StatusDelivered
+	}
+	if !allowed {
+		return fmt.Errorf("role %s uchun %s statusiga o'tish mumkin emas", role, status)
+	}
+
+	if role == "waiter" {
 		if order.WaiterID != nil && *order.WaiterID != userID {
 			return fmt.Errorf("Siz faqat o'zingizning buyurtmalaringizni o'zgartira olasiz")
 		}
@@ -270,14 +361,24 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 		cookID = &userID
 	}
 
-	err := s.orderRepo.UpdateStatus(orderID, status, cookID)
+	err = s.orderRepo.UpdateStatus(orderID, status, cookID)
 	if err == nil {
 		order, _ := s.orderRepo.GetByID(orderID)
 		if order != nil {
-			// If cancelled, restore stock
+			// If cancelled, restore stock (log errors instead of silently ignoring)
+			// MarkStockRestored is atomic — prevents double restoration if called twice.
 			if status == models.StatusCancelled {
-				for _, item := range order.Items {
-					_ = s.inventoryRepo.RestoreStockForProduct(item.ProductID, item.Quantity)
+				should, markErr := s.orderRepo.MarkStockRestored(orderID)
+				if markErr != nil {
+					fmt.Printf("⚠️  [STOCK] Order #%d: MarkStockRestored failed: %v\n", orderID, markErr)
+				} else if should {
+					for _, item := range order.Items {
+						if restoreErr := s.inventoryRepo.RestoreStockForProduct(item.ProductID, item.Quantity); restoreErr != nil {
+							fmt.Printf("⚠️  [STOCK] Order #%d cancel: RestoreStock failed for product %d: %v\n", orderID, item.ProductID, restoreErr)
+						}
+					}
+				} else {
+					fmt.Printf("ℹ️  [STOCK] Order #%d stock already restored, skipping.\n", orderID)
 				}
 			}
 
@@ -333,10 +434,40 @@ func (s *OrderService) GetStats(userID int, role string) (*models.DeliveryStats,
 	return nil, fmt.Errorf("role %s not authorized for stats", role)
 }
 
-func (s *OrderService) SubmitRating(orderID int, ratings []models.StaffRating) error {
+func (s *OrderService) SubmitRating(orderID int, userID int, role string, ratings []models.StaffRating) error {
+	if len(ratings) == 0 {
+		return fmt.Errorf("ratinglar ro'yxati bo'sh")
+	}
+
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil {
+		return err
+	}
+	if order == nil {
+		return fmt.Errorf("order %d not found", orderID)
+	}
+	if order.Status != models.StatusDelivered {
+		return fmt.Errorf("faqat yetkazilgan buyurtmani baholash mumkin")
+	}
+
+	isOwner := order.CustomerID != nil && *order.CustomerID == userID
+	if role != string(models.RoleAdmin) && !isOwner {
+		return fmt.Errorf("bu buyurtmaga rating berish huquqi yo'q")
+	}
+
 	for i := range ratings {
+		rating := &ratings[i]
+		if rating.Rating < 1 || rating.Rating > 5 {
+			return fmt.Errorf("rating 1 dan 5 gacha bo'lishi kerak")
+		}
+		if len(rating.Comment) > 1000 {
+			return fmt.Errorf("izoh 1000 belgidan oshmasligi kerak")
+		}
+		if role != string(models.RoleAdmin) && !ratingMatchesOrder(order, rating) {
+			return fmt.Errorf("rating faqat buyurtmaga biriktirilgan xodim uchun berilishi mumkin")
+		}
 		ratings[i].OrderID = orderID
-		if err := s.orderRepo.AddStaffRating(&ratings[i]); err != nil {
+		if err := s.orderRepo.AddStaffRating(rating); err != nil {
 			return err
 		}
 	}
@@ -347,8 +478,44 @@ func (s *OrderService) GetStaffPerformance() ([]models.StaffPerformance, error) 
 	return s.orderRepo.GetStaffPerformance()
 }
 
-func (s *OrderService) GetRatingsByOrderID(orderID int) ([]models.StaffRating, error) {
+func (s *OrderService) GetRatingsByOrderID(orderID int, userID int, role string) ([]models.StaffRating, error) {
+	order, err := s.orderRepo.GetByID(orderID)
+	if err != nil {
+		return nil, err
+	}
+	if order == nil {
+		return nil, fmt.Errorf("order %d not found", orderID)
+	}
+
+	isOwner := order.CustomerID != nil && *order.CustomerID == userID
+	if role != string(models.RoleAdmin) && !isOwner && !staffAssignedToOrder(order, userID, role) {
+		return nil, fmt.Errorf("bu buyurtma ratinglarini ko'rish huquqi yo'q")
+	}
 	return s.orderRepo.GetRatingsByOrderID(orderID)
+}
+
+func ratingMatchesOrder(order *models.Order, rating *models.StaffRating) bool {
+	switch rating.StaffRole {
+	case "cook":
+		return order.CookID != nil && *order.CookID == rating.StaffID
+	case "courier":
+		return order.CourierID != nil && *order.CourierID == rating.StaffID
+	default:
+		return false
+	}
+}
+
+func staffAssignedToOrder(order *models.Order, userID int, role string) bool {
+	switch role {
+	case string(models.RoleCook):
+		return order.CookID != nil && *order.CookID == userID
+	case string(models.RoleCourier):
+		return order.CourierID != nil && *order.CourierID == userID
+	case string(models.RoleWaiter):
+		return order.WaiterID != nil && *order.WaiterID == userID
+	default:
+		return false
+	}
 }
 
 func (s *OrderService) TestPrinter() error {
@@ -362,7 +529,7 @@ func (s *OrderService) TestPrinter() error {
 			{ProductName: "ТЕСТ БЛЮДО 2", Quantity: 1, Price: 25000},
 		},
 	}
-	
+
 	// Broadcast to roles
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": testOrder})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": testOrder})
@@ -379,10 +546,10 @@ func (s *OrderService) ReprintOrder(orderID int) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Notify WS bridge just in case they use it instead of TCP
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "reprint_order", "order": order})
-	
+
 	// Direct TCP print
 	go s.printerService.PrintOrder(order)
 	return nil
@@ -446,6 +613,9 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 	if err != nil || order == nil {
 		return fmt.Errorf("order not found")
 	}
+	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
+		return fmt.Errorf("yopilgan buyurtmadan mahsulotni bekor qilib bo'lmaydi")
+	}
 
 	var cancelledItem *models.OrderItem
 	for _, it := range order.Items {
@@ -459,8 +629,8 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 	if cancelledItem == nil {
 		return fmt.Errorf("item not found in order")
 	}
-	
-	// Validate 
+
+	// Validate
 	if cancelQty <= 0 {
 		return fmt.Errorf("quantity must be greater than 0")
 	}
@@ -474,11 +644,11 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 
 	cancelledItem.Quantity = cancelQty
 	cancelPayload := map[string]interface{}{
-		"type": "cancel_item",
-		"order_id": orderID,
-		"item": cancelledItem,
+		"type":        "cancel_item",
+		"order_id":    orderID,
+		"item":        cancelledItem,
 		"waiter_name": order.WaiterName,
-		"table_name":   order.TableName,
+		"table_name":  order.TableName,
 	}
 	s.wsService.BroadcastToRole("printer", cancelPayload)
 
@@ -486,6 +656,22 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 }
 
 func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int, role string) error {
+	// Backward compat: convert single method to payments array
+	if paymentMethod != "" {
+		return s.CloseTableWithPayments(tableID, []models.PaymentInput{{Method: paymentMethod, Amount: 0}}, userID, role)
+	}
+	return s.CloseTableWithPayments(tableID, nil, userID, role)
+}
+
+func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.PaymentInput, userID int, role string) error {
+	// Validate payment methods
+	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+	for _, p := range payments {
+		if !validMethods[p.Method] {
+			return fmt.Errorf("недопустимый тип оплаты: %s", p.Method)
+		}
+	}
+
 	activeOrders, err := s.orderRepo.GetAll()
 	if err != nil {
 		return err
@@ -501,14 +687,89 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 	}
 
 	if len(tableOrders) == 0 {
-		return nil 
+		return nil
 	}
 
+	// Calculate grand total for payment allocation
+	var grandTotal float64
 	for _, o := range tableOrders {
-		if paymentMethod != "" {
-			_ = s.orderRepo.SetPaymentMethod(o.ID, paymentMethod)
+		full, err := s.orderRepo.GetByID(o.ID)
+		if err != nil || full == nil {
+			return fmt.Errorf("order %d summasini olishda xatolik", o.ID)
 		}
-		_ = s.orderRepo.UpdateStatus(o.ID, models.StatusDelivered, nil)
+		grandTotal += full.TotalPrice
+	}
+
+	if len(payments) == 0 {
+		return fmt.Errorf("stolni yopishdan oldin to'lov usulini tanlang")
+	}
+	if len(payments) == 1 && payments[0].Amount == 0 {
+		// Backward compatibility for CloseTable(paymentMethod), which did not
+		// carry an amount.
+		payments[0].Amount = grandTotal
+	}
+	var paymentTotal float64
+	for _, payment := range payments {
+		if payment.Amount <= 0 {
+			return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+		}
+		paymentTotal += payment.Amount
+	}
+	if math.Abs(paymentTotal-grandTotal) > 0.01 {
+		return fmt.Errorf("to'lov summasi order summasiga teng bo'lishi kerak: %.2f / %.2f", paymentTotal, grandTotal)
+	}
+
+	// Determine primary payment method
+	primaryMethod := ""
+	if len(payments) == 1 {
+		primaryMethod = payments[0].Method
+		// If amount is 0 (backward compat), set it to grand total
+		if payments[0].Amount == 0 {
+			payments[0].Amount = grandTotal
+		}
+	} else if len(payments) > 1 {
+		primaryMethod = "mixed"
+	}
+
+	// Calculate total for proportional payment allocation across multiple orders
+	var orderTotals []float64
+	for _, o := range tableOrders {
+		full, err := s.orderRepo.GetByID(o.ID)
+		if err != nil || full == nil {
+			orderTotals = append(orderTotals, o.TotalPrice)
+		} else {
+			orderTotals = append(orderTotals, full.TotalPrice)
+		}
+	}
+
+	for idx, o := range tableOrders {
+		if primaryMethod != "" {
+			if err := s.orderRepo.SetPaymentMethod(o.ID, primaryMethod); err != nil {
+				return fmt.Errorf("failed to set payment method for order %d: %w", o.ID, err)
+			}
+		}
+
+		// Save payments to order_payments for EVERY order, proportionally distributed
+		if len(payments) > 0 {
+			orderShare := orderTotals[idx] / grandTotal // proportion of this order
+			for _, p := range payments {
+				proRataAmount := p.Amount * orderShare
+				if proRataAmount < 0.01 {
+					continue
+				}
+				if _, err := s.orderRepo.GetDB().Exec(`
+						INSERT INTO order_payments (order_id, method, amount)
+						VALUES ($1, $2, $3)
+						ON CONFLICT DO NOTHING
+					`, o.ID, p.Method, proRataAmount); err != nil {
+					return fmt.Errorf("to'lovni saqlashda xatolik (order %d): %w", o.ID, err)
+				}
+			}
+		}
+
+		if err := s.orderRepo.UpdateStatus(o.ID, models.StatusDelivered, nil); err != nil {
+			return fmt.Errorf("failed to close order %d: %w", o.ID, err)
+		}
 	}
 
 	firstOrder := tableOrders[0]
@@ -519,14 +780,14 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 	}
 
 	var allItems []models.OrderItem
-	var grandTotal float64
 	var grandServiceFee float64
 	var servicePercentage float64
+	grandTotal = 0
 
 	for _, o := range tableOrders {
 		full, err := s.orderRepo.GetByID(o.ID)
 		if err != nil || full == nil {
-			continue
+			return fmt.Errorf("order %d ma'lumotlarini olishda xatolik", o.ID)
 		}
 		allItems = append(allItems, full.Items...)
 		grandTotal += full.TotalPrice
@@ -538,15 +799,16 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 	combinedOrder := &models.Order{
 		ID:                populated.ID,
 		TableID:           populated.TableID,
-		TableName:       populated.TableName,
-		WaiterID:         populated.WaiterID,
-		WaiterName:       populated.WaiterName,
-		TotalPrice:       grandTotal,
-		ServiceFee:       grandServiceFee,
+		TableName:         populated.TableName,
+		WaiterID:          populated.WaiterID,
+		WaiterName:        populated.WaiterName,
+		TotalPrice:        grandTotal,
+		ServiceFee:        grandServiceFee,
 		ServicePercentage: servicePercentage,
 		Items:             allItems,
-		CreatedAt:        populated.CreatedAt,
-		Status:           models.StatusDelivered,
+		CreatedAt:         populated.CreatedAt,
+		Status:            models.StatusDelivered,
+		PaymentMethod:     primaryMethod,
 	}
 
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": combinedOrder})
@@ -599,10 +861,6 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 		return nil, err
 	}
 
-	for _, item := range items {
-		_ = s.inventoryRepo.DeductStockForProduct(item.ProductID, item.Quantity)
-	}
-
 	updatedOrder, err := s.orderRepo.GetByID(orderID)
 	if err != nil || updatedOrder == nil {
 		return nil, fmt.Errorf("yangilangan buyurtmani olishda xatolik")
@@ -616,15 +874,15 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 	}
 
 	partialOrder := &models.Order{
-		ID:          updatedOrder.ID,
-		TableID:     updatedOrder.TableID,
-		TableName: updatedOrder.TableName,
-		WaiterID:    updatedOrder.WaiterID,
-		WaiterName:  updatedOrder.WaiterName,
-		TotalPrice:  updatedOrder.TotalPrice,
-		Items:       items,
-		CreatedAt:   updatedOrder.CreatedAt,
-		Status:      updatedOrder.Status,
+		ID:         updatedOrder.ID,
+		TableID:    updatedOrder.TableID,
+		TableName:  updatedOrder.TableName,
+		WaiterID:   updatedOrder.WaiterID,
+		WaiterName: updatedOrder.WaiterName,
+		TotalPrice: updatedOrder.TotalPrice,
+		Items:      items,
+		CreatedAt:  updatedOrder.CreatedAt,
+		Status:     updatedOrder.Status,
 	}
 
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": partialOrder})
@@ -634,7 +892,7 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 	go s.printerService.PrintOrder(partialOrder)
 
 	dummyOrder := map[string]interface{}{
-		"id": -9999,
+		"id":    -9999,
 		"items": []interface{}{},
 	}
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": dummyOrder})
@@ -646,6 +904,9 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil || order == nil {
 		return fmt.Errorf("order not found")
+	}
+	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
+		return fmt.Errorf("yopilgan buyurtmadan mahsulotni bekor qilib bo'lmaydi")
 	}
 
 	if cancelQty <= 0 {
@@ -678,7 +939,7 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 		if qtyToCancelHere > it.Quantity {
 			qtyToCancelHere = it.Quantity
 		}
-		
+
 		err := s.orderRepo.CancelItem(orderID, it.ID, qtyToCancelHere)
 		if err != nil {
 			return err
@@ -692,11 +953,11 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 	cancelledItem.Quantity = cancelQty
 
 	cancelPayload := map[string]interface{}{
-		"type": "cancel_item",
-		"order_id": orderID,
-		"item": cancelledItem,
+		"type":        "cancel_item",
+		"order_id":    orderID,
+		"item":        cancelledItem,
 		"waiter_name": order.WaiterName,
-		"table_name":   order.TableName,
+		"table_name":  order.TableName,
 	}
 	s.wsService.BroadcastToRole("printer", cancelPayload)
 

@@ -13,10 +13,11 @@ import (
 type TableHandler struct {
 	tableRepo    *repository.TableRepository
 	orderService *service.OrderService
+	auditRepo    *repository.AuditRepository
 }
 
-func NewTableHandler(tableRepo *repository.TableRepository, orderService *service.OrderService) *TableHandler {
-	return &TableHandler{tableRepo: tableRepo, orderService: orderService}
+func NewTableHandler(tableRepo *repository.TableRepository, orderService *service.OrderService, auditRepo *repository.AuditRepository) *TableHandler {
+	return &TableHandler{tableRepo: tableRepo, orderService: orderService, auditRepo: auditRepo}
 }
 
 func (h *TableHandler) GetAll(c *gin.Context) {
@@ -44,6 +45,12 @@ func (h *TableHandler) Create(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "table.create", "table", &table.ID, gin.H{
+		"name":     table.Name,
+		"capacity": table.Capacity,
+		"status":   table.Status,
+	})
+
 	c.JSON(http.StatusCreated, table)
 }
 
@@ -56,7 +63,8 @@ func (h *TableHandler) Update(c *gin.Context) {
 
 	var payload struct {
 		models.Table
-		PaymentMethod string `json:"payment_method"`
+		PaymentMethod string              `json:"payment_method"`
+		Payments      []models.PaymentInput `json:"payments"`
 	}
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -80,7 +88,7 @@ func (h *TableHandler) Update(c *gin.Context) {
 					if role == nil {
 						role = "admin"
 					}
-					
+
 					// Security: Only the waiter who owns the order can free the table
 					if role == "waiter" && o.WaiterID != nil && *o.WaiterID != userID.(int) {
 						c.JSON(http.StatusForbidden, gin.H{"error": "Вы можете освобождать только свои столы."})
@@ -91,20 +99,46 @@ func (h *TableHandler) Update(c *gin.Context) {
 		}
 	}
 
+	if table.Status == "free" && h.orderService != nil {
+		userID, _ := c.Get("user_id")
+		role, _ := c.Get("role")
+		if userID == nil {
+			userID = 0
+		}
+		if role == nil {
+			role = "admin"
+		}
+
+		// Use mixed payments if provided, otherwise fall back to single method
+		if len(payload.Payments) > 0 {
+			if err := h.orderService.CloseTableWithPayments(table.ID, payload.Payments, userID.(int), role.(string)); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			writeAudit(c, h.auditRepo, "table.close", "table", &table.ID, gin.H{
+				"payments": payload.Payments,
+			})
+		} else {
+			if err := h.orderService.CloseTable(table.ID, payload.PaymentMethod, userID.(int), role.(string)); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			writeAudit(c, h.auditRepo, "table.close", "table", &table.ID, gin.H{
+				"payment_method": payload.PaymentMethod,
+			})
+		}
+	}
+
 	if err := h.tableRepo.Update(&table); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Post-update: Close all active orders for this table in ONE operation → ONE combined receipt
-	if table.Status == "free" && h.orderService != nil {
-		userID, _ := c.Get("user_id")
-		role, _ := c.Get("role")
-		if userID == nil { userID = 0 }
-		if role == nil { role = "admin" }
-
-		_ = h.orderService.CloseTable(table.ID, payload.PaymentMethod, userID.(int), role.(string))
-	}
+	writeAudit(c, h.auditRepo, "table.update", "table", &table.ID, gin.H{
+		"name":     table.Name,
+		"capacity": table.Capacity,
+		"status":   table.Status,
+	})
 
 	c.JSON(http.StatusOK, table)
 }
@@ -121,5 +155,29 @@ func (h *TableHandler) Delete(c *gin.Context) {
 		return
 	}
 
+	writeAudit(c, h.auditRepo, "table.delete", "table", &id, nil)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Удалено"})
+}
+
+// UpdateLayout batch-updates table positions from the floor plan editor
+func (h *TableHandler) UpdateLayout(c *gin.Context) {
+	var payload struct {
+		Tables []models.Table `json:"tables"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.tableRepo.UpdateLayout(payload.Tables); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	writeAudit(c, h.auditRepo, "table.layout_update", "table", nil, gin.H{
+		"count": len(payload.Tables),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Zal xaritasi saqlandi", "count": len(payload.Tables)})
 }
