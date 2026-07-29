@@ -412,10 +412,12 @@
   <div id="cursorGlow"></div>
 
   <!-- Ambient Background -->
-  <div class="fixed inset-0 pointer-events-none -z-10 mesh-gradient"></div>
-  <div class="orb w-[500px] h-[500px] bg-orange-500/10 top-[-10%] left-[-5%]" style="animation-delay: 0s;"></div>
-  <div class="orb w-[400px] h-[400px] bg-purple-500/8 top-[30%] right-[-10%]" style="animation-delay: 3s;"></div>
-  <div class="orb w-[350px] h-[350px] bg-sky-500/6 bottom-[-5%] left-[30%]" style="animation-delay: 5s;"></div>
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div class="absolute inset-0 mesh-gradient"></div>
+    <div class="orb w-[500px] h-[500px] bg-orange-500/10 top-[-10%] left-[-5%]" style="animation-delay: 0s;"></div>
+    <div class="orb w-[400px] h-[400px] bg-purple-500/8 top-[30%] right-[-10%]" style="animation-delay: 3s;"></div>
+    <div class="orb w-[350px] h-[350px] bg-sky-500/6 bottom-[-5%] left-[30%]" style="animation-delay: 5s;"></div>
+  </div>
 
   <!-- ==================== NAVBAR ==================== -->
   <header class="fixed top-0 w-full z-[100] transition-all duration-500" id="navbar">
