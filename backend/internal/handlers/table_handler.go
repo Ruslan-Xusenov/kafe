@@ -26,7 +26,20 @@ func (h *TableHandler) GetAll(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, tables)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var filtered []models.Table
+	for _, t := range tables {
+		if t.Status == "occupied" && role == "waiter" {
+			if t.ActiveWaiterID != nil && *t.ActiveWaiterID != userID.(int) {
+				continue // Hide occupied tables belonging to other waiters
+			}
+		}
+		filtered = append(filtered, t)
+	}
+
+	c.JSON(http.StatusOK, filtered)
 }
 
 func (h *TableHandler) Create(c *gin.Context) {
