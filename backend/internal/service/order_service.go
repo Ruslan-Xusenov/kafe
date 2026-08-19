@@ -394,6 +394,17 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 				}
 			}
 
+			if (status == models.StatusCancelled || status == models.StatusDelivered) && order.TableID != nil {
+				activeOrder, _ := s.orderRepo.FindActiveOrderByTableID(*order.TableID)
+				if activeOrder == nil {
+					// No more active orders on this table, so free it automatically
+					if err := s.tableRepo.UpdateStatus(*order.TableID, "free"); err == nil {
+						s.wsService.BroadcastToRole("waiter", map[string]interface{}{"type": "tables_updated"})
+						s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "tables_updated"})
+					}
+				}
+			}
+
 			// Notify Customer
 			if order.CustomerID != nil {
 				s.wsService.BroadcastToUser(*order.CustomerID, map[string]interface{}{"type": "status_update", "status": status, "order_id": orderID})
