@@ -14,18 +14,26 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Backend xato xabarlarini rus tiliga tarjima
+// Backend xato xabarlarini O'zbekchaga tarjima
 const translateError = (err) => {
-  const serverMsg = err.response?.data?.error || '';
+  // Tarmoq xatosi (backend o'chiq yoki ulanish yo'q)
+  if (!err.response) {
+    return 'Server bilan aloqa yo\'q. Internet yoki server holatini tekshiring.';
+  }
+
+  const serverMsg = (err.response?.data?.error || '').toLowerCase().trim();
   const map = {
-    'user already exists':       'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan',
-    'invalid phone or password':  'Telefon raqam yoki parol noto\'g\'ri',
-    'unauthorized':               'Kirish huquqi yo\'q',
-    'invalid credentials':        'Telefon raqam yoki parol noto\'g\'ri',
-    'phone already taken':        'Bu telefon raqam band',
-    'user not found':             'Foydalanuvchi topilmadi',
+    'user already exists':              'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan',
+    'invalid phone or password':         'Telefon raqam yoki parol noto\'g\'ri',
+    'invalid credentials':               'Telefon raqam yoki parol noto\'g\'ri',
+    'unauthorized':                      'Kirish huquqi yo\'q',
+    'phone already taken':               'Bu telefon raqam band',
+    'user not found':                    'Foydalanuvchi topilmadi',
+    'этот номер телефона уже зарегистрирован': 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan',
+    'wrong password':                    'Parol noto\'g\'ri',
+    'account not found':                 'Bunday hisob topilmadi',
   };
-  return map[serverMsg] || serverMsg || null;
+  return map[serverMsg] || err.response?.data?.error || 'Kirish paytida xatolik yuz berdi';
 };
 
 export const useAuthStore = create((set) => ({
@@ -44,7 +52,7 @@ export const useAuthStore = create((set) => ({
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true, role: user.role };
     } catch (err) {
-      const msg = translateError(err) || 'Ошибка при входе';
+      const msg = translateError(err) || 'Kirish paytida xatolik yuz berdi';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }
@@ -59,7 +67,7 @@ export const useAuthStore = create((set) => ({
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true };
     } catch (err) {
-      const msg = translateError(err) || 'Ошибка при регистрации';
+      const msg = translateError(err) || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api, { useAuthStore } from '../store/authStore';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search, Lock, List, Map } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import FloorPlan from '../components/FloorPlan';

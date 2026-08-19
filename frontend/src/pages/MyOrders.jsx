@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { Package, Clock, CheckCircle2, Star, History, RefreshCcw, Truck, XCircle, ChefHat } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import RatingModal from '../components/RatingModal';
 import { Link } from 'react-router-dom';
 

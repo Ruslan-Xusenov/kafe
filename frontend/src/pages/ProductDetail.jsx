@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { ChevronLeft, Plus, Minus, ShoppingCart, Loader2, Star, CheckCircle2 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ProductDetail = () => {
   const { id } = useParams();

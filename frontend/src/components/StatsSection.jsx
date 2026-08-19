@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
 import { Calendar, Clock, BarChart3, TrendingUp, Award } from 'lucide-react';
+
 
 const StatsSection = ({ role }) => {
   const [stats, setStats] = useState(null);

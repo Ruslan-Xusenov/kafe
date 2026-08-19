@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, X, Send, Loader2 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../store/authStore';
 
 const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {

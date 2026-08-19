@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, Package, ArrowLeft, Ticket } from 'lucide-react';
 

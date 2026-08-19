@@ -207,6 +207,18 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 		return createErr
 	}
 
+	// Update table status to occupied if it's a table order
+	if order.TableID != nil {
+		fmt.Printf("DEBUG: Updating table %d to occupied\n", *order.TableID)
+		if err := s.tableRepo.UpdateStatus(*order.TableID, "occupied"); err != nil {
+			fmt.Printf("⚠️  [TABLE] Failed to update table %d to occupied: %v\n", *order.TableID, err)
+		} else {
+			fmt.Printf("DEBUG: Successfully updated table %d to occupied\n", *order.TableID)
+		}
+	} else {
+		fmt.Printf("DEBUG: order.TableID is nil\n")
+	}
+
 	// Fetch fully populated order to get WaiterName and TableNumber
 	populatedOrder, err := s.orderRepo.GetByID(order.ID)
 	if err == nil && populatedOrder != nil {
@@ -828,6 +840,13 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
 		return nil, fmt.Errorf("bu buyurtma allaqachon yopilgan")
+	}
+
+	// Make sure table is marked as occupied
+	if order.TableID != nil {
+		if err := s.tableRepo.UpdateStatus(*order.TableID, "occupied"); err != nil {
+			fmt.Printf("⚠️  [TABLE] Failed to update table %d to occupied: %v\n", *order.TableID, err)
+		}
 	}
 	if role != "admin" {
 		if order.WaiterID != nil && *order.WaiterID != userID {

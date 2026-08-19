@@ -40,6 +40,12 @@ export const useCartStore = create((set, get) => ({
     }));
   },
 
+  removeItem: (productId) => {
+    set((state) => ({
+      items: state.items.filter((i) => i.product_id !== productId)
+    }));
+  },
+
   clearCart: () => set({ items: [] }),
 
   getTotalPrice: () => {

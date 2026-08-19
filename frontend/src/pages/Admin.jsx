@@ -5,7 +5,7 @@ import InventorySection from '../components/InventorySection';
 import DebtsSection from '../components/DebtsSection';
 import RefundsSection from '../components/RefundsSection';
 import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from '../utils/validation';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
   CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer, CreditCard, FileText

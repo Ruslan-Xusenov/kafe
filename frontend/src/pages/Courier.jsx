@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, MapPin, Phone, CheckCircle, Navigation, RefreshCw, Package } from 'lucide-react';
 import StatsSection from '../components/StatsSection';
 
