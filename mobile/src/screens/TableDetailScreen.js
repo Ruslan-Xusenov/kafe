@@ -89,6 +89,7 @@ const TableDetailScreen = ({ route, navigation }) => {
 
     try {
       const payload = {
+        ...table,
         status: 'free',
         payments: payments
           .filter((p) => parseFloat(p.amount) > 0)
@@ -391,7 +392,7 @@ const TableDetailScreen = ({ route, navigation }) => {
           <View style={[styles.modal, { maxHeight: 250 }]}>
             <Text style={styles.modalTitle}>{t.serviceFeeTitle}</Text>
             <TextInput
-              style={styles.amountInput}
+              style={styles.modalInput}
               value={feePercent}
               onChangeText={setFeePercent}
               keyboardType="numeric"
@@ -457,7 +458,7 @@ const TableDetailScreen = ({ route, navigation }) => {
             <Text style={styles.modalTitle}>{t.cancelItem}</Text>
             <Text style={styles.modalSub}>{cancelItemModal?.product_name}</Text>
             <TextInput
-              style={styles.amountInput}
+              style={styles.modalInput}
               value={cancelQty}
               onChangeText={setCancelQty}
               keyboardType="numeric"
@@ -570,7 +571,11 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   amountInput: {
     flex: 1, backgroundColor: '#1a1a22', color: '#fff',
-    padding: 13, borderRadius: 12, borderWidth: 1, borderColor: '#2a2a35', fontSize: 15,
+    paddingHorizontal: 16, minHeight: 50, borderRadius: 12, borderWidth: 1, borderColor: '#2a2a35', fontSize: 16,
+  },
+  modalInput: {
+    backgroundColor: '#1a1a22', color: '#fff',
+    paddingHorizontal: 16, height: 50, borderRadius: 12, borderWidth: 1, borderColor: '#2a2a35', fontSize: 16, width: '100%', marginBottom: 12,
   },
   addPaymentBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

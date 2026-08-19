@@ -58,12 +58,10 @@ export const updateOrderStatus = (id, status) =>
   api.put(`/orders/${id}/status`, { status });
 
 export const addItemsToOrder = (id, items) =>
-  api.post(`/orders/${id}/items`, { items });
+  api.post(`/orders/${id}/add-items`, { items });
 
 export const cancelOrderItem = (orderId, itemId, quantity) =>
-  api.delete(`/orders/${orderId}/items/${itemId}/cancel`, {
-    data: { quantity },
-  });
+  api.post(`/orders/${orderId}/items/${itemId}/cancel`, { quantity });
 
 export const cancelProductFromOrder = (orderId, productId, quantity) =>
   api.post(`/orders/${orderId}/cancel-product/${productId}`, { quantity });
