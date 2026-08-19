@@ -70,6 +70,6 @@ export const setServiceFee = (id, percentage) =>
   api.put(`/orders/${id}/service-fee`, { percentage });
 
 export const transferOrderTable = (from_table_id, to_table_id) =>
-  api.post('/orders/transfer-table', { from_table_id, to_table_id });
+  api.post('/orders/transfer', { from_table_id, to_table_id });
 
 export default api;
