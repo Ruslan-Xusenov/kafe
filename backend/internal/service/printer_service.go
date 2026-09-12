@@ -166,9 +166,9 @@ func (s *PrinterService) doPrintOrder(order *models.Order) error {
 	conn.Write([]byte(fmt.Sprintf("Chek №: %d\n", order.ID)))
 
 	if order.TableName != nil && *order.TableName != "" {
-		conn.Write([]byte(fmt.Sprintf("Stol: %s\n", *order.TableName)))
+		conn.Write([]byte(fmt.Sprintf("Стол: %s\n", *order.TableName)))
 	} else {
-		conn.Write([]byte("Stol: online\n"))
+		conn.Write([]byte("Стол: online\n"))
 	}
 	if order.WaiterName != "" {
 		conn.Write([]byte(fmt.Sprintf("Ofitsiant: %s\n", s.transliterate(order.WaiterName))))
@@ -227,7 +227,7 @@ func (s *PrinterService) doPrintOrder(order *models.Order) error {
 	// Payment method if available
 	if order.PaymentMethod != "" {
 		conn.Write(ALIGN_CENTER)
-		conn.Write([]byte(fmt.Sprintf("To'lov: %s\n\n", s.paymentMethodLabel(order.PaymentMethod))))
+		conn.Write([]byte(fmt.Sprintf("Оплата: %s\n\n", s.paymentMethodLabel(order.PaymentMethod))))
 	}
 
 	conn.Write(PAPER_CUT)
@@ -270,10 +270,10 @@ func (s *PrinterService) doPrintFiscal(order *models.Order, receipt *models.Fisc
 	conn.Write([]byte("FISKAL CHEK\n"))
 	conn.Write(FONT_NORMAL)
 	conn.Write([]byte(fmt.Sprintf("Chek raqami: %s\n", receipt.ReceiptNumber)))
-	conn.Write([]byte(fmt.Sprintf("Buyurtma: #%d\n", order.ID)))
+	conn.Write([]byte(fmt.Sprintf("Заказ: #%d\n", order.ID)))
 	conn.Write([]byte(fmt.Sprintf("Kassir: %s\n", s.transliterate(receipt.CashierName))))
 	conn.Write([]byte(fmt.Sprintf("Sana: %s\n", receipt.CreatedAt.Format("02.01.2006 15:04:05"))))
-	conn.Write([]byte(fmt.Sprintf("To'lov usuli: %s\n", s.paymentMethodLabel(receipt.PaymentMethod))))
+	conn.Write([]byte(fmt.Sprintf("Оплата usuli: %s\n", s.paymentMethodLabel(receipt.PaymentMethod))))
 	conn.Write([]byte("------------------------------------------------\n"))
 
 	conn.Write([]byte("Nomi                   Soni  Narxi      Jami\n"))
@@ -338,6 +338,8 @@ func (s *PrinterService) paymentMethodLabel(method string) string {
 	case "click":
 		return "Click/Payme"
 	case "nasiya":
+	case "qr":
+		return "QR Kod"
 		return "Nasiya"
 	case "mixed":
 		return "Aralash"

@@ -17,6 +17,7 @@ type CashierShift struct {
 	TotalCardSales  float64    `json:"total_card_sales" db:"total_card_sales"`
 	TotalClickSales float64    `json:"total_click_sales" db:"total_click_sales"`
 	TotalNasiyaSales float64   `json:"total_nasiya_sales" db:"total_nasiya_sales"`
+	TotalQrSales     float64   `json:"total_qr_sales" db:"total_qr_sales"`
 	TotalOrders     int        `json:"total_orders" db:"total_orders"`
 	Status          string     `json:"status" db:"status"` // open, closed
 	Notes           string     `json:"notes" db:"notes"`

@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../store/authStore';
 import { Loader2, Check, X, RefreshCw, Filter, Banknote, AlertCircle } from 'lucide-react';
@@ -25,7 +26,7 @@ const RefundsSection = () => {
       const res = await api.get(endpoint);
       setRefunds(res.data || []);
 	} catch {
-		alert("Qaytarish so'rovlarini yuklashda xatolik");
+		toast.error("Qaytarish so'rovlarini yuklashda ошибка");
 		} finally {
 			setLoading(false);
 		}
@@ -46,9 +47,9 @@ const RefundsSection = () => {
       await api.put(`/refunds/${selectedRefund.id}/approve`, { refund_method: refundMethod });
       setShowApproveModal(false);
       fetchRefunds();
-      alert("Qaytarish so'rovi tasdiqlandi!");
+      toast.success("Qaytarish so'rovi подтверждено!");
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -58,7 +59,7 @@ const RefundsSection = () => {
       await api.put(`/refunds/${id}/reject`);
       fetchRefunds();
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -67,7 +68,7 @@ const RefundsSection = () => {
       await api.put(`/refunds/${id}/money-returned`);
       fetchRefunds();
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -148,7 +149,7 @@ const RefundsSection = () => {
                   <td>
                     {r.status === 'pending' ? (
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn-primary" style={{ padding: '0.4rem', background: '#10b981', borderColor: '#10b981' }} onClick={() => openApproveModal(r)} title="Tasdiqlash">
+                        <button className="btn-primary" style={{ padding: '0.4rem', background: '#10b981', borderColor: '#10b981' }} onClick={() => openApproveModal(r)} title="Подтвердить">
                           <Check size={16} />
                         </button>
                         <button className="btn-secondary" style={{ padding: '0.4rem', color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }} onClick={() => handleReject(r.id)} title="Rad etish">
@@ -184,7 +185,7 @@ const RefundsSection = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3>Refund Tasdiqlash</h3>
+              <h3>Refund Подтвердить</h3>
               <button onClick={() => setShowApproveModal(false)}><X size={20} /></button>
             </div>
             
@@ -204,7 +205,7 @@ const RefundsSection = () => {
             </div>
 
             <button className="btn-primary w-full mt-4" style={{ padding: '0.9rem', fontSize: '1.05rem', background: '#10b981', borderColor: '#10b981' }} onClick={handleApprove}>
-              <Check size={18} style={{ marginRight: '8px' }} /> Tasdiqlash
+              <Check size={18} style={{ marginRight: '8px' }} /> Подтвердить
             </button>
           </motion.div>
         </div>

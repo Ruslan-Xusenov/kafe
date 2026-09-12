@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, CreditCard, Banknote, Smartphone, BookOpen } from 'lucide-react';
+import { X, Plus, Trash2, CreditCard, Banknote, Smartphone, BookOpen, QrCode } from 'lucide-react';
 
 const PAYMENT_METHODS = [
   { key: 'cash', label: 'Naqd', icon: Banknote, color: '#22c55e' },
   { key: 'card', label: 'Karta', icon: CreditCard, color: '#3b82f6' },
   { key: 'click', label: 'Click/Payme', icon: Smartphone, color: '#8b5cf6' },
   { key: 'nasiya', label: 'Nasiya', icon: BookOpen, color: '#f59e0b' },
+  { key: 'qr', label: 'QR Kod', icon: QrCode, color: '#ec4899' },
 ];
 
 const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], onCreateDebtor }) => {
@@ -70,7 +71,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
     <div className="payment-modal-overlay" onClick={onClose}>
       <div className="payment-modal" onClick={e => e.stopPropagation()}>
         <div className="payment-modal-header">
-          <h2>💳 To'lov</h2>
+          <h2>💳 Оплата</h2>
           <button className="pm-close" onClick={onClose}><X size={22} /></button>
         </div>
 
@@ -95,7 +96,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
         </div>
 
         <div className="pm-divider">
-          <span>yoki aralash to'lov</span>
+          <span>yoki aralash оплата</span>
         </div>
 
         {/* Payment rows */}
@@ -127,14 +128,14 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
             </div>
           ))}
           <button className="pm-add-row" onClick={addPaymentRow}>
-            <Plus size={16} /> Qo'shish
+            <Plus size={16} /> Добавить
           </button>
         </div>
 
         {/* Remaining balance indicator */}
         <div className={`pm-balance ${isValid ? 'valid' : remaining > 0 ? 'short' : 'over'}`}>
           {isValid ? (
-            <span>✅ To'lov to'g'ri</span>
+            <span>✅ Оплата to'g'ri</span>
           ) : remaining > 0 ? (
             <span>⚠️ Yana {remaining.toLocaleString()} so'm kerak</span>
           ) : (
@@ -184,7 +185,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
                   className="pm-input"
                 />
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="pm-confirm-btn" style={{ flex: 1 }} onClick={handleCreateDebtor}>Saqlash</button>
+                  <button className="pm-confirm-btn" style={{ flex: 1 }} onClick={handleCreateDebtor}>Сохранить</button>
                   <button className="pm-cancel-btn" onClick={() => setShowDebtorForm(false)}>Bekor</button>
                 </div>
               </div>
@@ -197,7 +198,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
           onClick={handleConfirm}
           disabled={!isValid || (hasNasiya && !selectedDebtor)}
         >
-          ✅ To'lovni tasdiqlash
+          ✅ Оплатаni tasdiqlash
         </button>
 
         <style>{`
@@ -264,15 +265,15 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
           }
           .pm-select {
             padding: 0.65rem 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0;
-            font-size: 0.9rem; background: #f8fafc; min-width: 130px; outline: none;
+            font-size: 0.9rem; background: #f8fafc; flex: 0 0 140px; outline: none;
           }
           .pm-select:focus { border-color: #3b82f6; }
           .pm-input {
             padding: 0.65rem 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0;
-            font-size: 0.95rem; flex: 1; outline: none; min-width: 0;
+            font-size: 0.95rem; flex: 1 1 auto; outline: none; min-width: 80px;
           }
           .pm-input:focus { border-color: #3b82f6; }
-          .pm-currency { color: #94a3b8; font-size: 0.8rem; white-space: nowrap; }
+          .pm-currency { color: #94a3b8; font-size: 0.8rem; white-space: nowrap; flex: 0 0 auto; }
           .pm-remove {
             background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
             color: #ef4444; cursor: pointer; padding: 6px; display: flex;

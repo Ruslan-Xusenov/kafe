@@ -1,9 +1,11 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import api, { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search, Lock, List, Map } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Plus, Minus, ArrowLeft, Send, CheckCircle2, Coffee, UtensilsCrossed, Check, Clock, X, Search, Lock, List, Map, Camera } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import FloorPlan from '../components/FloorPlan';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { db, generateOfflineId } from '../store/db';
 
 const Waiter = () => {
@@ -21,6 +23,8 @@ const Waiter = () => {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState(null);
   
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +40,10 @@ const Waiter = () => {
   const [debtors, setDebtors] = useState([]);
 
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+
+  // Weight input modal for kg/gr products
+  const [weightModal, setWeightModal] = useState(null); // { product } or null
+  const [weightInput, setWeightInput] = useState('');
 
   useEffect(() => {
     fetchInitialData();
@@ -94,7 +102,7 @@ const Waiter = () => {
       setShowHistory(true);
     } catch (err) {
       console.error(err);
-      alert("Ошибка загрузки истории: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка загрузки истории: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -128,13 +136,44 @@ const Waiter = () => {
     }
   };
 
+  const handleScanBarcode = async (barcode) => {
+    setShowScanner(false);
+    try {
+      const { data: prod } = await api.get(`/catalog/barcode/${barcode}`);
+      
+      // Play beep for 2 seconds
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 2000);
+      } catch (e) { console.error('Audio beep failed', e); }
+
+      setScannedProduct(prod);
+    } catch (err) {
+      toast.error('Продукт с таким штрих-кодом не найден');
+    }
+  };
+
   const addToCart = (product) => {
+    // For weight-based products (kg, gr), show a weight input modal
+    if (['kg', 'gr'].includes(product.unit)) {
+      setWeightModal(product);
+      setWeightInput('');
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(item => item.product_id === product.id);
       if (existing) {
         return prev.map(item => 
           item.product_id === product.id 
-            ? { ...item, quantity: item.quantity + product.quantity_step }
+            ? { ...item, quantity: item.quantity + (product.quantity_step || 1) }
             : item
         );
       }
@@ -149,6 +188,33 @@ const Waiter = () => {
     });
   };
 
+  const handleWeightConfirm = () => {
+    const qty = parseFloat(weightInput);
+    if (!weightModal || isNaN(qty) || qty <= 0) return;
+    const product = weightModal;
+    setCart(prev => {
+      const existing = prev.find(item => item.product_id === product.id);
+      if (existing) {
+        return prev.map(item =>
+          item.product_id === product.id
+            ? { ...item, quantity: item.quantity + qty }
+            : item
+        );
+      }
+      return [...prev, {
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: qty,
+        unit: product.unit,
+        step: product.quantity_step || 0.1
+      }];
+    });
+    setWeightModal(null);
+    setWeightInput('');
+    setIsCartExpanded(true);
+  };
+
   const updateQuantity = (productId, delta) => {
     setCart(prev => {
       return prev.map(item => {
@@ -161,14 +227,26 @@ const Waiter = () => {
     });
   };
 
+  const setExactQuantity = (productId, qty) => {
+    setCart(prev => {
+      return prev.map(item => {
+        if (item.product_id === productId) {
+          return { ...item, quantity: qty };
+        }
+        return item;
+      }).filter(item => item.quantity !== 0);
+    });
+  };
+
   const submitOrder = async () => {
-    if (cart.length === 0) return alert("Корзина пуста!");
-    if (!selectedTable) return alert("Стол не выбран!");
+    const validCart = cart.filter(item => typeof item.quantity === 'number' && item.quantity > 0);
+    if (validCart.length === 0) return toast.success("Корзина пуста или неверные количества!");
+    if (!selectedTable) return toast.success("Стол не выбран!");
     if (isSubmitting) return;
 
     setIsSubmitting(true);
-    const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const items = cart.map(item => ({
+    const totalPrice = validCart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const items = validCart.map(item => ({
       product_id: item.product_id,
       quantity: item.quantity,
       price: item.price,
@@ -180,7 +258,7 @@ const Waiter = () => {
         if (navigator.onLine && existingOrder.id > 0) {
           const res = await api.post(`/orders/${existingOrder.id}/add-items`, { items });
           setExistingOrder(res.data);
-          alert(`Buyurtma #${existingOrder.id} ga qo'shildi!`);
+          toast.success(`Заказ #${existingOrder.id} ga qo'shildi!`);
         } else {
           await db.syncQueue.add({
             type: 'ADD_ITEMS',
@@ -194,7 +272,7 @@ const Waiter = () => {
           const newOrder = { ...existingOrder, items: updatedItems, total_price: existingOrder.total_price + totalPrice };
           setExistingOrder(newOrder);
           if (existingOrder.id < 0) await db.offlineOrders.put(newOrder);
-          alert('Oflyayn navbatga qo\'shildi!');
+          toast.success('Oflyayn navbatga qo\'shildi!');
         }
       } else {
         const payload = {
@@ -214,7 +292,7 @@ const Waiter = () => {
                console.warn("Failed to update table status, but order was created", tableErr);
              }
           }
-          alert('Заказ отправлен на кухню!');
+          toast.success('Заказ отправлен на кухню!');
         } else {
           const fakeId = generateOfflineId();
           const fakeOrder = {
@@ -235,7 +313,7 @@ const Waiter = () => {
           const newTables = tables.map(t => t.id === selectedTable.id ? {...t, status: 'occupied'} : t);
           setTables(newTables);
           await db.posTables.put({...selectedTable, status: 'occupied'});
-          alert('Oflyayn navbatda yaratildi!');
+          toast.success('Oflyayn navbatda yaratildi!');
         }
       }
 
@@ -246,7 +324,7 @@ const Waiter = () => {
       fetchInitialData();
     } catch (err) {
       console.error(err);
-      alert('Ошибка при отправке заказа: ' + (err.response?.data?.error || err.message));
+      toast.error('Ошибка при отправке заказа: ' + (err.response?.data?.error || err.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -256,15 +334,15 @@ const Waiter = () => {
   const handleReprintOrder = async (orderId) => {
     try {
       await api.post(`/orders/${orderId}/print`);
-      alert('Chek printerga yuborildi!');
+      toast.success('Chek printerga yuborildi!');
     } catch (err) {
-      alert('Xatolik: ' + (err.response?.data?.error || err.message));
+      toast.error('Ошибка: ' + (err.response?.data?.error || err.message));
     }
   };
 
   const handleTransferTable = async (e) => {
     e.preventDefault();
-    if (!transferToTableId) return alert("Iltimos, ko'chirish uchun bo'sh stolni tanlang");
+    if (!transferToTableId) return toast.success("Iltimos, ko'chirish uchun bo'sh столni tanlang");
     try {
       await api.post('/orders/transfer', {
         from_table_id: selectedTable.id,
@@ -275,15 +353,15 @@ const Waiter = () => {
       setSelectedTable(null); // Go back to table list
       setExistingOrder(null);
       fetchInitialData();
-      alert("Stol muvaffaqiyatli ko'chirildi!");
+      toast.success("Стол успешно ko'chirildi!");
     } catch (err) {
-      alert(err.response?.data?.error || "Stolni ko'chirishda xatolik yuz berdi");
+      toast.error(err.response?.data?.error || "Столni ko'chirishda ошибка yuz berdi");
     }
   };
 
   const handleUpdateServiceFee = async (e) => {
     e.preventDefault();
-    if (!newFee || isNaN(newFee) || newFee < 0) return alert("Iltimos, to'g'ri foizni kiriting");
+    if (!newFee || isNaN(newFee) || newFee < 0) return toast.success("Iltimos, to'g'ri foizni kiriting");
     try {
       await api.put(`/orders/${existingOrder.id}/service-fee`, {
         percentage: parseFloat(newFee)
@@ -294,7 +372,7 @@ const Waiter = () => {
       const ordRes = await api.get(`/orders/active-by-table/${selectedTable.id}`);
       setExistingOrder(ordRes.data || null);
     } catch (err) {
-      alert("Xizmat haqini o'zgartirishda xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Xizmat haqini o'zgartirishda ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -312,6 +390,20 @@ const Waiter = () => {
       const current = prev[itemGroup.product_id] || { delta: 0, itemGroup };
       if (itemGroup.quantity + current.delta <= 0) return prev;
       return { ...prev, [itemGroup.product_id]: { ...current, delta: current.delta - 1 } };
+    });
+  };
+
+  const setExactStagedQuantity = (itemGroup, qty) => {
+    if (!user) return;
+    setStagedChanges(prev => {
+      if (qty === '') qty = itemGroup.quantity;
+      const delta = qty - itemGroup.quantity;
+      if (delta === 0) {
+        const newChanges = {...prev};
+        delete newChanges[itemGroup.product_id];
+        return newChanges;
+      }
+      return { ...prev, [itemGroup.product_id]: { delta: delta, itemGroup } };
     });
   };
 
@@ -348,9 +440,9 @@ const Waiter = () => {
       } else {
         setExistingOrder(null);
       }
-      alert("O'zgarishlar saqlandi!");
+      toast.success("O'zgarishlar saqlandi!");
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -378,11 +470,11 @@ const Waiter = () => {
           order_id: existingOrder.id,
           amount: nasiyaPayment.amount,
           type: 'debt',
-          description: `Stol yopildi: ${selectedTable.name}`
+          description: `Стол yopildi: ${selectedTable.name}`
         });
       }
 
-      alert("Стол освобожден!");
+      toast.success("Стол освобожден!");
       setPaymentModalOpen(false);
       setSelectedTable(null);
       setIsCartExpanded(false);
@@ -391,7 +483,7 @@ const Waiter = () => {
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.error || "Произошла ошибка";
-      alert(msg);
+      toast.success(msg);
     }
   };
 
@@ -401,7 +493,7 @@ const Waiter = () => {
       setDebtors([...debtors, res.data]);
       return res.data;
     } catch (err) {
-      alert("Qarzdor yaratishda xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Qarzdor yaratishda ошибка: " + (err.response?.data?.error || err.message));
       return null;
     }
   };
@@ -530,7 +622,7 @@ const Waiter = () => {
                 <h2>Стол № {selectedTable.name}</h2>
                 {existingOrder ? (
                   <span className="status-badge-small occupied" style={{ background: 'rgba(249,115,22,0.15)', color: '#f97316', borderColor: 'rgba(249,115,22,0.3)' }}>
-                    Buyurtma #{existingOrder.id}
+                    Заказ #{existingOrder.id}
                   </span>
                 ) : (
                   <span className={`status-badge-small ${selectedTable.status}`}>
@@ -556,7 +648,7 @@ const Waiter = () => {
                 <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
                   <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.95rem' }}>📋 Mavjud buyurtma #{existingOrder.id}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.95rem' }}>📋 Mavjud заказ #{existingOrder.id}</span>
                       
                       <span style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {(existingOrder.total_price || 0).toLocaleString()} сум
@@ -594,20 +686,41 @@ const Waiter = () => {
                         return (
                         <div key={itemGroup.product_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', fontSize: '0.9rem', borderTop: '1px dashed var(--border)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {itemGroup.product_name} × {displayQty} {itemGroup.unit}
+                            {itemGroup.product_name} 
+                            {(!['pors', 'sht'].includes(itemGroup.unit)) ? (
+                              <>
+                                ×
+                                <input 
+                                  type="number" 
+                                  step="any"
+                                  value={displayQty}
+                                  onChange={(e) => {
+                                    const newQty = e.target.value === '' ? '' : parseFloat(e.target.value);
+                                    setExactStagedQuantity(itemGroup, newQty);
+                                  }}
+                                  style={{ width: '60px', textAlign: 'center', border: '1px solid #ddd', borderRadius: '4px', padding: '2px', marginLeft: '2px', background: 'var(--bg-surface)', color: 'var(--text-main)' }}
+                                />
+                                {itemGroup.unit}
+                              </>
+                            ) : (
+                              <span> × {displayQty} {itemGroup.unit}</span>
+                            )}
+                            
                             {staged !== 0 && (
                               <span style={{ color: staged > 0 ? 'green' : 'red', fontWeight: 'bold' }}>
                                 ({staged > 0 ? '+' : ''}{staged})
                               </span>
                             )}
-                            <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
-                              {user?.role === 'admin' && (
-                                <button onClick={() => stageDecrease(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
-                              )}
-                              {isOrderOwnerOrAdmin && (
-                                <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
-                              )}
-                            </div>
+                            {['pors', 'sht'].includes(itemGroup.unit) && (
+                              <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
+                                {user?.role === 'admin' && (
+                                  <button onClick={() => stageDecrease(itemGroup)} style={{ background: 'rgba(255,0,0,0.1)', color: 'red', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>-</button>
+                                )}
+                                {isOrderOwnerOrAdmin && (
+                                  <button onClick={() => stageIncrease(itemGroup)} style={{ background: 'rgba(0,128,0,0.1)', color: 'green', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                                )}
+                              </div>
+                            )}
                           </span>
                           <span style={{ color: 'var(--text-muted)' }}>{(itemGroup.price * displayQty).toLocaleString()} сум</span>
                         </div>
@@ -629,30 +742,37 @@ const Waiter = () => {
               <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <Lock size={48} style={{ margin: '0 auto', marginBottom: '1rem', opacity: 0.3 }} />
                 <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Ruxsat etilmagan</h3>
-                <p>Bu stolga <strong>{existingOrder.waiter_name || 'boshqa ofitsiant'}</strong> xizmat ko'rsatmoqda.</p>
+                <p>Bu столga <strong>{existingOrder.waiter_name || 'boshqa ofitsiant'}</strong> xizmat ko'rsatmoqda.</p>
               </div>
             ) : (
               <>
                 <div className="menu-area" style={{ paddingTop: 0 }}>
                   <div className="search-bar-wrapper" style={{ padding: '0 1rem', marginBottom: '0.5rem', position: 'relative' }}>
                     <Search size={18} style={{ position: 'absolute', left: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
-                <input 
-                  type="text" 
-                  placeholder="Поиск..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.75rem 1rem 0.75rem 2.5rem', 
-                    borderRadius: '12px', 
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-surface)',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    color: 'var(--text-main)'
-                  }}
-                />
-              </div>
+                    <input 
+                      type="text" 
+                      placeholder="Поиск..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75rem 3rem 0.75rem 2.5rem', 
+                        borderRadius: '12px', 
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-surface)',
+                        fontSize: '1rem',
+                        outline: 'none',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                    <button 
+                      className="icon-btn" 
+                      onClick={() => setShowScanner(true)}
+                      style={{ position: 'absolute', right: '1.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', background: 'none', border: 'none' }}
+                    >
+                      <Camera size={20} />
+                    </button>
+                  </div>
 
               {!searchQuery && (
                 <div className="categories-slider no-scrollbar">
@@ -670,7 +790,7 @@ const Waiter = () => {
 
               <div className="menu-grid pb-[300px]">
                 {products.filter(p => {
-                  if (!p.is_active) return false;
+                  if (!p.is_active || p.is_available === false) return false;
                   if (searchQuery) {
                     return p.name.toLowerCase().includes(searchQuery.toLowerCase());
                   }
@@ -686,7 +806,7 @@ const Waiter = () => {
                       className={`menu-card ${cartItem ? 'selected' : ''}`}
                       onClick={() => addToCart(p)}
                     >
-                      <div className="menu-card-img" style={{backgroundImage: `url(${p.image_url.startsWith('/') ? api.defaults.baseURL.replace('/api', '') + p.image_url : p.image_url})`}}>
+                      <div className="menu-card-img" style={{backgroundImage: `url(${p.image_url.startsWith('/') ? api.defaults.baseURL.replace('/api/v1', '') + p.image_url : p.image_url})`}}>
                         {cartItem && (
                           <div className="selected-overlay">
                             <Check size={24} />
@@ -744,27 +864,74 @@ const Waiter = () => {
                     <span>Итого: {cartTotal.toLocaleString()} сум</span>
                   </div>
                   <div className="smart-cart-items no-scrollbar">
-                    {cart.map(item => (
-                      <div key={item.product_id} className="smart-cart-item">
-                        <div className="item-details">
-                          <span className="name">{item.name}</span>
-                          <span className="price">{(item.price * item.quantity).toLocaleString()} сум</span>
+                    {cart.map(item => {
+                      const isWeightBased = ['kg', 'gr'].includes(item.unit);
+                      const displayQty = typeof item.quantity === 'number' ? item.quantity : 0;
+                      return (
+                        <div key={item.product_id} className="smart-cart-item">
+                          <div className="item-details">
+                            <span className="name">{item.name}</span>
+                            <span className="price">{(item.price * displayQty).toLocaleString()} сум</span>
+                          </div>
+                          <div className="item-actions">
+                            {isWeightBased ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <button
+                                  onClick={() => {
+                                    setWeightModal(products.find(p => p.id === item.product_id) || item);
+                                    setWeightInput('');
+                                  }}
+                                  style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '6px', color: 'var(--primary)', padding: '2px 8px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                >
+                                  +
+                                </button>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={displayQty}
+                                  onChange={(e) => setExactQuantity(item.product_id, e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ width: '64px', textAlign: 'center', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 6px', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '0.95rem' }}
+                                />
+                                <small style={{ color: 'var(--text-muted)' }}>{item.unit}</small>
+                                <button
+                                  onClick={() => setCart(prev => prev.filter(i => i.product_id !== item.product_id))}
+                                  style={{ background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: '6px', color: '#ef4444', padding: '2px 7px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                  <Minus size={12} />
+                                </button>
+                              </div>
+                            ) : !['pors', 'sht'].includes(item.unit) ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <input 
+                                  type="number" 
+                                  step="any"
+                                  value={displayQty} 
+                                  onChange={(e) => setExactQuantity(item.product_id, e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ width: '60px', textAlign: 'center', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px', background: 'var(--bg-surface)', color: 'var(--text-main)' }}
+                                />
+                                <small>{item.unit}</small>
+                              </div>
+                            ) : (
+                              <>
+                                <button onClick={() => updateQuantity(item.product_id, -item.step)}>
+                                  <Minus size={14} />
+                                </button>
+                                <span className="qty">{displayQty} <small>{item.unit}</small></span>
+                                <button onClick={() => updateQuantity(item.product_id, item.step)}>
+                                  <Plus size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="item-actions">
-                          <button onClick={() => updateQuantity(item.product_id, -item.step)}>
-                            <Minus size={14} />
-                          </button>
-                          <span className="qty">{item.quantity} <small>{item.unit}</small></span>
-                          <button onClick={() => updateQuantity(item.product_id, item.step)}>
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <button className={`submit-order-btn ${isSubmitting ? 'disabled' : ''}`} disabled={isSubmitting} onClick={submitOrder}>
                     <Send size={18} />
-                    {existingOrder ? `Buyurtma #${existingOrder.id} ga qo'shish` : 'Отправить на кухню'}
+                    {existingOrder ? `Заказ #${existingOrder.id} ga qo'shish` : 'Отправить на кухню'}
                   </button>
                 </motion.div>
               )}
@@ -780,23 +947,23 @@ const Waiter = () => {
         <div className="modal-overlay" style={{ zIndex: 1000 }}>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '400px'}}>
             <div className="modal-header">
-              <h3>Stolni ko'chirish</h3>
+              <h3>Столni ko'chirish</h3>
               <button onClick={() => { setShowTransferModal(false); setTransferToTableId(''); }}><X size={20} /></button>
             </div>
             <form onSubmit={handleTransferTable} style={{ padding: '1rem' }}>
               <div className="input-group">
-                <label>Qaysi stoldan:</label>
+                <label>Qaysi столdan:</label>
                 <input type="text" value={selectedTable.name} disabled />
               </div>
               <div className="input-group" style={{ marginTop: '1rem' }}>
-                <label>Qaysi stolga (Bo'sh stollar):</label>
+                <label>Qaysi столga (Bo'sh столlar):</label>
                 <select 
                   value={transferToTableId} 
                   onChange={e => setTransferToTableId(e.target.value)}
                   required
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd' }}
                 >
-                  <option value="">-- Stol tanlang --</option>
+                  <option value="">-- Стол tanlang --</option>
                   {tables.filter(t => t.status === 'free').map(t => (
                     <option key={t.id} value={t.id}>{t.name} ({t.capacity || 4} kishi)</option>
                   ))}
@@ -804,6 +971,91 @@ const Waiter = () => {
               </div>
               <button type="submit" className="submit-order-btn" style={{ marginTop: '1.5rem', padding: '0.8rem' }}>Ko'chirish</button>
             </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Weight Input Modal for kg/gr products */}
+      {weightModal && (
+        <div className="modal-overlay" style={{ zIndex: 2000 }} onClick={() => setWeightModal(null)}>
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="premium-card modal-content"
+            style={{ maxWidth: '320px', padding: '1.5rem' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem' }}>
+                {weightModal.name}
+              </h3>
+              <button onClick={() => setWeightModal(null)}><X size={20} /></button>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              Miqdorni kiriting ({weightModal.unit}):
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              {[0.5, 1, 1.5, 2].map(v => (
+                <button
+                  key={v}
+                  onClick={() => setWeightInput(String(v))}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    border: weightInput === String(v) ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    borderRadius: '8px',
+                    background: weightInput === String(v) ? 'rgba(249,115,22,0.1)' : 'var(--bg-surface)',
+                    color: weightInput === String(v) ? 'var(--primary)' : 'var(--text-main)',
+                    fontWeight: weightInput === String(v) ? '700' : '400',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  {v} {weightModal.unit}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              autoFocus
+              value={weightInput}
+              onChange={e => setWeightInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleWeightConfirm(); }}
+              placeholder={`Masalan: 0.5 (${weightModal.unit})`}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '10px',
+                border: '2px solid var(--primary)',
+                background: 'var(--bg-surface)',
+                color: 'var(--text-main)',
+                fontSize: '1.1rem',
+                textAlign: 'center',
+                outline: 'none',
+                marginBottom: '0.5rem',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            {weightInput && !isNaN(parseFloat(weightInput)) && parseFloat(weightInput) > 0 && (
+              <p style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: '600', fontSize: '0.95rem', marginBottom: '0.75rem' }}>
+                💰 Narx: {(weightModal.price * parseFloat(weightInput)).toLocaleString()} сум
+              </p>
+            )}
+
+            <button
+              className="submit-order-btn"
+              style={{ padding: '0.75rem', fontSize: '1rem' }}
+              onClick={handleWeightConfirm}
+              disabled={!weightInput || isNaN(parseFloat(weightInput)) || parseFloat(weightInput) <= 0}
+            >
+              Savatga qo'shish
+            </button>
           </motion.div>
         </div>
       )}
@@ -828,7 +1080,7 @@ const Waiter = () => {
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #ddd', marginTop: '0.5rem' }}
                 />
               </div>
-              <button type="submit" className="submit-order-btn" style={{ marginTop: '1.5rem', padding: '0.8rem' }}>Saqlash</button>
+              <button type="submit" className="submit-order-btn" style={{ marginTop: '1.5rem', padding: '0.8rem' }}>Сохранить</button>
             </form>
           </motion.div>
         </div>
@@ -839,12 +1091,12 @@ const Waiter = () => {
         <div className="modal-overlay" style={{ zIndex: 100 }}>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content" style={{maxWidth: '800px', background: '#ffffff', maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
             <div className="modal-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <h3>Mening buyurtmalarim</h3>
+              <h3>Mening заказlarim</h3>
               <button onClick={() => setShowHistory(false)}><X size={20} /></button>
             </div>
             <div className="order-details-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
               {history.length === 0 ? (
-                <div className="text-center text-muted py-8">Hali buyurtmalar yo'q</div>
+                <div className="text-center text-muted py-8">Hali заказlar yo'q</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {history.map(order => {
@@ -863,13 +1115,13 @@ const Waiter = () => {
                       }}>
                         {/* Row 1: Order ID + Date */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--primary)' }}>#{order.id}-buyurtma</span>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--primary)' }}>#{order.id}-заказ</span>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(order.created_at).toLocaleString('ru-RU')}</span>
                         </div>
                         {/* Row 2: Table + Status */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
                           <span style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            🪑 <b>Stol {order.table_name || order.table_id || '-'}</b>
+                            🪑 <b>Стол {order.table_name || order.table_id || '-'}</b>
                           </span>
                           {isActive ? (
                             <span style={{
@@ -1337,6 +1589,43 @@ const Waiter = () => {
           .submit-order-btn { padding: 1rem; font-size: 1rem; }
         }
       `}</style>
+
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleScanBarcode}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {scannedProduct && (
+        <div className="modal-overlay" onClick={() => setScannedProduct(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <h2>Продукт найден!</h2>
+            <p style={{ margin: '1rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+              {scannedProduct.name}
+            </p>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)' }}>
+              Цена: {scannedProduct.price?.toLocaleString()} сум / {scannedProduct.unit}
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button className="btn-secondary" onClick={() => setScannedProduct(null)} style={{ flex: 1 }}>
+                Отмена
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={() => {
+                  addToCart(scannedProduct);
+                  toast.success(`"${scannedProduct.name}" добавлен`, { position: 'bottom-center' });
+                  setScannedProduct(null);
+                }} 
+                style={{ flex: 1 }}
+              >
+                В корзину
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -210,11 +210,11 @@ func (h *CashierHandler) QuickSale(c *gin.Context) {
 	}
 
 	if len(req.Items) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Mahsulotlar ro'yxati bo'sh"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Продуктlar ro'yxati bo'sh"})
 		return
 	}
 	if len(req.Payments) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "To'lov ma'lumotlari kerak"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Оплата ma'lumotlari kerak"})
 		return
 	}
 
@@ -247,12 +247,12 @@ func (h *CashierHandler) QuickSale(c *gin.Context) {
 
 	// Close order immediately (POS = instant delivery)
 	if err := h.orderService.UpdateOrderStatus(order.ID, models.StatusDelivered, id, "cashier"); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Buyurtmani yopishda xatolik: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Заказni yopishda ошибка: " + err.Error()})
 		return
 	}
 
 	// Record sale in shift
-	var cashAmt, cardAmt, clickAmt, nasiyaAmt float64
+	var cashAmt, cardAmt, clickAmt, nasiyaAmt, qrAmt float64
 	for _, p := range req.Payments {
 		switch p.Method {
 		case "cash":
@@ -262,10 +262,12 @@ func (h *CashierHandler) QuickSale(c *gin.Context) {
 		case "click":
 			clickAmt += p.Amount
 		case "nasiya":
+		case "qr":
+			qrAmt += p.Amount
 			nasiyaAmt += p.Amount
 		}
 	}
-	if err := h.cashierRepo.RecordSale(req.ShiftID, order.TotalPrice, cashAmt, cardAmt, clickAmt, nasiyaAmt); err != nil {
+	if err := h.cashierRepo.RecordSale(req.ShiftID, order.TotalPrice, cashAmt, cardAmt, clickAmt, nasiyaAmt, qrAmt); err != nil {
 		// Non-fatal: order is already created and closed. Log the error but don't fail the response.
 		fmt.Printf("⚠️  [CASHIER] RecordSale failed for shift %d, order %d: %v\n", req.ShiftID, order.ID, err)
 	}
@@ -278,7 +280,7 @@ func (h *CashierHandler) QuickSale(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"order":   order,
-		"message": "Savdo muvaffaqiyatli yakunlandi",
+		"message": "Savdo успешно yakunlandi",
 	})
 }
 

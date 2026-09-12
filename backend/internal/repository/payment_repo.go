@@ -18,16 +18,16 @@ func NewPaymentRepository(db *sqlx.DB) *PaymentRepository {
 // AddPayments inserts multiple payment records for an order within a transaction
 func (r *PaymentRepository) AddPayments(orderID int, payments []models.PaymentInput) error {
 	if len(payments) == 0 {
-		return fmt.Errorf("to'lov ma'lumotlari bo'sh")
+		return fmt.Errorf("оплата ma'lumotlari bo'sh")
 	}
 
-	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true, "qr": true}
 	for _, p := range payments {
 		if !validMethods[p.Method] {
-			return fmt.Errorf("noto'g'ri to'lov usuli: %s", p.Method)
+			return fmt.Errorf("noto'g'ri оплата usuli: %s", p.Method)
 		}
 		if p.Amount <= 0 {
-			return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+			return fmt.Errorf("оплата summasi musbat bo'lishi kerak")
 		}
 	}
 
@@ -46,7 +46,7 @@ func (r *PaymentRepository) AddPayments(orderID int, payments []models.PaymentIn
 			VALUES ($1, $2, $3)
 		`, orderID, p.Method, p.Amount)
 		if err != nil {
-			return fmt.Errorf("to'lov saqlashda xatolik: %w", err)
+			return fmt.Errorf("оплата saqlashda ошибка: %w", err)
 		}
 	}
 

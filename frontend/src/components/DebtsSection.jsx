@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { Loader2, Plus, ArrowRight, Save, History, ChevronDown, ChevronUp, User, Phone, CheckCircle, X } from 'lucide-react';
@@ -32,7 +33,7 @@ const DebtsSection = () => {
       setDebtors(debtsRes.data || []);
       setSummary(sumRes.data || { total_debt: 0, debtor_count: 0 });
 	} catch {
-		alert("Qarzdorlarni yuklashda xatolik");
+		toast.error("Qarzdorlarni yuklashda ошибка");
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ const DebtsSection = () => {
       const res = await api.get(`/debts/debtors/${id}/history`);
       setHistory(res.data.history || []);
 	} catch {
-		alert("Tarixni yuklashda xatolik");
+		toast.error("Tarixni yuklashda ошибка");
     } finally {
       setHistoryLoading(false);
     }
@@ -66,10 +67,10 @@ const DebtsSection = () => {
   const handlePay = async (e) => {
     e.preventDefault();
     if (!payAmount || isNaN(parseFloat(payAmount)) || parseFloat(payAmount) <= 0) {
-      return alert("To'g'ri summa kiriting");
+      return toast.success("To'g'ri summa kiriting");
     }
     if (parseFloat(payAmount) > selectedDebtor.total_debt) {
-      return alert("Summa qarzdan ko'p bo'lishi mumkin emas");
+      return toast.success("Summa qarzdan ko'p bo'lishi mumkin emas");
     }
 
     try {
@@ -80,9 +81,9 @@ const DebtsSection = () => {
       });
       setShowPayModal(false);
       fetchDebts();
-      alert("To'lov muvaffaqiyatli qabul qilindi!");
+      toast.success("Оплата успешно принято!");
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -120,7 +121,7 @@ const DebtsSection = () => {
           <table className="admin-table w-full">
             <thead>
               <tr>
-                <th>Mijoz Ismi</th>
+                <th>Клиент Ismi</th>
                 <th>Telefon</th>
                 <th>Qolgan Qarz</th>
                 <th>Oxirgi o'zgarish</th>
@@ -176,7 +177,7 @@ const DebtsSection = () => {
                                         {h.order_id && <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '0.5rem' }}>(Chek #{h.order_id})</span>}
                                       </div>
                                       <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                        {new Date(h.created_at).toLocaleString('ru-RU')} • Xodim: {h.created_by_name || 'Tizim'}
+                                        {new Date(h.created_at).toLocaleString('ru-RU')} • Сотрудник: {h.created_by_name || 'Tizim'}
                                       </div>
                                       {h.description && <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '4px' }}>Izoh: {h.description}</div>}
                                     </div>
@@ -214,7 +215,7 @@ const DebtsSection = () => {
             </div>
             <form onSubmit={handlePay}>
               <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #fecaca' }}>
-                <div style={{ fontSize: '0.9rem', color: '#991b1b' }}>Mijoz: {selectedDebtor.name}</div>
+                <div style={{ fontSize: '0.9rem', color: '#991b1b' }}>Клиент: {selectedDebtor.name}</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#b91c1c' }}>Qolgan qarz: {selectedDebtor.total_debt?.toLocaleString()} so'm</div>
               </div>
 
@@ -231,11 +232,12 @@ const DebtsSection = () => {
               </div>
 
               <div className="input-group">
-                <label>To'lov usuli</label>
+                <label>Оплата usuli</label>
                 <select value={payMethod} onChange={e => setPayMethod(e.target.value)}>
                   <option value="cash">Naqd</option>
                   <option value="card">Karta</option>
                   <option value="click">Click/Payme</option>
+                  <option value="qr">QR Kod</option>
                 </select>
               </div>
 
@@ -245,12 +247,12 @@ const DebtsSection = () => {
                   type="text" 
                   value={payDesc} 
                   onChange={e => setPayDesc(e.target.value)} 
-                  placeholder="Masalan: qisman to'lov" 
+                  placeholder="Masalan: qisman оплата" 
                 />
               </div>
 
               <button type="submit" className="btn-primary w-full mt-4" style={{ padding: '0.9rem', fontSize: '1.05rem' }}>
-                <CheckCircle size={18} /> Tasdiqlash
+                <CheckCircle size={18} /> Подтвердить
               </button>
             </form>
           </motion.div>

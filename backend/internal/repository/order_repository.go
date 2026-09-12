@@ -96,13 +96,13 @@ func (r *OrderRepository) CreateWithPayments(order *models.Order, payments []mod
 
 func (r *OrderRepository) create(order *models.Order, payments []models.PaymentInput) error {
 	if len(payments) > 0 {
-		validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+		validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true, "qr": true}
 		for _, payment := range payments {
 			if !validMethods[payment.Method] {
-				return fmt.Errorf("noto'g'ri to'lov usuli: %s", payment.Method)
+				return fmt.Errorf("noto'g'ri оплата usuli: %s", payment.Method)
 			}
 			if payment.Amount <= 0 {
-				return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+				return fmt.Errorf("оплата summasi musbat bo'lishi kerak")
 			}
 		}
 	}
@@ -140,12 +140,19 @@ func (r *OrderRepository) create(order *models.Order, payments []models.PaymentI
 	}
 
 	// Insert Order Items
-	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, unit, comment) 
-                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`
+	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, unit, comment, cost_price) 
+                  VALUES ($1, $2, $3, $4, $5, $6,
+					COALESCE((
+						SELECT SUM(pi.quantity * i.cost_price)
+						FROM product_ingredients pi
+						JOIN ingredients i ON pi.ingredient_id = i.id
+						WHERE pi.product_id = $2
+					), 0)
+				  ) RETURNING id, created_at, cost_price`
 	for i := range order.Items {
 		item := &order.Items[i]
 		err = tx.QueryRow(itemQuery, order.ID, item.ProductID, item.Quantity, item.Price, item.Unit, item.Comment).
-			Scan(&item.ID, &item.CreatedAt)
+			Scan(&item.ID, &item.CreatedAt, &item.CostPrice)
 		if err != nil {
 			return fmt.Errorf("failed to insert order item: %w", err)
 		}
@@ -164,11 +171,11 @@ func (r *OrderRepository) create(order *models.Order, payments []models.PaymentI
 				INSERT INTO order_payments (order_id, method, amount)
 				VALUES ($1, $2, $3)
 			`, order.ID, payment.Method, payment.Amount); err != nil {
-				return fmt.Errorf("to'lov saqlashda xatolik: %w", err)
+				return fmt.Errorf("оплата saqlashda ошибка: %w", err)
 			}
 		}
 		if _, err := tx.Exec(`UPDATE orders SET payment_method = $1, updated_at = NOW() WHERE id = $2`, primaryMethod, order.ID); err != nil {
-			return fmt.Errorf("to'lov usulini saqlashda xatolik: %w", err)
+			return fmt.Errorf("оплата usulini saqlashda ошибка: %w", err)
 		}
 	}
 
@@ -207,7 +214,7 @@ func (r *OrderRepository) GetByID(id int) (*models.Order, error) {
 	// Get Items
 	var items []models.OrderItem
 	itemQuery := `
-		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+		SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit, 
 			   COALESCE(oi.comment, '') as comment, oi.created_at,
 			   COALESCE(p.name, 'Noma''lum') as product_name,
 			   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -253,7 +260,7 @@ func (r *OrderRepository) GetByCustomerID(customerID int) ([]models.Order, error
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+			SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name,
 				   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -299,7 +306,7 @@ func (r *OrderRepository) GetAll() ([]models.Order, error) {
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+			SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name,
 				   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -343,7 +350,7 @@ func (r *OrderRepository) GetByStatus(status models.OrderStatus) ([]models.Order
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
+			SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit,
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name,
 				   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -563,7 +570,7 @@ func (r *OrderRepository) GetWaiterHistory() ([]models.Order, error) {
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+			SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit, 
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name,
 				   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -609,7 +616,7 @@ func (r *OrderRepository) GetActiveByWaiterID(waiterID int) ([]models.Order, err
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
+			SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit,
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name,
 				   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -654,7 +661,7 @@ func (r *OrderRepository) GetHistoryByWaiterID(waiterID int) ([]models.Order, er
 	for i := range orders {
 		var items []models.OrderItem
 		itemQuery := `
-			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit,
+			SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit,
 				   COALESCE(oi.comment, '') as comment, oi.created_at,
 				   COALESCE(p.name, 'Noma''lum') as product_name,
 				   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -683,7 +690,7 @@ func (r *OrderRepository) CancelItem(orderID, itemID int, cancelQty float64) err
 		Quantity  float64 `db:"quantity"`
 	}
 	err = tx.Get(&item, `
-		SELECT oi.product_id, oi.quantity
+		SELECT COALESCE(oi.product_id, 0) as product_id, oi.quantity
 		FROM order_items oi
 		JOIN orders o ON o.id = oi.order_id
 		WHERE oi.id = $1 AND oi.order_id = $2
@@ -775,7 +782,7 @@ func (r *OrderRepository) FindActiveOrderByTableID(tableID int) (*models.Order, 
 	// Fetch items
 	var items []models.OrderItem
 	itemQuery := `
-		SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.unit, 
+		SELECT oi.id, oi.order_id, COALESCE(oi.product_id, 0) as product_id, oi.quantity, oi.price, oi.unit, 
 			   COALESCE(oi.comment, '') as comment, oi.created_at,
 			   COALESCE(p.name, 'Noma''lum') as product_name,
 			   COALESCE(c.printer_target, 'ALL') as printer_target
@@ -799,12 +806,19 @@ func (r *OrderRepository) AddItemsToOrder(orderID int, items []models.OrderItem)
 	defer tx.Rollback()
 
 	// Insert new items
-	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, unit, comment) 
-                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`
+	itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, price, unit, comment, cost_price) 
+                  VALUES ($1, $2, $3, $4, $5, $6,
+					COALESCE((
+						SELECT SUM(pi.quantity * i.cost_price)
+						FROM product_ingredients pi
+						JOIN ingredients i ON pi.ingredient_id = i.id
+						WHERE pi.product_id = $2
+					), 0)
+				  ) RETURNING id, created_at, cost_price`
 	for i := range items {
 		item := &items[i]
 		err = tx.QueryRow(itemQuery, orderID, item.ProductID, item.Quantity, item.Price, item.Unit, item.Comment).
-			Scan(&item.ID, &item.CreatedAt)
+			Scan(&item.ID, &item.CreatedAt, &item.CostPrice)
 		if err != nil {
 			return fmt.Errorf("failed to insert order item: %w", err)
 		}

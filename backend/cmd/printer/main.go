@@ -26,7 +26,7 @@ var (
 var printerKey = os.Getenv("PRINTER_SECRET")
 
 func init() {
-	serverAddr = os.Getenv("API_HOST")
+	serverAddr = "jigulii.securehub.uz"
 	if serverAddr == "" {
 		serverAddr = "localhost:8080"
 	}
@@ -37,7 +37,7 @@ func init() {
 	}
 
 	if printerKey == "" {
-		printerKey = os.Getenv("PRINTER_KEY")
+		printerKey = "KAFE_PRINTER_SECRET_2026"
 	}
 
 	// Parse NETWORK_PRINTERS from env (comma separated, e.g. "192.168.1.10:9100,192.168.1.11:9100")
@@ -96,7 +96,7 @@ func main() {
 		if os.Getenv("USE_SSL") == "false" {
 			wsScheme = "ws"
 		}
-		u := url.URL{Scheme: wsScheme, Host: serverAddr, Path: "/api/ws", RawQuery: "printer_key=" + printerKey}
+		u := url.URL{Scheme: wsScheme, Host: serverAddr, Path: "/api/v1/ws", RawQuery: "printer_key=" + printerKey}
 		c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
 			log.Printf("❌ Ulanishda xatolik: %v. Qayta urinish (5s)...\n", err)
@@ -199,7 +199,7 @@ func printCancelItem(orderID int, item map[string]interface{}, waiterName string
 	targets = append(targets, networkPrinters...)
 
 	for _, target := range targets {
-		if targetVal == "ALL" || targetVal == target {
+		if targetVal == "ALL" || targetVal == target || target == "USB" {
 			generateAndPrintCancelReceipt(target, orderID, item, waiterName, tableNumber)
 		}
 	}
@@ -280,8 +280,8 @@ func printOrder(order map[string]interface{}, onlyUSB bool, eventType string) {
 				targetVal = "ALL"
 			}
 			
-			// Always print all items if it's a manual reprint (onlyUSB)
-			if targetVal == "ALL" || targetVal == target || onlyUSB {
+			// Always print all items on USB (master printer) or if it's a manual reprint
+			if targetVal == "ALL" || targetVal == target || onlyUSB || target == "USB" {
 				itemsForTarget = append(itemsForTarget, item)
 			}
 		}
@@ -314,9 +314,9 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	if isFinal {
 		f.Write(ALIGN_CENTER)
 		f.Write(FONT_BIG)
-		cafeFullName := os.Getenv("CAFE_FULL_NAME")
+		cafeFullName := "Jiguli 85"
 		if cafeFullName == "" {
-			cafeFullName = os.Getenv("CAFE_NAME")
+			cafeFullName = "Jiguli 85"
 		}
 		if cafeFullName == "" {
 			cafeFullName = "Kafe"
@@ -359,9 +359,9 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 	f.Write(toCP866(fmt.Sprintf("Стол: %s\n", tableNumber)))
 
 	// Waiter name
-	waiterName := os.Getenv("CAFE_FULL_NAME")
+	waiterName := "Jiguli 85"
 	if waiterName == "" {
-		waiterName = os.Getenv("CAFE_NAME")
+		waiterName = "Jiguli 85"
 	}
 	if waiterName == "" {
 		waiterName = "Kafe"
@@ -381,9 +381,9 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 
 	// Items Table
 	if isFinal {
-		f.Write(toCP866("Наименование           Кол-во Цена      Итого\n"))
+		f.Write(toCP866("Наименование               Кол. Цена    Сумма\n"))
 	} else {
-		f.Write(toCP866("Наименование           Кол-во\n"))
+		f.Write(toCP866("Наименование               Кол-во\n"))
 	}
 	f.Write(toCP866("------------------------------------------------\n"))
 	
@@ -397,22 +397,22 @@ func generateAndPrintReceipt(target string, id int, order map[string]interface{}
 		
 		targetTotal += price * qty
 
-		if len([]rune(name)) > 22 {
-			name = string([]rune(name)[:19]) + "..."
+		if len([]rune(name)) > 26 {
+			name = string([]rune(name)[:23]) + "..."
 		}
 		
 		nameRunes := []rune(name)
 		paddedName := string(nameRunes)
-		for i := len(nameRunes); i < 22; i++ {
+		for i := len(nameRunes); i < 26; i++ {
 			paddedName += " "
 		}
 		
 		if isFinal {
-			line := fmt.Sprintf("%s %-6.1f %-10.0f %-10.0f\n", 
+			line := fmt.Sprintf("%s %-4.1f %-7.0f %-8.0f\n", 
 				paddedName, qty, price, price*qty)
 			f.Write(toCP866(line))
 		} else {
-			line := fmt.Sprintf("%s %-6.1f\n", paddedName, qty)
+			line := fmt.Sprintf("%s %-4.1f\n", paddedName, qty)
 			// Double height and width for kitchen receipt items to make them clear
 			f.Write(FONT_DOUBLE_H)
 			f.Write(toCP866(line))
@@ -550,18 +550,20 @@ func printBulkEditItems(orderID int, addedItems, cancelledItems []interface{}, w
 
 		for _, it := range addedItems {
 			item := it.(map[string]interface{})
-			t, _ := item["printer_target"].(string)
-			if t == "" { t = "ALL" }
-			if t == "ALL" || t == target {
+			targetVal, _ := item["printer_target"].(string)
+			if targetVal == "" { targetVal = "ALL" }
+			// USB printer always gets everything
+			if targetVal == "ALL" || targetVal == target || target == "USB" {
 				addedForTarget = append(addedForTarget, item)
 			}
 		}
 
 		for _, it := range cancelledItems {
 			item := it.(map[string]interface{})
-			t, _ := item["printer_target"].(string)
-			if t == "" { t = "ALL" }
-			if t == "ALL" || t == target {
+			targetVal, _ := item["printer_target"].(string)
+			if targetVal == "" { targetVal = "ALL" }
+			// USB printer always gets everything
+			if targetVal == "ALL" || targetVal == target || target == "USB" {
 				cancelledForTarget = append(cancelledForTarget, item)
 			}
 		}
@@ -663,6 +665,7 @@ func printShiftReport(m map[string]interface{}) {
 	card := safeFloat(m["card"])
 	click := safeFloat(m["click"])
 	nasiya := safeFloat(m["nasiya"])
+	qr := safeFloat(m["qr"])
 
 	f.Write(ESC_INIT)
 	f.Write(DISABLE_CHINESE)
@@ -694,6 +697,7 @@ func printShiftReport(m map[string]interface{}) {
 	f.Write(toCP866(fmt.Sprintf("ТЕРМИНАЛ:       %.0f sum\n", card)))
 	f.Write(toCP866(fmt.Sprintf("CLICK/PAYME:    %.0f sum\n", click)))
 	f.Write(toCP866(fmt.Sprintf("В ДОЛГ:         %.0f sum\n", nasiya)))
+	f.Write(toCP866(fmt.Sprintf("QR KOD:         %.0f sum\n", qr)))
 	
 	f.Write(toCP866("------------------------------------------------\n\n\n\n\n"))
 	f.Write(PAPER_CUT)

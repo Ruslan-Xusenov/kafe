@@ -1,10 +1,12 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/username/kafe-backend/internal/models"
@@ -50,7 +52,7 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 	if order.IdempotencyKey != nil && *order.IdempotencyKey != "" {
 		existing, err := s.orderRepo.FindByIdempotencyKey(*order.IdempotencyKey)
 		if err != nil {
-			return fmt.Errorf("idempotency tekshiruvida xatolik: %w", err)
+			return fmt.Errorf("idempotency tekshiruvida ошибка: %w", err)
 		}
 		if existing != nil {
 			// Order already exists for this key — return the existing order silently.
@@ -132,6 +134,16 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 	} // end if order.TableID == nil
 
 	var total float64
+	if order.TableID != nil {
+		activeOrder, err := s.orderRepo.FindActiveOrderByTableID(*order.TableID)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if activeOrder != nil {
+			return fmt.Errorf("на этом столе уже есть активный заказ (Заказ #%d). Пожалуйста, обновите страницу.", activeOrder.ID)
+		}
+	}
+
 	for i := range order.Items {
 		item := &order.Items[i]
 		prod, err := s.productRepo.GetByID(item.ProductID)
@@ -144,7 +156,7 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 
 		// Block orders for inactive products
 		if !prod.IsActive && item.ProductID != containerID {
-			return fmt.Errorf("mahsulot faol emas va buyurtma qilib bo'lmaydi: %s (ID: %d)", prod.Name, item.ProductID)
+			return fmt.Errorf("mahsulot faol emas va заказ qilib bo'lmaydi: %s (ID: %d)", prod.Name, item.ProductID)
 		}
 
 		// Validate quantity against product rules
@@ -181,19 +193,28 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 	order.CreatedAt = time.Now()
 
 	if len(payments) > 0 {
-		validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+		validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true, "qr": true}
 		var paymentTotal float64
 		for _, payment := range payments {
 			if !validMethods[payment.Method] {
-				return fmt.Errorf("noto'g'ri to'lov usuli: %s", payment.Method)
+				return fmt.Errorf("noto'g'ri оплата usuli: %s", payment.Method)
 			}
 			if payment.Amount <= 0 {
-				return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+				return fmt.Errorf("оплата summasi musbat bo'lishi kerak")
 			}
 			paymentTotal += payment.Amount
 		}
 		if math.Abs(paymentTotal-order.TotalPrice) > 0.01 {
-			return fmt.Errorf("to'lov summasi order summasiga teng bo'lishi kerak: %.2f / %.2f", paymentTotal, order.TotalPrice)
+			return fmt.Errorf("оплата summasi order summasiga teng bo'lishi kerak: %.2f / %.2f", paymentTotal, order.TotalPrice)
+		}
+	}
+
+	// Track available products before order to detect out-of-stock changes
+	productsBefore, _ := s.productRepo.GetAll()
+	availableBefore := make(map[int]bool)
+	for _, p := range productsBefore {
+		if p.IsAvailable {
+			availableBefore[p.ID] = true
 		}
 	}
 
@@ -205,6 +226,19 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 	}
 	if createErr != nil {
 		return createErr
+	}
+
+	// Detect newly out-of-stock products and notify
+	productsAfter, _ := s.productRepo.GetAll()
+	var newlyUnavailable []models.Product
+	for _, p := range productsAfter {
+		if !p.IsAvailable && availableBefore[p.ID] {
+			newlyUnavailable = append(newlyUnavailable, p)
+		}
+	}
+
+	if len(newlyUnavailable) > 0 {
+		go s.notifyOutofStock(newlyUnavailable)
 	}
 
 	// Update table status to occupied if it's a table order
@@ -251,13 +285,19 @@ func (s *OrderService) createOrder(order *models.Order, payments []models.Paymen
 	}
 	s.botService.SendNewOrderNotification(order, &firstImageUrl)
 
+	// Re-fetch the order to populate join fields like WaiterName and TableName
+	if fullOrder, err := s.orderRepo.GetByID(order.ID); err == nil && fullOrder != nil {
+		order = fullOrder
+	}
+
 	// Real-time: Notify Cooks and Admin (Printer is notified separately via notifyAPI to avoid double printing for bot orders)
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": order})
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": order})
 
 	// Always print orders created via API (both cafe and delivery)
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": order})
-	go s.printerService.PrintOrder(order)
+	// NOTE: Direct TCP printing removed — server cannot reach local printer (192.168.x.x).
+	// All printing goes through the printer bridge (.exe) via WebSocket.
 
 	return nil
 }
@@ -343,7 +383,7 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 		return nil
 	}
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
-		return fmt.Errorf("yopilgan buyurtma statusini o'zgartirib bo'lmaydi")
+		return fmt.Errorf("yopilgan заказ statusini o'zgartirib bo'lmaydi")
 	}
 
 	allowed := false
@@ -364,7 +404,7 @@ func (s *OrderService) UpdateOrderStatus(orderID int, status models.OrderStatus,
 
 	if role == "waiter" {
 		if order.WaiterID != nil && *order.WaiterID != userID {
-			return fmt.Errorf("Siz faqat o'zingizning buyurtmalaringizni o'zgartira olasiz")
+			return fmt.Errorf("Siz faqat o'zingizning заказlaringizni o'zgartira olasiz")
 		}
 	}
 
@@ -470,12 +510,12 @@ func (s *OrderService) SubmitRating(orderID int, userID int, role string, rating
 		return fmt.Errorf("order %d not found", orderID)
 	}
 	if order.Status != models.StatusDelivered {
-		return fmt.Errorf("faqat yetkazilgan buyurtmani baholash mumkin")
+		return fmt.Errorf("faqat yetkazilgan заказni baholash mumkin")
 	}
 
 	isOwner := order.CustomerID != nil && *order.CustomerID == userID
 	if role != string(models.RoleAdmin) && !isOwner {
-		return fmt.Errorf("bu buyurtmaga rating berish huquqi yo'q")
+		return fmt.Errorf("bu заказga rating berish huquqi yo'q")
 	}
 
 	for i := range ratings {
@@ -487,7 +527,7 @@ func (s *OrderService) SubmitRating(orderID int, userID int, role string, rating
 			return fmt.Errorf("izoh 1000 belgidan oshmasligi kerak")
 		}
 		if role != string(models.RoleAdmin) && !ratingMatchesOrder(order, rating) {
-			return fmt.Errorf("rating faqat buyurtmaga biriktirilgan xodim uchun berilishi mumkin")
+			return fmt.Errorf("rating faqat заказga biriktirilgan xodim uchun berilishi mumkin")
 		}
 		ratings[i].OrderID = orderID
 		if err := s.orderRepo.AddStaffRating(rating); err != nil {
@@ -512,7 +552,7 @@ func (s *OrderService) GetRatingsByOrderID(orderID int, userID int, role string)
 
 	isOwner := order.CustomerID != nil && *order.CustomerID == userID
 	if role != string(models.RoleAdmin) && !isOwner && !staffAssignedToOrder(order, userID, role) {
-		return nil, fmt.Errorf("bu buyurtma ratinglarini ko'rish huquqi yo'q")
+		return nil, fmt.Errorf("bu заказ ratinglarini ko'rish huquqi yo'q")
 	}
 	return s.orderRepo.GetRatingsByOrderID(orderID)
 }
@@ -545,21 +585,16 @@ func (s *OrderService) TestPrinter() error {
 	testOrder := &models.Order{
 		ID:         9999,
 		TotalPrice: 50000,
-		Address:    "ТЕСТОВЫЙ АДРЕС",
+		Address:    "TEST MANZIL",
 		Phone:      "998901234567",
 		Items: []models.OrderItem{
-			{ProductName: "ТЕСТ БЛЮДО 1", Quantity: 1, Price: 25000},
-			{ProductName: "ТЕСТ БЛЮДО 2", Quantity: 1, Price: 25000},
+			{ProductName: "Test mahsulot 1", Quantity: 1, Price: 25000},
+			{ProductName: "Test mahsulot 2", Quantity: 1, Price: 25000},
 		},
 	}
 
-	// Broadcast to roles
-	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "new_order", "order": testOrder})
-	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": testOrder})
+	// Send via WebSocket to printer bridge only (server can't reach local printer directly)
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "order": testOrder})
-
-	// Direct Print
-	go s.printerService.PrintOrder(testOrder)
 
 	return nil
 }
@@ -570,11 +605,8 @@ func (s *OrderService) ReprintOrder(orderID int) error {
 		return err
 	}
 
-	// Notify WS bridge just in case they use it instead of TCP
+	// Send via WebSocket to printer bridge (server can't reach local printer directly)
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "reprint_order", "order": order})
-
-	// Direct TCP print
-	go s.printerService.PrintOrder(order)
 	return nil
 }
 
@@ -607,11 +639,15 @@ func (s *OrderService) SetServiceFee(orderID int, percentage float64) (*models.O
 
 	// Refresh order data
 	order, _ = s.orderRepo.GetByID(orderID)
+
+	// Send updated order to printer bridge via WebSocket
+	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "reprint_order", "order": order})
+
 	return order, nil
 }
 
 func (s *OrderService) SetPaymentMethod(orderID int, method string) error {
-	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true, "qr": true}
 	if !validMethods[method] {
 		return fmt.Errorf("недопустимый тип оплаты: %s", method)
 	}
@@ -637,7 +673,7 @@ func (s *OrderService) CancelOrderItem(orderID, itemID int, cancelQty float64) e
 		return fmt.Errorf("order not found")
 	}
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
-		return fmt.Errorf("yopilgan buyurtmadan mahsulotni bekor qilib bo'lmaydi")
+		return fmt.Errorf("yopilgan заказdan mahsulotni bekor qilib bo'lmaydi")
 	}
 
 	var cancelledItem *models.OrderItem
@@ -688,7 +724,7 @@ func (s *OrderService) CloseTable(tableID int, paymentMethod string, userID int,
 
 func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.PaymentInput, userID int, role string) error {
 	// Validate payment methods
-	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true}
+	validMethods := map[string]bool{"cash": true, "card": true, "click": true, "nasiya": true, "qr": true}
 	for _, p := range payments {
 		if !validMethods[p.Method] {
 			return fmt.Errorf("недопустимый тип оплаты: %s", p.Method)
@@ -718,13 +754,46 @@ func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.Pay
 	for _, o := range tableOrders {
 		full, err := s.orderRepo.GetByID(o.ID)
 		if err != nil || full == nil {
-			return fmt.Errorf("order %d summasini olishda xatolik", o.ID)
+			return fmt.Errorf("order %d summasini olishda ошибка", o.ID)
 		}
 		grandTotal += full.TotalPrice
 	}
 
+	if grandTotal == 0 {
+		for _, o := range tableOrders {
+			if err := s.orderRepo.UpdateStatus(o.ID, models.StatusDelivered, nil); err != nil {
+				return fmt.Errorf("failed to close empty order %d: %w", o.ID, err)
+			}
+		}
+		if err := s.tableRepo.UpdateStatus(tableID, "free"); err != nil {
+			return err
+		}
+		firstOrder := tableOrders[0]
+		populated, _ := s.orderRepo.GetByID(firstOrder.ID)
+		if populated == nil {
+			populated = firstOrder
+		}
+		combinedOrder := &models.Order{
+			ID:                populated.ID,
+			TableID:           populated.TableID,
+			TableName:         populated.TableName,
+			WaiterID:          populated.WaiterID,
+			WaiterName:        populated.WaiterName,
+			TotalPrice:        0,
+			ServiceFee:        0,
+			ServicePercentage: 0,
+			Items:             []models.OrderItem{},
+			CreatedAt:         populated.CreatedAt,
+			UpdatedAt:         populated.UpdatedAt,
+			Status:            models.StatusDelivered,
+			PaymentMethod:     "cash",
+		}
+		s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": combinedOrder})
+		return nil
+	}
+
 	if len(payments) == 0 {
-		return fmt.Errorf("stolni yopishdan oldin to'lov usulini tanlang")
+		return fmt.Errorf("столni yopishdan oldin оплата usulini tanlang")
 	}
 	if len(payments) == 1 && payments[0].Amount == 0 {
 		// Backward compatibility for CloseTable(paymentMethod), which did not
@@ -734,12 +803,12 @@ func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.Pay
 	var paymentTotal float64
 	for _, payment := range payments {
 		if payment.Amount <= 0 {
-			return fmt.Errorf("to'lov summasi musbat bo'lishi kerak")
+			return fmt.Errorf("оплата summasi musbat bo'lishi kerak")
 		}
 		paymentTotal += payment.Amount
 	}
 	if math.Abs(paymentTotal-grandTotal) > 0.01 {
-		return fmt.Errorf("to'lov summasi order summasiga teng bo'lishi kerak: %.2f / %.2f", paymentTotal, grandTotal)
+		return fmt.Errorf("оплата summasi order summasiga teng bo'lishi kerak: %.2f / %.2f", paymentTotal, grandTotal)
 	}
 
 	// Determine primary payment method
@@ -785,7 +854,7 @@ func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.Pay
 						VALUES ($1, $2, $3)
 						ON CONFLICT DO NOTHING
 					`, o.ID, p.Method, proRataAmount); err != nil {
-					return fmt.Errorf("to'lovni saqlashda xatolik (order %d): %w", o.ID, err)
+					return fmt.Errorf("оплатаni saqlashda ошибка (order %d): %w", o.ID, err)
 				}
 			}
 		}
@@ -810,7 +879,7 @@ func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.Pay
 	for _, o := range tableOrders {
 		full, err := s.orderRepo.GetByID(o.ID)
 		if err != nil || full == nil {
-			return fmt.Errorf("order %d ma'lumotlarini olishda xatolik", o.ID)
+			return fmt.Errorf("order %d ma'lumotlarini olishda ошибка", o.ID)
 		}
 		allItems = append(allItems, full.Items...)
 		grandTotal += full.TotalPrice
@@ -830,12 +899,13 @@ func (s *OrderService) CloseTableWithPayments(tableID int, payments []models.Pay
 		ServicePercentage: servicePercentage,
 		Items:             allItems,
 		CreatedAt:         populated.CreatedAt,
+		UpdatedAt:         populated.UpdatedAt,
 		Status:            models.StatusDelivered,
 		PaymentMethod:     primaryMethod,
 	}
 
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "close_order", "order": combinedOrder})
-	go s.printerService.PrintOrder(combinedOrder)
+	// NOTE: Direct TCP removed — server cannot reach local printer. Bridge handles printing via WebSocket.
 
 	return nil
 }
@@ -846,11 +916,11 @@ func (s *OrderService) GetActiveOrderByTable(tableID int) (*models.Order, error)
 func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.OrderItem, userID int, role string) (*models.Order, error) {
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil || order == nil {
-		return nil, fmt.Errorf("buyurtma topilmadi (ID: %d)", orderID)
+		return nil, fmt.Errorf("заказ topilmadi (ID: %d)", orderID)
 	}
 
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
-		return nil, fmt.Errorf("bu buyurtma allaqachon yopilgan")
+		return nil, fmt.Errorf("bu заказ allaqachon yopilgan")
 	}
 
 	// Make sure table is marked as occupied
@@ -893,7 +963,7 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 
 	updatedOrder, err := s.orderRepo.GetByID(orderID)
 	if err != nil || updatedOrder == nil {
-		return nil, fmt.Errorf("yangilangan buyurtmani olishda xatolik")
+		return nil, fmt.Errorf("yangilangan заказni olishda ошибка")
 	}
 
 	for i := range items {
@@ -919,7 +989,7 @@ func (s *OrderService) AddItemsToExistingOrder(orderID int, items []models.Order
 	s.wsService.BroadcastToRole("cook", map[string]interface{}{"type": "new_order", "order": partialOrder})
 
 	s.wsService.BroadcastToRole("printer", map[string]interface{}{"type": "new_order", "is_dop": true, "order": partialOrder})
-	go s.printerService.PrintOrder(partialOrder)
+	// NOTE: Direct TCP removed — server cannot reach local printer. Bridge handles printing via WebSocket.
 
 	dummyOrder := map[string]interface{}{
 		"id":    -9999,
@@ -936,7 +1006,7 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 		return fmt.Errorf("order not found")
 	}
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
-		return fmt.Errorf("yopilgan buyurtmadan mahsulotni bekor qilib bo'lmaydi")
+		return fmt.Errorf("yopilgan заказdan mahsulotni bekor qilib bo'lmaydi")
 	}
 
 	if cancelQty <= 0 {
@@ -991,6 +1061,24 @@ func (s *OrderService) CancelProductFromOrder(orderID, productID int, cancelQty 
 	}
 	s.wsService.BroadcastToRole("printer", cancelPayload)
 
+	// 5. Check if order is completely empty now, and auto-close it
+	updatedOrder, err := s.orderRepo.GetByID(orderID)
+	if err == nil && updatedOrder != nil && len(updatedOrder.Items) == 0 {
+		_ = s.orderRepo.UpdateStatus(orderID, models.StatusCancelled, nil)
+		if updatedOrder.TableID != nil {
+			_ = s.tableRepo.UpdateStatus(*updatedOrder.TableID, "free")
+		}
+		
+		closePayload := map[string]interface{}{
+			"type":  "close_order",
+			"order": updatedOrder,
+		}
+		s.wsService.BroadcastToRole("admin", closePayload)
+		s.wsService.BroadcastToRole("waiter", closePayload)
+		s.wsService.BroadcastToRole("cook", closePayload)
+		s.wsService.BroadcastToRole("printer", closePayload)
+	}
+
 	return nil
 }
 
@@ -998,29 +1086,29 @@ func (s *OrderService) TransferTable(fromTableID int, toTableID int) error {
 	// 1. Get active order on fromTableID
 	order, err := s.orderRepo.FindActiveOrderByTableID(fromTableID)
 	if err != nil || order == nil {
-		return fmt.Errorf("tanlangan stolda faol buyurtma topilmadi")
+		return fmt.Errorf("tanlangan столda faol заказ topilmadi")
 	}
 
 	// 2. Check if toTableID is free
 	toTable, err := s.tableRepo.GetByID(toTableID)
 	if err != nil {
-		return fmt.Errorf("yangi stolni topishda xatolik: %v", err)
+		return fmt.Errorf("yangi столni topishda ошибка: %v", err)
 	}
 	if toTable.Status != "free" {
-		return fmt.Errorf("tanlangan yangi stol band. Iltimos bo'sh stol tanlang")
+		return fmt.Errorf("tanlangan yangi стол band. Iltimos bo'sh стол tanlang")
 	}
 
 	// 3. Update order's table_id
 	if err := s.orderRepo.TransferTable(order.ID, toTableID); err != nil {
-		return fmt.Errorf("buyurtmani ko'chirishda xatolik: %v", err)
+		return fmt.Errorf("заказni ko'chirishda ошибка: %v", err)
 	}
 
 	// 4. Update table statuses
 	if err := s.tableRepo.UpdateStatus(fromTableID, "free"); err != nil {
-		return fmt.Errorf("eski stol holatini yangilashda xatolik: %v", err)
+		return fmt.Errorf("eski стол holatini yangilashda ошибка: %v", err)
 	}
 	if err := s.tableRepo.UpdateStatus(toTableID, "occupied"); err != nil {
-		return fmt.Errorf("yangi stol holatini yangilashda xatolik: %v", err)
+		return fmt.Errorf("yangi стол holatini yangilashda ошибка: %v", err)
 	}
 
 	// 5. Notify clients (Waiters and Admins) to refresh
@@ -1028,4 +1116,38 @@ func (s *OrderService) TransferTable(fromTableID int, toTableID int) error {
 	s.wsService.BroadcastToRole("admin", map[string]interface{}{"type": "tables_updated"})
 
 	return nil
+}
+
+func (s *OrderService) notifyOutofStock(newlyUnavailable []models.Product) {
+	if s.botService == nil {
+		return
+	}
+
+	missingIngredients := make(map[string]bool)
+	var productNames []string
+
+	for _, p := range newlyUnavailable {
+		productNames = append(productNames, p.Name)
+		ingNames, err := s.productRepo.GetMissingIngredients(p.ID)
+		if err == nil {
+			for _, ing := range ingNames {
+				missingIngredients[ing] = true
+			}
+		}
+	}
+
+	var ingList []string
+	for ing := range missingIngredients {
+		ingList = append(ingList, ing)
+	}
+
+	if len(ingList) > 0 {
+		msg := "⚠️ *Diqqat! Ombor tugadi*\n\n"
+		msg += fmt.Sprintf("Skladda *%s* tugaganligi (yoki kamayganligi) sababli, quyidagi taomlar menyudan vaqtinchalik olib tashlandi:\n", strings.Join(ingList, ", "))
+		for _, name := range productNames {
+			msg += fmt.Sprintf("- %s\n", name)
+		}
+
+		s.botService.SendNotificationToAll(msg, "")
+	}
 }

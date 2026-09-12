@@ -39,17 +39,17 @@ func (r *CashierRepository) OpenShift(cashierID int, openingCash float64) (*mode
 		          COALESCE(total_cash_sales, 0) as total_cash_sales,
 		          COALESCE(total_card_sales, 0) as total_card_sales,
 		          COALESCE(total_click_sales, 0) as total_click_sales,
-		          COALESCE(total_nasiya_sales, 0) as total_nasiya_sales,
+		          COALESCE(total_nasiya_sales, 0) as total_nasiya_sales, COALESCE(total_qr_sales, 0) as total_qr_sales,
 		          COALESCE(total_orders, 0) as total_orders,
 		          created_at
 	`, cashierID, openingCash).Scan(
 		&shift.ID, &shift.CashierID, &shift.OpenedAt, &shift.OpeningCash, &shift.Status,
 		&shift.TotalSales, &shift.TotalCashSales, &shift.TotalCardSales,
-		&shift.TotalClickSales, &shift.TotalNasiyaSales, &shift.TotalOrders,
+		&shift.TotalClickSales, &shift.TotalNasiyaSales, &shift.TotalOrders,shift.TotalClickSales, &shift.TotalClickSales, &shift.TotalNasiyaSales, &shift.TotalOrders,shift.TotalNasiyaSales, &shift.TotalClickSales, &shift.TotalNasiyaSales, &shift.TotalOrders,shift.TotalQrSales, &shift.TotalClickSales, &shift.TotalNasiyaSales, &shift.TotalOrders,shift.TotalOrders,
 		&shift.OpenedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("smena ochishda xatolik: %w", err)
+		return nil, fmt.Errorf("smena ochishda ошибка: %w", err)
 	}
 
 	return shift, nil
@@ -65,7 +65,7 @@ func (r *CashierRepository) GetActiveShift(cashierID int) (*models.CashierShift,
 		       COALESCE(cs.total_cash_sales, 0) as total_cash_sales,
 		       COALESCE(cs.total_card_sales, 0) as total_card_sales,
 		       COALESCE(cs.total_click_sales, 0) as total_click_sales,
-		       COALESCE(cs.total_nasiya_sales, 0) as total_nasiya_sales,
+		       COALESCE(cs.total_nasiya_sales, 0) as total_nasiya_sales, COALESCE(cs.total_qr_sales, 0) as total_qr_sales,
 		       COALESCE(cs.total_orders, 0) as total_orders,
 		       cs.status, COALESCE(cs.notes, '') as notes,
 		       COALESCE(u.full_name, '') as cashier_name
@@ -105,7 +105,7 @@ func (r *CashierRepository) CloseShift(shiftID int, closingCash float64, notes s
 		       COALESCE(total_sales, 0) as total_sales,
 		       COALESCE(total_card_sales, 0) as total_card_sales,
 		       COALESCE(total_click_sales, 0) as total_click_sales,
-		       COALESCE(total_nasiya_sales, 0) as total_nasiya_sales,
+		       COALESCE(total_nasiya_sales, 0) as total_nasiya_sales, COALESCE(total_qr_sales, 0) as total_qr_sales,
 		       COALESCE(total_orders, 0) as total_orders
 		FROM cashier_shifts WHERE id = $1 AND status = 'open'
 	`, shiftID)
@@ -148,7 +148,7 @@ func (r *CashierRepository) GetShiftByID(shiftID int) (*models.CashierShift, err
 		       COALESCE(cs.total_cash_sales, 0) as total_cash_sales,
 		       COALESCE(cs.total_card_sales, 0) as total_card_sales,
 		       COALESCE(cs.total_click_sales, 0) as total_click_sales,
-		       COALESCE(cs.total_nasiya_sales, 0) as total_nasiya_sales,
+		       COALESCE(cs.total_nasiya_sales, 0) as total_nasiya_sales, COALESCE(cs.total_qr_sales, 0) as total_qr_sales,
 		       COALESCE(cs.total_orders, 0) as total_orders,
 		       cs.status, COALESCE(cs.notes, '') as notes,
 		       COALESCE(u.full_name, '') as cashier_name
@@ -183,17 +183,18 @@ func (r *CashierRepository) AddCashOperation(op *models.CashOperation) error {
 }
 
 // RecordSale updates shift totals when a sale is made
-func (r *CashierRepository) RecordSale(shiftID int, totalAmount float64, cashAmount, cardAmount, clickAmount, nasiyaAmount float64) error {
+func (r *CashierRepository) RecordSale(shiftID int, totalAmount float64, cashAmount, cardAmount, clickAmount, nasiyaAmount, qrAmount float64) error {
 	result, err := r.db.Exec(`
-		UPDATE cashier_shifts 
+		UPDATE cashier_shifts
 		SET total_sales = total_sales + $1,
 		    total_cash_sales = total_cash_sales + $2,
 		    total_card_sales = total_card_sales + $3,
 		    total_click_sales = total_click_sales + $4,
 		    total_nasiya_sales = total_nasiya_sales + $5,
+		    total_qr_sales = total_qr_sales + $6,
 		    total_orders = total_orders + 1
-		WHERE id = $6 AND status = 'open'
-	`, totalAmount, cashAmount, cardAmount, clickAmount, nasiyaAmount, shiftID)
+		WHERE id = $7 AND status = 'open'
+	`, totalAmount, cashAmount, cardAmount, clickAmount, nasiyaAmount, qrAmount, shiftID)
 	if err != nil {
 		return err
 	}
@@ -246,7 +247,7 @@ func (r *CashierRepository) GetAllShifts(limit int) ([]models.CashierShift, erro
 		       COALESCE(cs.total_cash_sales, 0) as total_cash_sales,
 		       COALESCE(cs.total_card_sales, 0) as total_card_sales,
 		       COALESCE(cs.total_click_sales, 0) as total_click_sales,
-		       COALESCE(cs.total_nasiya_sales, 0) as total_nasiya_sales,
+		       COALESCE(cs.total_nasiya_sales, 0) as total_nasiya_sales, COALESCE(cs.total_qr_sales, 0) as total_qr_sales,
 		       COALESCE(cs.total_orders, 0) as total_orders,
 		       cs.status, COALESCE(cs.notes, '') as notes,
 		       COALESCE(u.full_name, '') as cashier_name
