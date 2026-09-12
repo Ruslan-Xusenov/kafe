@@ -338,9 +338,9 @@ func (s *PrinterService) paymentMethodLabel(method string) string {
 	case "click":
 		return "Click/Payme"
 	case "nasiya":
+		return "Nasiya"
 	case "qr":
 		return "QR Kod"
-		return "Nasiya"
 	case "mixed":
 		return "Aralash"
 	default:
