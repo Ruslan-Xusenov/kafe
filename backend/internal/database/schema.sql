@@ -94,7 +94,11 @@ CREATE TABLE order_payments (
 );
 CREATE INDEX idx_order_payments_order_id ON order_payments(order_id);
 CREATE INDEX idx_order_payments_method ON order_payments(method);
-
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_table_id ON orders(table_id);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX idx_products_category_id ON products(category_id);
 -- Settings Table
 CREATE TABLE settings (
     key VARCHAR(50) PRIMARY KEY,

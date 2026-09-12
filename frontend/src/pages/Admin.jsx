@@ -1,6 +1,8 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import StatsSection from '../components/StatsSection';
+import DailyAnalytics from '../components/DailyAnalytics';
 import InventorySection from '../components/InventorySection';
 import DebtsSection from '../components/DebtsSection';
 import RefundsSection from '../components/RefundsSection';
@@ -8,7 +10,7 @@ import { validateNotEmpty, validatePrice, validatePhone, validatePassword } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ShoppingBag, Users, Plus, Edit2, Trash2, 
-  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer, CreditCard, FileText
+  CheckCircle, XCircle, Clock, Loader2, Save, X, ChefHat, Truck, Star, RefreshCw, Settings, Wallet, TrendingUp, Package, Printer, CreditCard, FileText, ShoppingCart
 } from 'lucide-react';
 
 const STATUS_MAP = {
@@ -34,8 +36,9 @@ const Admin = () => {
   const [tableServicePercentage, setTableServicePercentage] = useState('10');
 
   const [expenses, setExpenses] = useState([]);
-  const [financeStats, setFinanceStats] = useState({ total_revenue: 0, total_expenses: 0, net_profit: 0 });
+  const [financeStats, setFinanceStats] = useState({ total_revenue: 0, total_expenses: 0, total_inventory_purchase: 0, net_profit: 0 });
   const [newExpense, setNewExpense] = useState({ amount: '', category: 'mahsulot', description: '' });
+  const [selectedDailyDate, setSelectedDailyDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [showCatModal, setShowCatModal] = useState(false);
   const [newCat, setNewCat] = useState({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' });
@@ -44,7 +47,7 @@ const Admin = () => {
   const [newProd, setNewProd] = useState({ 
     name: '', description: '', price: '', category_id: '', image_url: '',
     unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
-    is_active: true
+    is_active: true, barcode: ''
   });
   const [editProdId, setEditProdId] = useState(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -85,20 +88,20 @@ const Admin = () => {
     if (!window.confirm("Вы уверены, что хотите закрыть смену? Данные за сегодня будут отправлены в Telegram, а текущая статистика обнулится.")) return;
     try {
       await api.post('/finance/close-shift');
-      alert("Смена успешно закрыта. Отчет отправлен в Telegram и распечатан!");
+      toast.success("Смена успешно закрыта. Отчет отправлен в Telegram и распечатан!");
       fetchData();
     } catch (err) {
-      alert("Ошибка при закрытии смены: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при закрытии смены: " + (err.response?.data?.error || err.message));
     }
   };
 
   const handleSendRealProfit = async () => {
     try {
       const res = await api.post('/finance/send-real-profit');
-      alert(res.data.message || "Реальная прибыль отправлена!");
+      toast.success(res.data.message || "Реальная прибыль отправлена!");
       fetchData();
     } catch (err) {
-      alert("Ошибка при отправке: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при отправке: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -134,7 +137,7 @@ const Admin = () => {
           api.get('/finance/stats'),
           api.get('/finance/expenses')
         ]);
-        setFinanceStats(statsRes.data || { total_revenue: 0, total_expenses: 0, net_profit: 0 });
+        setFinanceStats(statsRes.data || { total_revenue: 0, total_expenses: 0, total_inventory_purchase: 0, net_profit: 0 });
         setExpenses(expRes.data || []);
       } else if (activeTab === 'tables') {
         const res = await api.get('/tables');
@@ -165,7 +168,7 @@ const Admin = () => {
       const res = await api.get(`/finance/waiter-salaries?start_date=${salaryStartDate}&end_date=${salaryEndDate}`);
       setWaiterSalaries(res.data || []);
     } catch (err) {
-      alert("Ошибка при загрузке зарплат: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при загрузке зарплат: " + (err.response?.data?.error || err.message));
     } finally {
       setSalariesLoading(false);
     }
@@ -185,7 +188,7 @@ const Admin = () => {
       orders.forEach(o => { fees[o.id] = o.service_percentage || 0; });
       setWaiterOrderFees(fees);
     } catch {
-      alert("Ошибка при загрузке заказов официанта");
+      toast.error("Ошибка при загрузке заказов официанта");
     } finally {
       setWaiterOrdersLoading(false);
     }
@@ -200,7 +203,7 @@ const Admin = () => {
       setWaiterHistory(res.data || []);
       setShowWaiterHistory(true);
     } catch (err) {
-      alert("Ошибка при загрузке истории: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при загрузке истории: " + (err.response?.data?.error || err.message));
     } finally {
       setWaiterOrdersLoading(false);
     }
@@ -210,9 +213,9 @@ const Admin = () => {
     try {
       await api.put(`/catalog/staff/${waiterId}/default-fee`, { percentage: parseFloat(fee || 0) });
       setStaff(prev => prev.map(s => s.id === waiterId ? { ...s, default_service_percentage: parseFloat(fee || 0) } : s));
-      alert(`Процент по умолчанию для официанта сохранен!`);
+      toast.success(`Процент по умолчанию для официанта сохранен!`);
     } catch (err) {
-      alert("Ошибка при сохранении: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при сохранении: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -221,9 +224,9 @@ const Admin = () => {
     try {
       const res = await api.put(`/orders/${orderId}/service-fee`, { percentage: pct });
       setWaiterOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
-      alert(`Заказ #${orderId} на ${pct}% плата за обслуживание добавлена!`);
+      toast.success(`Заказ #${orderId} на ${pct}% плата за обслуживание добавлена!`);
     } catch (err) {
-      alert("Ошибка при добавлении процента: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при добавлении процента: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -233,9 +236,9 @@ const Admin = () => {
       const res = await api.put(`/orders/${orderId}/service-fee`, { percentage: pct });
       setWaiterOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
       await api.post(`/orders/${orderId}/print`);
-      alert(`Чек #${orderId} отправлен на принтер!`);
+      toast.success(`Чек #${orderId} отправлен на принтер!`);
     } catch (err) {
-      alert("Ошибка: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -255,7 +258,7 @@ const Admin = () => {
       setEditCatId(null);
       setErrors({});
       fetchData();
-    } catch (err) { alert(err.response?.data?.error || 'Ошибка при сохранении категории'); }
+    } catch (err) { toast.error(err.response?.data?.error || 'Ошибка при сохранении категории'); }
   };
 
   const openEditCat = (cat) => {
@@ -298,12 +301,12 @@ const Admin = () => {
       setNewProd({ 
         name: '', description: '', price: '', category_id: '', image_url: '',
         unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false,
-        is_active: true
+        is_active: true, barcode: ''
       });
       setEditProdId(null);
       setErrors({});
       fetchData();
-    } catch (err) { alert(err.response?.data?.error || 'Ошибка при сохранении продукта'); }
+    } catch (err) { toast.error(err.response?.data?.error || 'Ошибка при сохранении продукта'); }
   };
 
   const openEditProd = (p) => {
@@ -318,7 +321,8 @@ const Admin = () => {
       min_quantity: p.min_quantity || 1,
       quantity_step: p.quantity_step || 1,
       has_mandatory_container: p.has_mandatory_container || false,
-      is_active: p.is_active
+      is_active: p.is_active,
+      barcode: p.barcode || ''
     });
     setShowProdModal(true);
   };
@@ -342,7 +346,7 @@ const Admin = () => {
       setErrors({});
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Ошибка при добавлении сотрудника');
+      toast.error(err.response?.data?.error || 'Ошибка при добавлении сотрудника');
     }
   };
 
@@ -359,7 +363,7 @@ const Admin = () => {
       setter(prev => ({ ...prev, image_url: res.data.url }));
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Ошибка при загрузке изображения');
+      toast.error('Ошибка при загрузке изображения');
     } finally {
       setLoading(false);
     }
@@ -371,7 +375,7 @@ const Admin = () => {
       await api.delete(`/catalog/staff/${id}`);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Ошибка при удалении сотрудника');
+      toast.error(err.response?.data?.error || 'Ошибка при удалении сотрудника');
     }
   };
 
@@ -381,7 +385,7 @@ const Admin = () => {
       await api.delete(`/catalog/categories/${id}`);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Ошибка при удалении категории. Сначала удалите продукты в ней.');
+      toast.error(err.response?.data?.error || 'Ошибка при удалении категории. Сначала удалите продукты в ней.');
     }
   };
 
@@ -391,7 +395,7 @@ const Admin = () => {
         await api.delete(`/catalog/products/${id}`);
         fetchData();
       // eslint-disable-next-line no-unused-vars
-      } catch (err) { alert('Ошибка'); }
+      } catch (err) { toast.error('Ошибка'); }
     }
   };
 
@@ -404,9 +408,9 @@ const Admin = () => {
         container_product_id: containerId,
         table_service_percentage: tableServicePercentage
       });
-      alert('Настройки сохранены');
+      toast.success('Настройки сохранены');
     } catch (err) {
-      alert('Ошибка: ' + (err.response?.data?.error || 'Не удалось сохранить'));
+      toast.error('Ошибка: ' + (err.response?.data?.error || 'Не удалось сохранить'));
     } finally {
       setLoading(false);
     }
@@ -428,7 +432,7 @@ const Admin = () => {
       setErrors({});
       fetchData();
     } catch (err) {
-      alert('Ошибка при добавлении расхода: ' + (err.response?.data?.error || ''));
+      toast.error('Ошибка при добавлении расхода: ' + (err.response?.data?.error || ''));
     }
   };
 
@@ -451,7 +455,7 @@ const Admin = () => {
       setEditingTableId(null);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Ошибка при сохранении стола');
+      toast.error(err.response?.data?.error || 'Ошибка при сохранении стола');
     }
   };
 
@@ -462,17 +466,17 @@ const Admin = () => {
   };
 
   const deleteTable = async (id) => {
-    if (!window.confirm('Rostdan ham bu stolni o\'chirmoqchimisiz?')) return;
+    if (!window.confirm('Rostdan ham bu столni o\'chirmoqchimisiz?')) return;
     try {
       await api.delete(`/tables/${id}`);
       fetchData();
       // eslint-disable-next-line no-unused-vars
-    } catch (err) { alert('Ошибка'); }
+    } catch (err) { toast.error('Ошибка'); }
   };
 
   const handleTransferTable = async (e) => {
     e.preventDefault();
-    if (!transferToTableId) return alert("Iltimos, ko'chirish uchun bo'sh stolni tanlang");
+    if (!transferToTableId) return toast.success("Iltimos, ko'chirish uchun bo'sh столni tanlang");
     try {
       await api.post('/orders/transfer', {
         from_table_id: transferFromTable.id,
@@ -482,9 +486,9 @@ const Admin = () => {
       setTransferFromTable(null);
       setTransferToTableId('');
       fetchData();
-      alert("Stol muvaffaqiyatli ko'chirildi!");
+      toast.success("Стол успешно ko'chirildi!");
     } catch (err) {
-      alert(err.response?.data?.error || "Stolni ko'chirishda xatolik yuz berdi");
+      toast.error(err.response?.data?.error || "Столni ko'chirishda ошибка yuz berdi");
     }
   };
 
@@ -495,16 +499,16 @@ const Admin = () => {
       setShowOrderModal(true);
       setServiceFeePercent(res.data.service_percentage || 10);
     } catch {
-      alert("Ошибка при загрузке данных заказа");
+      toast.error("Ошибка при загрузке данных заказа");
     }
   };
 
   const handleReprintOrder = async (id) => {
     try {
       await api.post(`/orders/${id}/print`);
-      alert("Чек отправлен на принтер!");
+      toast.success("Чек отправлен на принтер!");
     } catch {
-      alert("Ошибка при печати чека");
+      toast.error("Ошибка при печати чека");
     }
   };
 
@@ -514,11 +518,11 @@ const Admin = () => {
     
     const qty = parseFloat(qtyInput);
     if (isNaN(qty) || qty <= 0) {
-      alert("Iltimos, to'g'ri raqam kiriting!");
+      toast.success("Пожалуйста, введите правильный номер!");
       return;
     }
     if (qty > item.quantity) {
-      alert(`Kiritilgan miqdor joriy miqdordan oshmasligi kerak (Maks: ${item.quantity})!`);
+      toast.success(`Введенное количество не должно превышать текущее (Maks: ${item.quantity})!`);
       return;
     }
 
@@ -529,7 +533,7 @@ const Admin = () => {
       setSelectedOrderDetails(res.data);
       fetchData();
     } catch (err) {
-      alert("Произошла ошибка: " + (err.response?.data?.error || err.message));
+      toast.error("Произошла ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -539,7 +543,7 @@ const Admin = () => {
       setSelectedOrderDetails(res.data);
       fetchData();
     } catch (err) {
-      alert("Ошибка при обновлении платы за обслуживание: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка при обновлении платы за обслуживание: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -547,11 +551,11 @@ const Admin = () => {
     try {
       await api.put(`/orders/${id}/service-fee`, { percentage: parseFloat(serviceFeePercent) });
       await api.post(`/orders/${id}/print`);
-      alert("Плата за обслуживание сохранена и чек отправлен на принтер!");
+      toast.success("Плата за обслуживание сохранена и чек отправлен на принтер!");
       setShowOrderModal(false);
       fetchData();
     } catch {
-      alert("Произошла ошибка");
+      toast.error("Произошла ошибка");
     }
   };
 
@@ -904,20 +908,24 @@ const Admin = () => {
 
         {activeTab === 'finance' && (
           <div className="finance-mgmt animate-fade">
-            <div className="flex justify-between items-center mb-6">
-              <h2>Финансы и Расходы</h2>
-              <div>
-                <button className="btn-success" onClick={handleSendRealProfit} style={{ background: 'var(--primary)', marginRight: '10px' }}>
-                  <TrendingUp size={16} /> Отправить Реал. Прибыль
+            <div className="flex-header" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.25rem', flexWrap:'wrap', gap:'0.75rem' }}>
+              <h2 style={{ margin:0 }}>Финансы и Расходы</h2>
+              <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+                <button className="btn-success" onClick={handleSendRealProfit} style={{ background: 'var(--primary)', display:'flex', alignItems:'center', gap:'0.4rem', padding:'0.6rem 1rem', fontSize:'0.82rem', borderRadius:'8px', color:'#fff', fontWeight:700 }}>
+                  <TrendingUp size={15} /> Реал. Прибыль
                 </button>
-                <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', marginRight: '10px' }}>
-                  <Clock size={16} /> Закрыть смену (Отчет)
+                <button className="btn-success" onClick={handleCloseShift} style={{ background: 'var(--danger)', display:'flex', alignItems:'center', gap:'0.4rem', padding:'0.6rem 1rem', fontSize:'0.82rem', borderRadius:'8px', color:'#fff', fontWeight:700 }}>
+                  <Clock size={15} /> Закрыть смену
                 </button>
-                <button className="refresh-btn" onClick={fetchData}><RefreshCw size={16} /> Обновить</button>
+                <button className="refresh-btn" onClick={fetchData} style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}><RefreshCw size={14} /> Обновить</button>
               </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* ── Daily Analytics ── */}
+            <DailyAnalytics refreshTrigger={financeStats} onDateChange={setSelectedDailyDate} />
+
+            {/* Stats Cards - Current Shift */}
+            <h3 className="mb-4">Текущая смена (Открытые данные)</h3>
             <div className="stats-grid mb-6">
               <div className="stat-card">
                 <div className="stat-icon-wrap" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }}>
@@ -933,8 +941,26 @@ const Admin = () => {
                   <Wallet size={24} />
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Общие расходы</span>
-                  <span className="stat-value">{financeStats.total_expenses.toLocaleString()} <small>so'm</small></span>
+                  <span className="stat-label">Операционные расходы</span>
+                  <span className="stat-value">{(financeStats.total_expenses || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon-wrap" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
+                  <ShoppingCart size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Закупка продуктов (Склад)</span>
+                  <span className="stat-value">{(financeStats.total_inventory_purchase || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon-wrap" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                  <ShoppingCart size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Себестоимость проданных (Списание)</span>
+                  <span className="stat-value">{(financeStats.total_cost_price || 0).toLocaleString()} <small>so'm</small></span>
                 </div>
               </div>
               <div className="stat-card">
@@ -957,7 +983,66 @@ const Admin = () => {
               </div>
             </div>
 
-            <h3 className="mb-4">Выручка по видам оплат</h3>
+            {/* Stats Cards - Today */}
+            <h3 className="mb-4">Общие за сегодня (Включая закрытые смены)</h3>
+            <div className="stats-grid mb-6">
+              <div className="stat-card" style={{ opacity: 0.9 }}>
+                <div className="stat-icon-wrap" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }}>
+                  <TrendingUp size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Выручка за сегодня</span>
+                  <span className="stat-value">{(financeStats.today_revenue || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card" style={{ opacity: 0.9 }}>
+                <div className="stat-icon-wrap" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}>
+                  <Wallet size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Опер. расходы за сегодня</span>
+                  <span className="stat-value">{(financeStats.today_expenses || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card" style={{ opacity: 0.9 }}>
+                <div className="stat-icon-wrap" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
+                  <ShoppingCart size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Закупка продуктов за сегодня</span>
+                  <span className="stat-value">{(financeStats.today_inventory_purchase || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card" style={{ opacity: 0.9 }}>
+                <div className="stat-icon-wrap" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                  <ShoppingCart size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Себестоимость проданных за сегодня</span>
+                  <span className="stat-value">{(financeStats.today_cost_price || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card" style={{ opacity: 0.9 }}>
+                <div className="stat-icon-wrap" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
+                  <LayoutDashboard size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Чистая прибыль (без з/п)</span>
+                  <span className="stat-value">{(financeStats.today_net_profit || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.1) 0%, rgba(249,115,22,0) 100%)', border: '1px solid var(--primary)' }}>
+                <div className="stat-icon-wrap" style={{ background: 'var(--primary)', color: '#fff' }}>
+                  <TrendingUp size={24} />
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Реальная прибыль (за сегодня)</span>
+                  <span className="stat-value" style={{ color: 'var(--primary)' }}>{(financeStats.today_real_profit || 0).toLocaleString()} <small>so'm</small></span>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="mb-4">Выручка по видам оплат (Текущая смена)</h3>
             <div className="stats-grid mb-6">
               <div className="stat-card" style={{ background: 'linear-gradient(to right, #10b98122, #10b98111)', borderColor: '#10b98155' }}>
                 <div className="stat-info">
@@ -987,79 +1072,50 @@ const Admin = () => {
 
             <div className="grid" style={{ gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
               {/* Add Expense Form */}
-              <div className="premium-card">
-                <h3 className="mb-4">Добавить расход</h3>
-                <form onSubmit={handleCreateExpense}>
-                  <div className="input-group mb-4">
-                    <label>Сумма (сум)</label>
-                    <input 
-                      type="number" 
-                      value={newExpense.amount} 
-                      onChange={e => setNewExpense({...newExpense, amount: e.target.value})} 
-                      placeholder="0"
-                    />
-                    {errors.expense && <span className="error-text">{errors.expense}</span>}
-                  </div>
-                  <div className="input-group mb-4">
-                    <label>Категория</label>
-                    <select 
-                      value={newExpense.category} 
-                      onChange={e => setNewExpense({...newExpense, category: e.target.value})}
-                    >
-                      <option value="mahsulot">Продукт (Склад)</option>
-                      <option value="oylik">Зарплата</option>
-                      <option value="arenda">Аренда</option>
-                      <option value="kommunal">Коммунальные платежи</option>
-                      <option value="boshqa">Другие расходы</option>
-                    </select>
-                  </div>
-                  <div className="input-group mb-4">
-                    <label>Комментарий</label>
-                    <textarea 
-                      value={newExpense.description} 
-                      onChange={e => setNewExpense({...newExpense, description: e.target.value})}
-                      placeholder="Для чего использовалось?"
-                      rows="2"
-                    ></textarea>
-                  </div>
-                  <button type="submit" className="btn-primary w-full">
-                    <Plus size={18} /> Добавить
-                  </button>
-                </form>
-              </div>
-
-              {/* Expenses List */}
-              <div className="premium-card">
-                <h3 className="mb-4">История расходов</h3>
-                <div className="orders-table-wrapper" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Дата</th>
-                        <th>Категория</th>
-                        <th>Summa</th>
-                        <th>Комментарий</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {expenses.length > 0 ? expenses.map(exp => (
-                        <tr key={exp.id}>
-                          <td>{new Date(exp.created_at).toLocaleString()}</td>
-                          <td>
-                            <span className="status-badge preparing">{exp.category}</span>
-                          </td>
-                          <td style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
-                            -{exp.amount.toLocaleString()} сум
-                          </td>
-                          <td>{exp.description || '-'}</td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan="4" className="text-center text-muted py-4">Нет расходов</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+              {selectedDailyDate === new Date().toISOString().slice(0, 10) && (
+                <div className="premium-card">
+                  <h3 className="mb-4">Добавить расход</h3>
+                  <form onSubmit={handleCreateExpense}>
+                    <div className="input-group mb-4">
+                      <label>Сумма (сум)</label>
+                      <input 
+                        type="number" 
+                        value={newExpense.amount} 
+                        onChange={e => setNewExpense({...newExpense, amount: e.target.value})} 
+                        placeholder="0"
+                      />
+                      {errors.expense && <span className="error-text">{errors.expense}</span>}
+                    </div>
+                    <div className="input-group mb-4">
+                      <label>Категория</label>
+                      <select 
+                        value={newExpense.category} 
+                        onChange={e => setNewExpense({...newExpense, category: e.target.value})}
+                      >
+                        <option value="mahsulot">Продукт (Склад)</option>
+                        <option value="oylik">Зарплата</option>
+                        <option value="arenda">Аренда</option>
+                        <option value="kommunal">Коммунальные платежи</option>
+                        <option value="boshqa">Другие расходы</option>
+                      </select>
+                    </div>
+                    <div className="input-group mb-4">
+                      <label>Комментарий</label>
+                      <textarea 
+                        value={newExpense.description} 
+                        onChange={e => setNewExpense({...newExpense, description: e.target.value})}
+                        placeholder="Для чего использовалось?"
+                        rows="2"
+                      ></textarea>
+                    </div>
+                    <button type="submit" className="btn-primary w-full">
+                      <Plus size={18} /> Добавить
+                    </button>
+                  </form>
                 </div>
-              </div>
+              )}
+
+
             </div>
           </div>
         )}
@@ -1265,7 +1321,7 @@ const Admin = () => {
               <h2>Управление меню</h2>
               <div className="actions">
                 <button className="btn-primary" onClick={() => { setEditCatId(null); setNewCat({ name: '', image_url: '', is_user_controlled: false, printer_target: 'ALL' }); setShowCatModal(true); }}><Plus size={18} /> Категория</button>
-                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true }); setShowProdModal(true); }}><Plus size={18} /> Продукт</button>
+                <button className="btn-primary" onClick={() => { setEditProdId(null); setNewProd({ name: '', description: '', price: '', category_id: '', image_url: '', unit: 'шт', min_quantity: 1, quantity_step: 1, has_mandatory_container: false, is_active: true, barcode: '' }); setShowProdModal(true); }}><Plus size={18} /> Продукт</button>
               </div>
             </div>
 
@@ -1423,22 +1479,22 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>Stolni ko'chirish</h3>
+              <h3>Столni ko'chirish</h3>
               <button onClick={() => { setShowTransferModal(false); setTransferFromTable(null); setTransferToTableId(''); }}><X size={20} /></button>
             </div>
             <form onSubmit={handleTransferTable}>
               <div className="input-group">
-                <label>Qaysi stoldan:</label>
+                <label>Qaysi столdan:</label>
                 <input type="text" value={transferFromTable.name} disabled />
               </div>
               <div className="input-group">
-                <label>Qaysi stolga (Bo'sh stollar):</label>
+                <label>Qaysi столga (Bo'sh столlar):</label>
                 <select 
                   value={transferToTableId} 
                   onChange={e => setTransferToTableId(e.target.value)}
                   required
                 >
-                  <option value="">-- Stol tanlang --</option>
+                  <option value="">-- Стол tanlang --</option>
                   {tables.filter(t => t.status === 'free').map(t => (
                     <option key={t.id} value={t.id}>{t.name} ({t.capacity || 4} kishi)</option>
                   ))}
@@ -1455,7 +1511,7 @@ const Admin = () => {
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="premium-card modal-content">
             <div className="modal-header">
-              <h3>Новый Xodim</h3>
+              <h3>Новый Сотрудник</h3>
               <button onClick={() => setShowStaffModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreateStaff}>
@@ -1543,7 +1599,7 @@ const Admin = () => {
                 />
                 {newCat.image_url && (
                   <div style={{marginTop: 10}}>
-                    <img src={newCat.image_url.startsWith('/') ? `${api.defaults.baseURL.replace('/api', '')}${newCat.image_url}` : newCat.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
+                    <img src={newCat.image_url.startsWith('/') ? `${api.defaults.baseURL.replace('/api/v1', '')}${newCat.image_url}` : newCat.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
                   </div>
                 )}
               </div>
@@ -1566,9 +1622,8 @@ const Admin = () => {
                   onChange={e => setNewCat({...newCat, printer_target: e.target.value})}
                 >
                   <option value="ALL">Барча принтерлардан (По умолчанию)</option>
-                  <option value="USB">Kassa printeri (USB)</option>
-                  <option value="192.168.1.11:9100">Kuxnya (LAN 192.168.1.11)</option>
-                  <option value="192.168.1.10:9100">Salat (LAN 192.168.1.10)</option>
+                  <option value="192.168.123.102">Bar / Kassa (LAN 192.168.123.102)</option>
+                  <option value="192.168.123.104">Kuxnya (LAN 192.168.123.104)</option>
                 </select>
               </div>
 
@@ -1617,7 +1672,7 @@ const Admin = () => {
                 />
                 {newProd.image_url && (
                   <div style={{marginTop: 10}}>
-                    <img src={newProd.image_url.startsWith('/') ? `${api.defaults.baseURL.replace('/api', '')}${newProd.image_url}` : newProd.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
+                    <img src={newProd.image_url.startsWith('/') ? `${api.defaults.baseURL.replace('/api/v1', '')}${newProd.image_url}` : newProd.image_url} style={{height: 60, borderRadius: 8}} alt="Preview" />
                   </div>
                 )}
               </div>
@@ -1632,6 +1687,15 @@ const Admin = () => {
                   }} 
                 />
                 {errors.prod?.price && <span className="field-error">{errors.prod.price}</span>}
+              </div>
+              <div className="input-group">
+                <label>Штрих-код / QR-код</label>
+                <input 
+                  type="text" 
+                  value={newProd.barcode || ''} 
+                  onChange={e => setNewProd({...newProd, barcode: e.target.value})} 
+                  placeholder="Отсканируйте или введите код"
+                />
               </div>
               <div className={`input-group ${errors.prod?.category ? 'has-error' : ''}`}>
                 <label>Категория</label>

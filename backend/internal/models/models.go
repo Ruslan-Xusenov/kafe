@@ -65,6 +65,8 @@ type Product struct {
 	MinQuantity           float64   `json:"min_quantity" db:"min_quantity"`
 	QuantityStep          float64   `json:"quantity_step" db:"quantity_step"`
 	HasMandatoryContainer bool      `json:"has_mandatory_container" db:"has_mandatory_container"`
+	IsAvailable           bool      `json:"is_available" db:"is_available"`
+	Barcode               *string   `json:"barcode" db:"barcode"`
 	CostPrice             float64   `json:"cost_price" db:"cost_price"`       // Calculated field
 	ProfitMargin          float64   `json:"profit_margin" db:"profit_margin"` // Calculated field
 	CreatedAt             time.Time `json:"created_at" db:"created_at"`
@@ -118,6 +120,7 @@ type OrderItem struct {
 	ProductName   string    `json:"product_name" db:"product_name"` // Joined field
 	Quantity      float64   `json:"quantity" db:"quantity"`
 	Price         float64   `json:"price" db:"price"`
+	CostPrice     float64   `json:"cost_price" db:"cost_price"`
 	Unit          string    `json:"unit" db:"unit"`
 	Comment       string    `json:"comment" db:"comment"`
 	PrinterTarget string    `json:"printer_target" db:"printer_target"` // Joined field from category

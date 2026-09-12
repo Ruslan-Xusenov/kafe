@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Brand Colors */
@@ -49,8 +49,9 @@
   --radius-xl:      28px;
   --transition:     all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-  --font:           'Plus Jakarta Sans', sans-serif;
-  --font-display:   'Playfair Display', serif;
+  --font:           'Inter', 'Nunito', sans-serif;
+  --font-display:   'Nunito', 'Inter', sans-serif;
+  --font-body:      'Inter', sans-serif;
 
   /* Legacy aliases (backward compat) */
   --bg-dark:        var(--bg-base);
@@ -70,6 +71,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
   background: var(--bg-base);
   background-image:
     var(--grad-hero),
@@ -78,14 +81,22 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
+  line-height: 1.65;
+  letter-spacing: -0.01em;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+  font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
 }
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.05rem; }
 
 a { text-decoration: none; color: inherit; }
 img { display: block; max-width: 100%; }
@@ -131,7 +142,9 @@ button {
   cursor: pointer;
   border: none;
   font-family: var(--font);
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   border-radius: var(--radius-sm);
   transition: var(--transition);
 }
@@ -142,7 +155,8 @@ button {
   padding: 0.75rem 1.75rem;
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
-  letter-spacing: 0.01em;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   box-shadow: 0 4px 16px rgba(249,115,22,0.40);
   position: relative;
   overflow: hidden;
@@ -189,11 +203,12 @@ button {
 
 .input-group label {
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  letter-spacing: -0.01em;
 }
 
 input, textarea, select {
@@ -204,9 +219,11 @@ input, textarea, select {
   color: var(--text-primary);
   font-family: var(--font);
   font-size: 0.95rem;
+  font-weight: 600;
   outline: none;
   transition: var(--transition);
   width: 100%;
+  letter-spacing: -0.01em;
 }
 
 input::placeholder { color: var(--text-muted); }
@@ -267,22 +284,23 @@ input:focus, textarea:focus, select:focus {
 }
 
 .stat-value {
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-size: 1.9rem;
+  font-weight: 900;
   font-family: var(--font-display);
   background: var(--grad-brand);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .stat-label {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 /* ─────────────────── DIVIDER ─────────────────── */
@@ -391,7 +409,9 @@ input:focus, textarea:focus, select:focus {
 }
 
 .section-header h2 {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .section-pill {
@@ -403,9 +423,9 @@ input:focus, textarea:focus, select:focus {
   color: var(--primary);
   border-radius: 99px;
   padding: 0.35rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 /* Glow line accent */
@@ -416,65 +436,185 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 12px rgba(249,115,22,0.5);
 }
 
-/* ─────────────────── RESPONSIVE BASE ─────────────────── */
-/* ─────────────────── RESPONSIVE ─────────────────── */
+/* ═══════════════════════════════════════════════
+   RESPONSIVE SYSTEM — mobile-first
+   Breakpoints:
+     xs  : 0–479px
+     sm  : 480–639px
+     md  : 640–767px
+     lg  : 768–1023px
+     xl  : 1024px+
+═══════════════════════════════════════════════ */
 
-/* Tablet */
+/* ── Tablet (≤1024px) ── */
 @media (max-width: 1024px) {
-  .main-content { padding: 1.5rem 1.25rem 3rem; }
+  .main-content { padding: 1.25rem 1rem 3rem; }
+  .stats-grid   { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
-/* Mobile */
+/* ── Mobile (≤768px) ── */
 @media (max-width: 768px) {
-  h1 { font-size: 1.75rem !important; letter-spacing: -0.02em; }
-  h2 { font-size: 1.35rem; }
+  /* Typography */
+  h1 { font-size: 1.5rem !important; letter-spacing: -0.02em; }
+  h2 { font-size: 1.2rem !important; }
+  h3 { font-size: 1rem !important; }
 
-  .premium-card { padding: 1rem; }
-
-  .ss-grid {
-    grid-template-columns: 1fr !important; /* Stack stats on mobile */
-    gap: 0.6rem !important;
-  }
-
-  .ss-value { font-size: 1.25rem !important; }
-
+  /* Layout */
   .main-content {
-    padding: 1rem 0.5rem 3rem !important;
-    margin-top: 68px !important;
+    padding: 0.85rem 0.65rem 5rem !important;
+    margin-top: 64px !important;
   }
 
-  .modal-content {
-    width: 95% !important;
-    max-width: 95% !important;
-    padding: 1rem !important;
-    margin: 1rem auto;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
+  /* Cards */
+  .premium-card { padding: 0.85rem !important; }
 
-  .admin-table-wrapper {
+  /* Stats grids → 2 columns */
+  .ss-grid       { grid-template-columns: repeat(2, 1fr) !important; gap: 0.55rem !important; }
+  .stats-grid    { grid-template-columns: repeat(2, 1fr) !important; gap: 0.55rem !important; }
+  .ss-value      { font-size: 1.15rem !important; }
+  .stat-value    { font-size: 1.4rem !important; }
+
+  /* Tables — horizontal scroll */
+  .table-container,
+  .admin-table-wrapper,
+  .orders-table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    width: 100%;
-    margin-bottom: 1rem;
     border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+  }
+  .modern-table,
+  .admin-table { min-width: 600px; }
+
+  /* Modal — full width sheet */
+  .modal-overlay {
+    align-items: flex-end !important;
+  }
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1.25rem !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
   }
 
-  .admin-table {
-    min-width: 700px; /* Ensure table doesn't shrink to unusable width */
-  }
-
+  /* Input rows stack */
   .input-group.flex-row {
     flex-direction: column !important;
     align-items: flex-start !important;
   }
+
+  /* Admin: sidebar → top horizontal tabs */
+  .admin-page       { flex-direction: column !important; gap: 0.75rem !important; }
+  .admin-sidebar    {
+    width: 100% !important;
+    position: static !important;
+    padding: 0.6rem 0.75rem !important;
+    border-radius: var(--radius) !important;
+  }
+  .sidebar-header   { display: none !important; }
+  .sidebar-nav      {
+    flex-direction: row !important;
+    gap: 0.25rem !important;
+    overflow-x: auto !important;
+    scrollbar-width: none;
+    padding-bottom: 0.15rem;
+  }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .sidebar-nav button {
+    border-right: none !important;
+    padding: 0.5rem 0.8rem !important;
+    font-size: 0.78rem !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    white-space: nowrap;
+  }
+
+  /* Admin: header flex → wrap */
+  .flex-header,
+  .flex.justify-between { flex-wrap: wrap !important; gap: 0.6rem !important; }
+
+  /* Finance tab buttons wrap */
+  .finance-mgmt .flex-header > div,
+  .finance-mgmt [style*="display: flex"] {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Performance grid */
+  .performance-grid { grid-template-columns: 1fr !important; }
+
+  /* Form rows */
+  .admin-form-row  { grid-template-columns: 1fr !important; }
+
+  /* DailyAnalytics mid-row */
+  .da-mid-row { grid-template-columns: 1fr !important; }
+
+  /* Salary date filter */
+  .salary-filter { flex-direction: column !important; gap: 0.75rem !important; }
+
+  /* Section header */
+  .section-header  { flex-wrap: wrap; gap: 0.5rem; }
+  .section-header h2 { font-size: 1.2rem !important; }
 }
 
-/* Small mobile */
+/* ── Small mobile (≤480px) ── */
 @media (max-width: 480px) {
-  .ss-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .btn-primary { padding: 0.7rem 1.2rem; font-size: 0.9rem; }
+  /* Stats → 2 cols still but tighter */
+  .ss-grid    { grid-template-columns: repeat(2, 1fr) !important; gap: 0.45rem !important; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.45rem !important; }
+  .ss-value   { font-size: 1rem !important; }
+  .stat-value { font-size: 1.25rem !important; }
+  .stat-label { font-size: 0.65rem !important; }
+  .stat-icon  { width: 38px !important; height: 38px !important; }
+
+  /* Buttons */
+  .btn-primary  { padding: 0.65rem 1rem; font-size: 0.85rem; }
+  .btn-success  { padding: 0.6rem 0.9rem; font-size: 0.8rem; }
+  .refresh-btn  { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
+
+  /* Admin sidebar pills even smaller */
+  .sidebar-nav button { font-size: 0.72rem !important; padding: 0.4rem 0.6rem !important; }
+
+  /* Finance header stack */
+  .finance-mgmt .flex-header { flex-direction: column !important; align-items: flex-start !important; }
+  .finance-mgmt .flex-header > div { width: 100%; }
+  .finance-mgmt .flex-header button { width: 100%; justify-content: center; margin-right: 0 !important; }
+
+  /* Tables */
+  .modern-table,
+  .admin-table   { min-width: 520px; font-size: 0.8rem; }
+  .modern-table th,
+  .modern-table td { padding: 0.55rem 0.65rem !important; }
+
+  /* Modal full-height */
+  .modal-content { max-height: 95vh !important; padding: 1rem !important; }
+
+  /* DailyAnalytics KPI */
+  .da-kpi-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+  .da-kpi-val   { font-size: 0.95rem !important; }
+
+  /* Premium cards */
+  .premium-card { padding: 0.75rem !important; }
+
+  /* Section header */
+  .section-header h2 { font-size: 1.1rem !important; }
+
+  /* Waiter-specific: product card grid */
+  .product-grid { grid-template-columns: repeat(2, 1fr) !important; }
 }
+
+/* ── Extra small (≤360px) ── */
+@media (max-width: 360px) {
+  .main-content { padding: 0.6rem 0.5rem 5rem !important; }
+  h2 { font-size: 1.05rem !important; }
+  .stat-value { font-size: 1.1rem !important; }
+  .da-kpi-val { font-size: 0.85rem !important; }
+  .sidebar-nav button { font-size: 0.68rem !important; padding: 0.35rem 0.55rem !important; }
+}
+
 /* ─────────────────── UNIT SELECTOR ─────────────────── */
 .unit-selector-mini {
   display: flex;

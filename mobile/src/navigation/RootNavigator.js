@@ -34,7 +34,7 @@ const RootNavigator = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && user?.role === 'waiter') {
+    if (isAuthenticated && (user?.role === 'waiter' || user?.role === 'admin')) {
       AsyncStorage.getItem('token').then(token => {
         if (token) connectWS(token);
       });
@@ -50,7 +50,7 @@ const RootNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
-        ) : user?.role === 'waiter' ? (
+        ) : (user?.role === 'waiter' || user?.role === 'admin') ? (
           // ─── WAITER STACK ───────────────────────────────────────
           <>
             <Stack.Screen name="WaiterDashboard" component={WaiterDashboardScreen} />

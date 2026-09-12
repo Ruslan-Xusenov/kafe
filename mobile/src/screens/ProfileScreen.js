@@ -30,8 +30,15 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.avatarText}>{user?.full_name?.[0]?.toUpperCase() || '?'}</Text>
         </View>
         <Text style={styles.userName}>{user?.full_name}</Text>
+        {/* FIX #12: Role hardcoded emas, user.role dan olinadi */}
         <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>Ofitsant</Text>
+          <Text style={styles.roleText}>
+            {user?.role === 'waiter' ? 'Ofitsant' :
+             user?.role === 'cook' ? 'Oshpaz' :
+             user?.role === 'courier' ? 'Kuryer' :
+             user?.role === 'admin' ? 'Admin' :
+             user?.role || 'Foydalanuvchi'}
+          </Text>
         </View>
         <Text style={styles.userPhone}>{user?.phone}</Text>
       </View>

@@ -6,10 +6,16 @@ import (
 	"os"
 	"strconv"
 
+	"time"
+	"context"
+	"os/signal"
+	"syscall"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/username/kafe-backend/internal/database"
 	"github.com/username/kafe-backend/internal/handlers"
 	"github.com/username/kafe-backend/internal/middleware"
@@ -21,6 +27,21 @@ func main() {
 	// Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found")
+	}
+
+	// Initialize Sentry
+	sentryDsn := os.Getenv("SENTRY_DSN")
+	if sentryDsn != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              sentryDsn,
+			EnableTracing:    true,
+			TracesSampleRate: 1.0,
+		}); err != nil {
+			log.Printf("Sentry initialization failed: %v\n", err)
+		} else {
+			log.Println("Sentry initialized successfully")
+			defer sentry.Flush(2 * time.Second)
+		}
 	}
 
 	// Initialize Database
@@ -73,13 +94,20 @@ func main() {
 	}
 
 	r := gin.Default()
+	
+	// Add Sentry middleware if configured
+	if sentryDsn != "" {
+		r.Use(sentrygin.New(sentrygin.Options{
+			Repanic: true,
+		}))
+	}
 
 	// CORS Middleware
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 		allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
 		if allowedOrigins == "" {
-			allowedOrigins = "http://localhost:3000,http://localhost:5173" // Default safe local origins
+			allowedOrigins = "https://kafe.securehub.uz,http://localhost:3000,http://localhost:5173" // Default safe local and prod origins
 		}
 
 		originAllowed := false
@@ -126,7 +154,8 @@ func main() {
 	})
 
 	// Routes
-	api := r.Group("/api")
+	api := r.Group("/api/v1")
+	api.Use(middleware.RateLimitMiddleware())
 	{
 		auth := api.Group("/auth")
 		{
@@ -143,6 +172,7 @@ func main() {
 			catalog.GET("/categories", catalogHandler.GetAllCategories)
 			catalog.GET("/products", catalogHandler.GetAllProducts)
 			catalog.GET("/categories/:cat_id/products", catalogHandler.GetProductsByCategory)
+			catalog.GET("/barcode/:barcode", catalogHandler.GetProductByBarcode)
 
 			// Admin Protected
 			admin := catalog.Group("/")
@@ -226,6 +256,7 @@ func main() {
 			finance.POST("/close-shift", financeHandler.CloseShift)
 			finance.POST("/send-real-profit", financeHandler.SendRealProfit)
 			finance.GET("/waiter-salaries", financeHandler.GetWaiterSalaries)
+			finance.GET("/daily-report", financeHandler.GetDailyReport)
 		}
 
 		audit := api.Group("/audit")
@@ -390,8 +421,31 @@ func main() {
 		})
 	}
 
-	log.Printf("Server starting on port %s", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to run server: %v", err)
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	// Run server in a goroutine so that it doesn't block
+	go func() {
+		log.Printf("Server starting on port %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to run server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// 5 seconds timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
 }

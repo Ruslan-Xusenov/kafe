@@ -44,7 +44,7 @@ func UploadImage(c *gin.Context) {
 	}
 	ext, ok := extensions[contentType]
 	if !ok {
-		c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "Faqat JPG, PNG yoki WEBP rasmlar qabul qilinadi"})
+		c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "Принимаются только изображения JPG, PNG или WEBP"})
 		return
 	}
 

@@ -1,9 +1,11 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api, { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, Printer, Check, Search, Lock, Power, RefreshCw, Banknote, History, ChevronRight } from 'lucide-react';
+import { ShoppingCart, LogOut, Search, Plus, Minus, Check, Trash2, Hash, Power, ArrowRight, Lock, Printer, CreditCard, Banknote, RefreshCcw, Camera } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import ShiftModal from '../components/ShiftModal';
+import BarcodeScanner from '../components/BarcodeScanner';
 
 const Cashier = () => {
   const [categories, setCategories] = useState([]);
@@ -12,6 +14,8 @@ const Cashier = () => {
   
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   
   const [shift, setShift] = useState(null);
@@ -53,7 +57,7 @@ const Cashier = () => {
       setDebtors(debtorsRes.data || []);
     } catch (err) {
       console.error("fetchInitialData ERROR:", err);
-      alert("Ma'lumotlarni yuklashda xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ma'lumotlarni yuklashda ошибка: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -70,8 +74,33 @@ const Cashier = () => {
   };
 
   // --- Cart Operations ---
+  const handleScanBarcode = async (barcode) => {
+    setShowScanner(false);
+    try {
+      const { data: prod } = await api.get(`/catalog/barcode/${barcode}`);
+      
+      // Play beep for 2 seconds
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 2000);
+      } catch (e) { console.error('Audio beep failed', e); }
+
+      setScannedProduct(prod);
+    } catch (err) {
+      toast.error('Продукт с таким штрих-кодом не найден');
+    }
+  };
+
   const addToCart = (product) => {
-    if (!shift) return alert("Avval smenani oching!");
+    if (!shift) return toast.success("Avval smenani oching!");
     
     setCart(prev => {
       const existing = prev.find(item => item.product_id === product.id);
@@ -118,26 +147,26 @@ const Cashier = () => {
       if (shiftModalState.type === 'open') {
         const res = await api.post('/cashier/shift/open', { opening_cash: data.opening_cash });
         setShift(res.data);
-        alert("Smena ochildi!");
+        toast.success("Smena ochildi!");
       } else if (shiftModalState.type === 'close') {
         await api.post('/cashier/shift/close', { shift_id: shift.id, closing_cash: data.closing_cash, notes: data.notes });
         setShift(null); // Clear shift
-        alert("Smena yopildi!");
+        toast.success("Smena yopildi!");
       } else if (shiftModalState.type === 'operation') {
         await api.post('/cashier/shift/cash-operation', { shift_id: shift.id, type: data.type, amount: data.amount, reason: data.reason });
-        alert("Kassa operatsiyasi saqlandi!");
+        toast.success("Kassa operatsiyasi saqlandi!");
         refreshShift();
       }
       setShiftModalState({ isOpen: false, type: 'open' });
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
   // --- Payment Operations ---
   const handlePaymentClick = useCallback(() => {
-    if (!shift) return alert("Avval smenani oching!");
-    if (cart.length === 0) return alert("Korzina bo'sh!");
+    if (!shift) return toast.success("Avval smenani oching!");
+    if (cart.length === 0) return toast.success("Korzina bo'sh!");
     setPaymentModalOpen(true);
   }, [cart, shift]);
 
@@ -183,7 +212,7 @@ const Cashier = () => {
       }
       
     } catch (err) {
-      alert('Xatolik: ' + (err.response?.data?.error || err.message));
+      toast.error('Ошибка: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -193,7 +222,7 @@ const Cashier = () => {
       setDebtors([...debtors, res.data]);
       return res.data;
     } catch (err) {
-      alert("Qarzdor yaratishda xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Qarzdor yaratishda ошибка: " + (err.response?.data?.error || err.message));
       return null;
     }
   };
@@ -247,13 +276,20 @@ const Cashier = () => {
             <input 
               ref={searchInputRef}
               type="text" 
-              placeholder="Mahsulot qidirish... (Ctrl+F)" 
+              placeholder="Продукт qidirish... (Ctrl+F)" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
               <button className="clear-search" onClick={() => setSearchQuery('')}><X size={16}/></button>
             )}
+            <button 
+              className="pos-icon-btn" 
+              onClick={() => setShowScanner(true)}
+              style={{ position: 'absolute', right: searchQuery ? '40px' : '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--primary)' }}
+            >
+              <Camera size={20} />
+            </button>
           </div>
         </div>
 
@@ -271,7 +307,7 @@ const Cashier = () => {
               <Power size={18} /> Smenani Ochish
             </button>
           )}
-          <button className="pos-icon-btn logout" onClick={logout} title="Chiqish"><Lock size={20} /></button>
+          <button className="pos-icon-btn logout" onClick={logout} title="Выйти"><Lock size={20} /></button>
         </div>
       </header>
 
@@ -307,12 +343,12 @@ const Cashier = () => {
 
           <div className="pos-grid">
             {products.filter(p => {
-              if (!p.is_active) return false;
+              if (!p.is_active || p.is_available === false) return false;
               if (searchQuery) return p.name.toLowerCase().includes(searchQuery.toLowerCase());
               return p.category_id === activeCategory;
             }).map(p => {
               const inCart = cart.find(c => c.product_id === p.id);
-              const imgUrl = p.image_url.startsWith('/') ? api.defaults.baseURL.replace('/api', '') + p.image_url : p.image_url;
+              const imgUrl = p.image_url.startsWith('/') ? api.defaults.baseURL.replace('/api/v1', '') + p.image_url : p.image_url;
               return (
                 <div 
                   key={p.id} 
@@ -345,7 +381,7 @@ const Cashier = () => {
             {cart.length === 0 ? (
               <div className="pos-cart-empty">
                 <ShoppingCart size={48} />
-                <p>Korzina bo'sh<br/>Mahsulot tanlang</p>
+                <p>Korzina bo'sh<br/>Продукт tanlang</p>
               </div>
             ) : (
               <AnimatePresence>
@@ -386,7 +422,7 @@ const Cashier = () => {
               disabled={cart.length === 0 || !shift}
             >
               <Banknote size={24} />
-              <span>To'lov (F12)</span>
+              <span>Оплата (F12)</span>
             </button>
           </div>
         </div>
@@ -493,6 +529,42 @@ const Cashier = () => {
         .pos-checkout-btn:active:not(.disabled) { transform: translateY(0); }
         .pos-checkout-btn.disabled { background: #cbd5e1; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
       `}</style>
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleScanBarcode}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {scannedProduct && (
+        <div className="modal-overlay" onClick={() => setScannedProduct(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <h2>Продукт найден!</h2>
+            <p style={{ margin: '1rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+              {scannedProduct.name}
+            </p>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)' }}>
+              Цена: {scannedProduct.price?.toLocaleString()} сум / {scannedProduct.unit}
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button className="btn-secondary" onClick={() => setScannedProduct(null)} style={{ flex: 1 }}>
+                Отмена
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={() => {
+                  addToCart(scannedProduct);
+                  toast.success(`"${scannedProduct.name}" добавлен`, { position: 'bottom-center' });
+                  setScannedProduct(null);
+                }} 
+                style={{ flex: 1 }}
+              >
+                В корзину
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

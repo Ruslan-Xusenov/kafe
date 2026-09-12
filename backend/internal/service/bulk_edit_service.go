@@ -11,11 +11,11 @@ func (s *OrderService) BulkEditOrder(orderID int, addItems []models.OrderItem, c
 }, userID int, role string) error {
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil || order == nil {
-		return fmt.Errorf("buyurtma topilmadi")
+		return fmt.Errorf("заказ topilmadi")
 	}
 
 	if order.Status == models.StatusDelivered || order.Status == models.StatusCancelled {
-		return fmt.Errorf("bu buyurtma allaqachon yopilgan")
+		return fmt.Errorf("bu заказ allaqachon yopilgan")
 	}
 
 	var addedItemsForPrint []models.OrderItem

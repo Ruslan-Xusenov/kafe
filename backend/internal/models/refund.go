@@ -30,8 +30,8 @@ type Refund struct {
 
 // Valid refund reasons
 var ValidRefundReasons = map[string]string{
-	"customer_complaint": "Mijoz shikoyati",
-	"wrong_order":        "Noto'g'ri buyurtma",
+	"customer_complaint": "Клиент shikoyati",
+	"wrong_order":        "Noto'g'ri заказ",
 	"quality_issue":      "Sifat muammosi",
 	"overcharge":         "Ortiqcha hisoblangan",
 	"cancelled":          "Bekor qilingan",

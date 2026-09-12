@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
@@ -34,7 +35,7 @@ const Courier = () => {
       fetchOrders();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Ошибка при принятии заказа');
+      toast.error('Ошибка при принятии заказа');
     }
   };
 
@@ -47,7 +48,7 @@ const Courier = () => {
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setOrders(prev);
-      alert('Ошибка при обновлении статуса');
+      toast.error('Ошибка при обновлении статуса');
     }
   };
 

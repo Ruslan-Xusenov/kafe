@@ -16,7 +16,13 @@ const PAYMENT_METHODS = ['cash', 'card', 'click', 'nasiya'];
 const TableDetailScreen = ({ route, navigation }) => {
   const { t } = useLangStore();
   const { tables, fetchTables, fetchActiveOrder, activeOrder, clearActiveOrder } = useWaiterStore();
-  const table = tables.find((t) => t.id === route.params.table?.id) || route.params.table;
+
+  // FIX #4: route.params.table bo'sh bo'lganda xavfsiz ishlash
+  const routeTable = route.params?.table;
+  if (!routeTable) {
+    return null;
+  }
+  const table = tables.find((tb) => tb.id === routeTable.id) || routeTable;
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState(null);
@@ -106,6 +112,8 @@ const TableDetailScreen = ({ route, navigation }) => {
 
   // ─── SET SERVICE FEE ────────────────────────────────────────────────────────
   const handleSetServiceFee = async () => {
+    // FIX #3: order null bo'lsa modal yopiladi
+    if (!order) { setServiceFeeModal(false); return; }
     const pct = parseFloat(feePercent);
     if (isNaN(pct) || pct < 0 || pct > 100) {
       Alert.alert(t.errorTitle, t.enterValidPercent);
@@ -137,7 +145,8 @@ const TableDetailScreen = ({ route, navigation }) => {
   // ─── CANCEL ITEM ────────────────────────────────────────────────────────────
   const handleCancelItem = async () => {
     const qty = parseFloat(cancelQty);
-    if (!cancelItemModal || isNaN(qty) || qty <= 0) return;
+    // FIX #3: order null bo'lganda xavfsiz ishlash
+    if (!cancelItemModal || !order || isNaN(qty) || qty <= 0) return;
     try {
       await api.cancelProductFromOrder(order.id, cancelItemModal.product_id, qty);
       setCancelItemModal(null);
@@ -216,13 +225,13 @@ const TableDetailScreen = ({ route, navigation }) => {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemName}>{item.product_name}</Text>
                     <Text style={styles.itemMeta}>
-                      {item.quantity} {item.unit} × {item.price.toLocaleString()} {t.sum}
+                      {item.quantity} {item.unit} × {(item.price ?? 0).toLocaleString()} {t.sum}
                     </Text>
                     {item.comment ? <Text style={styles.itemComment}>💬 {item.comment}</Text> : null}
                   </View>
                   <View style={styles.itemRight}>
                     <Text style={styles.itemTotal}>
-                      {(item.price * item.quantity).toLocaleString()} {t.sum}
+                      {((item.price ?? 0) * item.quantity).toLocaleString()} {t.sum}
                     </Text>
                     <TouchableOpacity
                       style={styles.cancelItemBtn}
@@ -257,7 +266,8 @@ const TableDetailScreen = ({ route, navigation }) => {
               <View style={[styles.totalRow, { marginTop: 4 }]}>
                 <Text style={styles.grandTotalLabel}>{t.total}</Text>
                 <Text style={styles.grandTotal}>
-                  {order.total_price.toLocaleString()} {t.sum}
+                  {/* FIX #5: total_price null bo'lishi mumkin */}
+                  {(order.total_price ?? 0).toLocaleString()} {t.sum}
                 </Text>
               </View>
             </View>

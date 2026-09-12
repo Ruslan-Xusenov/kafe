@@ -134,7 +134,7 @@ func (h *DebtHandler) PayDebt(c *gin.Context) {
 	}
 
 	if req.Amount > debtor.TotalDebt {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "To'lov summasi qarzdan ko'p"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Оплата summasi qarzdan ko'p"})
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *DebtHandler) PayDebt(c *gin.Context) {
 	// Return updated debtor
 	updatedDebtor, _ := h.debtRepo.GetDebtorByID(id)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "To'lov qabul qilindi",
+		"message": "Оплата принято",
 		"debtor":  updatedDebtor,
 		"record":  record,
 	})

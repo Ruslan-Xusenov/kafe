@@ -39,7 +39,7 @@ func (r *RefundRepository) CreateRefund(refund *models.Refund) error {
 		refund.RequestedBy, refund.RequestedByName,
 	).Scan(&refund.ID, &refund.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("buyurtma topilmadi yoki refund summasi qaytarilmagan summadan oshib ketdi")
+		return fmt.Errorf("заказ topilmadi yoki refund summasi qaytarilmagan summadan oshib ketdi")
 	}
 	return err
 }

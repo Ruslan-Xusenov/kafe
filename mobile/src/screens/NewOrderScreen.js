@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  SafeAreaView, TextInput, Alert, ActivityIndicator, Image,
+  TextInput, Alert, ActivityIndicator, Image,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
+// FIX #6: SafeAreaView react-native-safe-area-context dan import qilinadi (react-native emas)
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Minus, Plus, ShoppingCart, Send } from 'lucide-react-native';
 import { useLangStore } from '../store/langStore';
 import { useWaiterStore } from '../store/waiterStore';
@@ -16,7 +18,7 @@ const NewOrderScreen = ({ route, navigation }) => {
   const { categories, products, loadingMenu, fetchMenu } = useWaiterStore();
 
   const [selectedCat, setSelectedCat] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('')  ;
   const { items: cart, addItem, updateQuantity, removeItem, clearCart, getTotalPrice } = useCartStore();
   const [sending, setSending] = useState(false);
   const [showCart, setShowCart] = useState(false);
@@ -101,7 +103,7 @@ const NewOrderScreen = ({ route, navigation }) => {
         )}
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.productPrice}>{item.price.toLocaleString()} {t.sum}</Text>
+          <Text style={styles.productPrice}>{(item.price ?? 0).toLocaleString()} {t.sum}</Text>
           {item.unit && <Text style={styles.productUnit}>{item.unit}</Text>}
         </View>
         <View style={styles.productActions}>
@@ -133,139 +135,143 @@ const NewOrderScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.root}>
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ArrowLeft color="#fff" size={22} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginHorizontal: 12 }}>
-          <Text style={styles.headerTitle}>{t.newOrder}</Text>
-          <Text style={styles.headerSub}>{table.name || `${t.table} ${table.id}`}</Text>
-        </View>
-        <TouchableOpacity style={styles.cartToggle} onPress={() => setShowCart(!showCart)}>
-          <ShoppingCart color={cartCount > 0 ? '#f97316' : '#888'} size={22} />
-          {cartCount > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{cartCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Search */}
-      <View style={styles.searchRow}>
-        <Search color="#555" size={16} style={{ marginLeft: 12 }} />
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={t.search}
-          placeholderTextColor="#555"
-        />
-      </View>
-
-      {/* Categories */}
-      <FlatList
-        data={[{ id: null, name: t.allCategories }, ...categories]}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.catChip, selectedCat === item.id && styles.catChipActive]}
-            onPress={() => setSelectedCat(item.id)}
-          >
-            <Text style={[styles.catChipText, selectedCat === item.id && styles.catChipTextActive]}>
-              {item.name}
-            </Text>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ArrowLeft color="#fff" size={22} />
           </TouchableOpacity>
-        )}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.catList}
-        style={styles.catScroll}
-      />
-
-      {/* Products or Cart view */}
-      {showCart ? (
-        <FlatList
-          data={cart}
-          keyExtractor={(item) => item.product_id.toString()}
-          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={{ fontSize: 40 }}>🛒</Text>
-              <Text style={styles.emptyText}>{t.cartEmpty}</Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.cartItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cartItemName}>{item.name}</Text>
-                <Text style={styles.cartItemPrice}>{item.price.toLocaleString()} {t.sum}</Text>
-              </View>
-              <View style={styles.qtyControl}>
-                <TouchableOpacity
-                  style={styles.qtyBtn}
-                  onPress={() => removeAll(item.product_id)}
-                >
-                  <Minus size={14} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.qtyText}>{item.quantity}</Text>
-                <TouchableOpacity
-                  style={styles.qtyBtn}
-                  onPress={() => addToCart({ id: item.product_id, price: item.price, unit: item.unit, quantity_step: item.step, min_quantity: item.step })}
-                >
-                  <Plus size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.cartItemTotal}>
-                {(item.price * item.quantity).toLocaleString()}
-              </Text>
-            </View>
-          )}
-        />
-      ) : (
-        loadingMenu && filtered.length === 0 ? (
-          <View style={styles.center}>
-            <ActivityIndicator color="#f97316" size="large" />
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.headerTitle}>{t.newOrder}</Text>
+            <Text style={styles.headerSub}>{table.name || `${t.table} ${table.id}`}</Text>
           </View>
-        ) : (
-          <FlatList
-            data={filtered}
-            renderItem={renderProduct}
-            keyExtractor={(p) => p.id.toString()}
-            contentContainerStyle={styles.productList}
-            ListEmptyComponent={
-              <View style={styles.center}>
-                <Text style={{ color: '#555' }}>🔍 {searchQuery}</Text>
+          <TouchableOpacity style={styles.cartToggle} onPress={() => setShowCart(!showCart)}>
+            <ShoppingCart color={cartCount > 0 ? '#f97316' : '#888'} size={22} />
+            {cartCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartCount}</Text>
               </View>
-            }
-          />
-        )
-      )}
-
-      {/* Submit bar */}
-      {cart.length > 0 && (
-        <View style={styles.submitBar}>
-          <View>
-            <Text style={{ color: '#aaa', fontSize: 12 }}>{t.orderTotal}</Text>
-            <Text style={styles.submitTotal}>{cartTotal.toLocaleString()} {t.sum}</Text>
-          </View>
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={sending}>
-            {sending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Send size={18} color="#fff" />
-                <Text style={styles.submitBtnText}>{t.sendOrder}</Text>
-              </>
             )}
           </TouchableOpacity>
         </View>
-      )}
+
+        {/* Search */}
+        <View style={styles.searchRow}>
+          <Search color="#555" size={16} style={{ marginLeft: 12 }} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t.search}
+            placeholderTextColor="#555"
+          />
+        </View>
+
+        {/* Categories */}
+        <FlatList
+          data={[{ id: null, name: t.allCategories }, ...categories]}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.catChip, selectedCat === item.id && styles.catChipActive]}
+              onPress={() => setSelectedCat(item.id)}
+            >
+              <Text style={[styles.catChipText, selectedCat === item.id && styles.catChipTextActive]}>
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catList}
+          style={styles.catScroll}
+        />
+
+        {/* Products or Cart view */}
+        {showCart ? (
+          <FlatList
+            data={cart}
+            keyExtractor={(item) => item.product_id.toString()}
+            contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+            ListEmptyComponent={
+              <View style={styles.center}>
+                <Text style={{ fontSize: 40 }}>🛒</Text>
+                <Text style={styles.emptyText}>{t.cartEmpty}</Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.cartItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cartItemName}>{item.name}</Text>
+                  <Text style={styles.cartItemPrice}>{(item.price ?? 0).toLocaleString()} {t.sum}</Text>
+                </View>
+                <View style={styles.qtyControl}>
+                  {/* FIX #8: Cart'da Minus endi miqdorni kamaytiradi (to'liq o'chirmaydi) */}
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => updateQuantity(item.product_id, -(item.step || 1))}
+                  >
+                    <Minus size={14} color="#fff" />
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => addToCart({ id: item.product_id, price: item.price, unit: item.unit, quantity_step: item.step, min_quantity: item.step })}
+                  >
+                    <Plus size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => removeAll(item.product_id)} style={{ padding: 6 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 16 }}>✕</Text>
+                </TouchableOpacity>
+                <Text style={styles.cartItemTotal}>
+                  {((item.price ?? 0) * item.quantity).toLocaleString()}
+                </Text>
+              </View>
+            )}
+          />
+        ) : (
+          loadingMenu && filtered.length === 0 ? (
+            <View style={styles.center}>
+              <ActivityIndicator color="#f97316" size="large" />
+            </View>
+          ) : (
+            <FlatList
+              data={filtered}
+              renderItem={renderProduct}
+              keyExtractor={(p) => p.id.toString()}
+              contentContainerStyle={styles.productList}
+              ListEmptyComponent={
+                <View style={styles.center}>
+                  <Text style={{ color: '#555' }}>🔍 {searchQuery}</Text>
+                </View>
+              }
+            />
+          )
+        )}
+
+        {/* Submit bar */}
+        {cart.length > 0 && (
+          <View style={styles.submitBar}>
+            <View>
+              <Text style={{ color: '#aaa', fontSize: 12 }}>{t.orderTotal}</Text>
+              <Text style={styles.submitTotal}>{cartTotal.toLocaleString()} {t.sum}</Text>
+            </View>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={sending}>
+              {sending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Send size={18} color="#fff" />
+                  <Text style={styles.submitBtnText}>{t.sendOrder}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

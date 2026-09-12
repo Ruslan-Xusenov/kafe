@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
+  withCredentials: true,
 });
 
 // Interceptor to add token to requests
@@ -14,9 +15,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Backend xato xabarlarini O'zbekchaga tarjima
+// Backend ошибка xabarlarini O'zbekchaga tarjima
 const translateError = (err) => {
-  // Tarmoq xatosi (backend o'chiq yoki ulanish yo'q)
+  // Tarmoq ошибкаsi (backend o'chiq yoki ulanish yo'q)
   if (!err.response) {
     return 'Server bilan aloqa yo\'q. Internet yoki server holatini tekshiring.';
   }
@@ -33,7 +34,7 @@ const translateError = (err) => {
     'wrong password':                    'Parol noto\'g\'ri',
     'account not found':                 'Bunday hisob topilmadi',
   };
-  return map[serverMsg] || err.response?.data?.error || 'Kirish paytida xatolik yuz berdi';
+  return map[serverMsg] || err.response?.data?.error || 'Kirish paytida ошибка yuz berdi';
 };
 
 export const useAuthStore = create((set) => ({
@@ -52,7 +53,7 @@ export const useAuthStore = create((set) => ({
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true, role: user.role };
     } catch (err) {
-      const msg = translateError(err) || 'Kirish paytida xatolik yuz berdi';
+      const msg = translateError(err) || 'Kirish paytida ошибка yuz berdi';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }
@@ -67,7 +68,7 @@ export const useAuthStore = create((set) => ({
       set({ user, token, isAuthenticated: true, loading: false });
       return { success: true };
     } catch (err) {
-      const msg = translateError(err) || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
+      const msg = translateError(err) || 'Ro\'yxatdan o\'tishda ошибка yuz berdi';
       set({ error: msg, loading: false });
       return { success: false, error: msg };
     }
@@ -84,10 +85,11 @@ export const useAuthStore = create((set) => ({
     try {
       const res = await api.get('/auth/me');
       set({ user: res.data, isAuthenticated: true });
-      // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      localStorage.removeItem('token');
-      set({ user: null, token: null, isAuthenticated: false });
+      if (err.response && err.response.status === 401) {
+        localStorage.removeItem('token');
+        set({ user: null, token: null, isAuthenticated: false });
+      }
     }
   }
 }));

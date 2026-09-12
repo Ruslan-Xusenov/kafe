@@ -1,6 +1,6 @@
 # 🍵 Kafe — Server Deploy Qo'llanmasi
 
-> **Server:** `**.***.**.****` | **Domen:** `kafe.ruslandev.uz`  
+> **Server:** `**.***.**.**` | **Domen:** `kafe.ruslandev.uz`
 > **Stack:** Go + React (Vite) + PostgreSQL + Telegram Bot | Docker Compose + Nginx
 
 ---
@@ -30,10 +30,10 @@ Docker Network: kafe-network
 
 Domen provayderingiz paneliga kiring va A-recordlar qo'shing:
 
-| Nom | Tur | Qiymat | TTL |
-|-----|-----|--------|-----|
-| `kafe.ruslandev.uz` | A | `46.224.133.140` | 300 |
-| `www.kafe.ruslandev.uz` | A | `46.224.133.140` | 300 |
+| Nom                       | Tur | Qiymat           | TTL |
+| ------------------------- | --- | ---------------- | --- |
+| `kafe.ruslandev.uz`     | A   | `46.2xx.xx.xx` | 300 |
+| `www.kafe.ruslandev.uz` | A   | `46.2xx.xx.xx` | 300 |
 
 > DNS tarqalishi 5-30 daqiqa vaqt oladi. Tekshirish: `ping kafe.ruslandev.uz`
 
@@ -87,7 +87,7 @@ DB_USER=postgres
 DB_PASSWORD=kafe2026
 DB_NAME=kafe_db
 JWT_SECRET=Yetuk_Kafe_2026
-TELEGRAM_BOT_TOKEN=8263024052:AAES9kj_XBqqRlLbTFBLuY1z0qG8-FluRWc
+TELEGRAM_BOT_TOKEN=8884131473:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxds
 SUPER_ADMIN_ID=8462446411
 TELEGRAM_CHAT_ID=8462446411
 PRINTER_ENABLED=false
@@ -99,6 +99,7 @@ sudo bash server-deploy.sh
 ```
 
 Script avtomatik bajaradi:
+
 - Docker & Docker Compose o'rnatish
 - Nginx o'rnatish va `kafe.ruslandev.uz` sozlash
 - `.env.production` → `backend/.env` ga ko'chirish
@@ -115,11 +116,13 @@ sudo certbot --nginx -d kafe.ruslandev.uz -d www.kafe.ruslandev.uz
 ```
 
 So'ralganda:
+
 - Email kiriting
 - Terms of Service → `A`
 - HTTP → HTTPS redirect → `2`
 
 Yangilashni avtomatik qilish:
+
 ```bash
 sudo systemctl enable certbot.timer
 sudo certbot renew --dry-run
@@ -154,13 +157,13 @@ docker exec -it kafe-db-prod psql -U postgres -d kafe_db
 
 ## Muammolar va Yechimlar
 
-| Muammo | Sabab | Yechim |
-|--------|-------|--------|
-| Container ishlamayapti | Kod xatosi | `docker compose logs backend` |
-| Nginx 502 Bad Gateway | Container to'xtagan | `docker compose restart backend` |
-| DB ulanmaydi | `DB_HOST` noto'g'ri | `.env` da `DB_HOST=db` bo'lishi shart |
-| Bot ishlamaydi | Token xato | `docker compose logs telegram-bot` |
-| Port band | Boshqa jarayon | `ss -tlnp \| grep 8080` |
+| Muammo                 | Sabab                 | Yechim                                    |
+| ---------------------- | --------------------- | ----------------------------------------- |
+| Container ishlamayapti | Kod xatosi            | `docker compose logs backend`           |
+| Nginx 502 Bad Gateway  | Container to'xtagan   | `docker compose restart backend`        |
+| DB ulanmaydi           | `DB_HOST` noto'g'ri | `.env` da `DB_HOST=db` bo'lishi shart |
+| Bot ishlamaydi         | Token xato            | `docker compose logs telegram-bot`      |
+| Port band              | Boshqa jarayon        | `ss -tlnp \| grep 8080`                  |
 
 ---
 
@@ -180,9 +183,9 @@ ufw enable
 
 ## Deploy Tekshiruvi
 
-| Test | URL | Natija |
-|------|-----|--------|
-| Frontend | `http://kafe.ruslandev.uz` | React sahifa |
-| API | `http://kafe.ruslandev.uz/api/health` | `{"status":"ok"}` |
-| HTTPS | `https://kafe.ruslandev.uz` | 🔒 SSL lock |
-| WebSocket | Browser DevTools → Network → WS | Connected |
+| Test      | URL                                     | Natija              |
+| --------- | --------------------------------------- | ------------------- |
+| Frontend  | `http://kafe.ruslandev.uz`            | React sahifa        |
+| API       | `http://kafe.ruslandev.uz/api/health` | `{"status":"ok"}` |
+| HTTPS     | `https://kafe.ruslandev.uz`           | 🔒 SSL lock         |
+| WebSocket | Browser DevTools → Network → WS       | Connected           |

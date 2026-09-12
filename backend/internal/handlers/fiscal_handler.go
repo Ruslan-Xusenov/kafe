@@ -23,7 +23,7 @@ func NewFiscalHandler(fiscalService *service.FiscalService, auditRepo *repositor
 func (h *FiscalHandler) GetReceiptByOrder(c *gin.Context) {
 	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Noto'g'ri buyurtma ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Noto'g'ri заказ ID"})
 		return
 	}
 
@@ -93,7 +93,7 @@ func (h *FiscalHandler) UpdateSettings(c *gin.Context) {
 func (h *FiscalHandler) ResendToOFD(c *gin.Context) {
 	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Noto'g'ri buyurtma ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Noto'g'ri заказ ID"})
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *FiscalHandler) ResendToOFD(c *gin.Context) {
 		"receipt_number": receipt.ReceiptNumber,
 	})
 
-	c.JSON(http.StatusOK, gin.H{"message": "OFD ga yuborish so'rovi qabul qilindi"})
+	c.JSON(http.StatusOK, gin.H{"message": "Запрос на отправку в ОФД принят"})
 }
 
 // GetStats returns fiscal statistics

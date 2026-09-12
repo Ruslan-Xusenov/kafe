@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert, useWindowDimensions } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import api from '../api';
 import { ChefHat, Flame, CheckCircle2, Clock, RefreshCw } from 'lucide-react-native';
 
 const STATUS_CONFIG = {
-  new:       { label: 'Новый',          color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
-  preparing: { label: 'Готовится', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-  ready:     { label: 'Готово',         color: '#34d399', bg: 'rgba(16,185,129,0.15)' },
+  new:       { label: 'Yangi / Новый',       color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
+  preparing: { label: 'Tayyorlanmoqda / Готовится', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+  ready:     { label: 'Tayyor / Готово',     color: '#34d399', bg: 'rgba(16,185,129,0.15)' },
 };
 
 const KitchenScreen = () => {
@@ -18,9 +18,16 @@ const KitchenScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const logout = useAuthStore(s => s.logout);
+  // FIX #10: Polling interval uchun ref
+  const pollingRef = useRef(null);
 
   useEffect(() => {
     fetchOrders();
+    // FIX #10: Har 15 soniyada avtomatik yangilanish
+    pollingRef.current = setInterval(fetchOrders, 15000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, []);
 
   const fetchOrders = async () => {
@@ -48,7 +55,7 @@ const KitchenScreen = () => {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
       fetchOrders();
     } catch (err) {
-      Alert.alert('Ошибка', 'Ошибка при обновлении статуса');
+      Alert.alert('Xatolik', 'Status yangilashda xatolik');
     }
   };
 
@@ -88,18 +95,18 @@ const KitchenScreen = () => {
           {isNew && (
             <TouchableOpacity style={[styles.btn, { backgroundColor: STATUS_CONFIG.preparing.bg }]} onPress={() => updateStatus(order.id, 'preparing')}>
               <Flame size={16} color={STATUS_CONFIG.preparing.color} />
-              <Text style={[styles.btnText, { color: STATUS_CONFIG.preparing.color }]}>Начать готовку</Text>
+              <Text style={[styles.btnText, { color: STATUS_CONFIG.preparing.color }]}>Tayyorlashni boshlash</Text>
             </TouchableOpacity>
           )}
           {isPrep && (
             <TouchableOpacity style={[styles.btn, { backgroundColor: STATUS_CONFIG.ready.bg }]} onPress={() => updateStatus(order.id, 'ready')}>
               <CheckCircle2 size={16} color={STATUS_CONFIG.ready.color} />
-              <Text style={[styles.btnText, { color: STATUS_CONFIG.ready.color }]}>Готово!</Text>
+              <Text style={[styles.btnText, { color: STATUS_CONFIG.ready.color }]}>Tayyor!</Text>
             </TouchableOpacity>
           )}
           {isReady && (
             <View style={styles.waitingCourier}>
-              <Text style={{color: STATUS_CONFIG.ready.color, fontWeight: 'bold'}}>Ожидает курьера...</Text>
+              <Text style={{ color: STATUS_CONFIG.ready.color, fontWeight: 'bold' }}>Kuryer kutilmoqda...</Text>
             </View>
           )}
         </View>
@@ -110,9 +117,7 @@ const KitchenScreen = () => {
   const renderColumn = (status) => {
     const colOrders = orders.filter(o => o.status === status);
     const cfg = STATUS_CONFIG[status];
-    
-    // On mobile, column takes 100% width and auto height (grows with content)
-    // On desktop, column takes 320px width and 100% height
+
     return (
       <View style={[styles.column, { width: isDesktop ? 320 : '100%', height: isDesktop ? '100%' : 'auto' }]} key={status}>
         <View style={[styles.colHeader, { borderBottomColor: cfg.color }]}>
@@ -124,11 +129,11 @@ const KitchenScreen = () => {
         <View style={isDesktop ? styles.colBodyDesktop : styles.colBodyMobile}>
           {isDesktop ? (
             <ScrollView showsVerticalScrollIndicator={false}>
-              {colOrders.length === 0 ? <Text style={styles.emptyText}>Пусто</Text> : colOrders.map(renderOrderCard)}
+              {colOrders.length === 0 ? <Text style={styles.emptyText}>Bo'sh / Пусто</Text> : colOrders.map(renderOrderCard)}
             </ScrollView>
           ) : (
             <View>
-              {colOrders.length === 0 ? <Text style={styles.emptyText}>Пусто</Text> : colOrders.map(renderOrderCard)}
+              {colOrders.length === 0 ? <Text style={styles.emptyText}>Bo'sh / Пусто</Text> : colOrders.map(renderOrderCard)}
             </View>
           )}
         </View>
@@ -148,23 +153,24 @@ const KitchenScreen = () => {
         <View style={styles.headerLeft}>
           <ChefHat color="#fff" size={24} />
           <View>
-            <Text style={styles.headerTitle}>Кухня</Text>
-            <Text style={styles.headerSubtitle}>{orders.length} активных заказов</Text>
+            <Text style={styles.headerTitle}>Oshxona / Кухня</Text>
+            {/* FIX #10: Polling indikatori */}
+            <Text style={styles.headerSubtitle}>{orders.length} faol buyurtma · 15s yangilanadi</Text>
           </View>
         </View>
-        <View style={{flexDirection: 'row', gap: 10}}>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity onPress={handleRefresh} style={styles.iconBtn}>
-            <RefreshCw color="#888" size={20} />
+            <RefreshCw color={refreshing ? '#f97316' : '#888'} size={20} />
           </TouchableOpacity>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Выйти</Text>
+            <Text style={styles.logoutText}>Chiqish</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         horizontal={isDesktop}
-        showsHorizontalScrollIndicator={isDesktop} 
+        showsHorizontalScrollIndicator={isDesktop}
         showsVerticalScrollIndicator={!isDesktop}
         style={styles.board}
         contentContainerStyle={isDesktop ? { paddingHorizontal: 15, gap: 15 } : { padding: 15, gap: 20 }}
@@ -187,11 +193,11 @@ const styles = StyleSheet.create({
   iconBtn: { padding: 8, backgroundColor: '#1a1a1f', borderRadius: 8 },
   logoutBtn: { padding: 8, paddingHorizontal: 12, backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 8, justifyContent: 'center' },
   logoutText: { color: '#ef4444', fontWeight: 'bold', fontSize: 12 },
-  
+
   board: { flex: 1 },
   column: { padding: 0 },
   colHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottomWidth: 2, marginBottom: 15 },
-  colLabel: { fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
+  colLabel: { fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase' },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   badgeText: { fontWeight: 'bold', fontSize: 12 },
   colBodyDesktop: { flex: 1 },
@@ -203,19 +209,19 @@ const styles = StyleSheet.create({
   orderNum: { color: '#f97316', fontSize: 18, fontWeight: 'bold' },
   timeWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   timeText: { color: '#888', fontSize: 12 },
-  
+
   itemsList: { marginBottom: 10 },
   itemRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
   itemQty: { color: '#f97316', fontWeight: 'bold', minWidth: 30 },
   itemName: { color: '#fff', flex: 1 },
-  
+
   noteBox: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8, marginBottom: 10 },
   noteText: { color: '#aaa', fontStyle: 'italic', fontSize: 12 },
-  
+
   actions: { marginTop: 5 },
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, borderRadius: 8 },
   btnText: { fontWeight: 'bold', fontSize: 14 },
-  waitingCourier: { padding: 12, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8 }
+  waitingCourier: { padding: 12, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8 },
 });
 
 export default KitchenScreen;

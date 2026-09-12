@@ -30,7 +30,7 @@ func TestCreateRefund(t *testing.T) {
 	refund := &models.Refund{
 		OrderID:         100,
 		Amount:          50000,
-		Reason:          "Mahsulot sifati yomon",
+		Reason:          "Продукт sifati yomon",
 		RequestedBy:     func() *int { id := 2; return &id }(),
 		RequestedByName: "Waiter A",
 	}
@@ -124,7 +124,7 @@ func TestGetPendingRefunds(t *testing.T) {
 		"id", "order_id", "amount", "reason", "reason_detail", "status", "refund_method",
 		"money_returned", "requested_by", "requested_by_name", "approved_by", "approved_by_name",
 		"created_at", "resolved_at",
-	}).AddRow(1, 100, 50000, "Xato buyurtma", "", "pending", "", false, 2, "Waiter", nil, "", now, nil)
+	}).AddRow(1, 100, 50000, "Ошибка заказ", "", "pending", "", false, 2, "Waiter", nil, "", now, nil)
 
 	mock.ExpectQuery("SELECT id, order_id, amount, reason, COALESCE\\(reason_detail, ''\\) as reason_detail, status, COALESCE\\(refund_method, ''\\) as refund_method, money_returned, requested_by, COALESCE\\(requested_by_name, ''\\) as requested_by_name, approved_by, COALESCE\\(approved_by_name, ''\\) as approved_by_name, created_at, resolved_at FROM refunds WHERE status = 'pending' ORDER BY created_at DESC").
 		WillReturnRows(rows)

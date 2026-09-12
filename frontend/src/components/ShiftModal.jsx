@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { X, Wallet, ArrowRightLeft } from 'lucide-react';
 
@@ -10,14 +11,14 @@ const ShiftModal = ({ isOpen, onClose, type, currentShift, onConfirm }) => {
 
   const handleSubmit = () => {
     const val = parseFloat(amount);
-    if (isNaN(val) || val < 0) return alert("Iltimos, to'g'ri summa kiriting");
+    if (isNaN(val) || val < 0) return toast.success("Iltimos, to'g'ri summa kiriting");
 
     if (type === 'open') {
       onConfirm({ opening_cash: val });
     } else if (type === 'close') {
       onConfirm({ closing_cash: val, notes });
     } else if (type === 'operation') {
-      if (!notes) return alert("Sabab kiritilishi shart");
+      if (!notes) return toast.success("Sabab kiritilishi shart");
       onConfirm({ type: operationType, amount: val, reason: notes });
     }
   };
@@ -113,7 +114,7 @@ const ShiftModal = ({ isOpen, onClose, type, currentShift, onConfirm }) => {
                    border: 'none', fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', transition: 'all 0.2s' }}
         >
           {type === 'open' ? 'Smenani Boshlash' : 
-           type === 'close' ? 'Smenani Yopish' : 'Tasdiqlash'}
+           type === 'close' ? 'Smenani Yopish' : 'Подтвердить'}
         </button>
       </div>
     </div>

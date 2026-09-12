@@ -232,7 +232,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm, debtors = [], o
           .payment-modal-total span { color: #166534; font-size: 0.95rem; }
           .payment-modal-total strong { font-size: 1.25rem; color: #15803d; }
           .pm-quick-buttons {
-            display: grid; grid-template-columns: repeat(4, 1fr);
+            display: grid; grid-template-columns: repeat(5, 1fr);
             gap: 0.5rem; margin-bottom: 1rem;
           }
           .pm-quick-btn {

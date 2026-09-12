@@ -1,16 +1,14 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+
+// FIX #1: import doira bog'liqligini yo'q qilish uchun useAuthStore bu yerdan olib tashlandi.
+// Interceptor ichida lazy require() ishlatiladi.
 
 const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === 'web'
-    ? 'https://kafe.securehub.uz/api'
-    : 'https://kafe.securehub.uz/api');
+  process.env.EXPO_PUBLIC_API_URL || 'https://kafe.securehub.uz/api';
+// FIX #14: Keraksiz Platform.OS tekshiruvi olib tashlandi (ikkalasi bir xil URL edi)
 
 const api = axios.create({ baseURL: BASE_URL, timeout: 15000 });
-
-import { useAuthStore } from '../store/authStore';
 
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('token');
@@ -22,7 +20,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      useAuthStore.getState().logout();
+      // FIX #1: Circular dependency oldini olish uchun lazy require ishlatildi
+      try {
+        const { useAuthStore } = require('../store/authStore');
+        useAuthStore.getState().logout();
+      } catch (e) {
+        console.warn('AuthStore logout error:', e);
+      }
     }
     return Promise.reject(error);
   }

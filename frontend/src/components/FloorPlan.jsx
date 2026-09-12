@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Map, Save, RotateCw, Maximize2, Circle, Square, RectangleHorizontal, ZoomIn, ZoomOut, Move, GripVertical } from 'lucide-react';
@@ -106,7 +107,7 @@ const FloorPlan = ({ tables, onTableSelect, isAdmin, onTablesUpdate }) => {
       if (onTablesUpdate) onTablesUpdate();
       setEditMode(false);
     } catch (err) {
-      alert("Xatolik: " + (err.response?.data?.error || err.message));
+      toast.error("Ошибка: " + (err.response?.data?.error || err.message));
     } finally {
       setSaving(false);
     }
@@ -262,7 +263,7 @@ const FloorPlan = ({ tables, onTableSelect, isAdmin, onTablesUpdate }) => {
                 <>
                   <button className="fp-save-btn" onClick={handleSaveLayout} disabled={saving}>
                     <Save size={16} />
-                    {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                    {saving ? 'Saqlanmoqda...' : 'Сохранить'}
                   </button>
                   <button className="fp-cancel-btn" onClick={() => { setEditMode(false); setLocalTables(tables); setSelectedEditTable(null); }}>
                     Bekor
@@ -271,7 +272,7 @@ const FloorPlan = ({ tables, onTableSelect, isAdmin, onTablesUpdate }) => {
               ) : (
                 <button className="fp-edit-btn" onClick={() => setEditMode(true)}>
                   <Move size={16} />
-                  Tahrirlash
+                  Редактировать
                 </button>
               )}
             </>
@@ -289,7 +290,7 @@ const FloorPlan = ({ tables, onTableSelect, isAdmin, onTablesUpdate }) => {
             animate={{ opacity: 1, y: 0 }}
             className="fp-edit-panel glass"
           >
-            <span className="fp-edit-label">Stol: <strong>{t.name}</strong></span>
+            <span className="fp-edit-label">Стол: <strong>{t.name}</strong></span>
             <div className="fp-edit-controls">
               <div className="fp-control-group">
                 <label>Shakl:</label>
@@ -363,7 +364,7 @@ const FloorPlan = ({ tables, onTableSelect, isAdmin, onTablesUpdate }) => {
           {/* Empty state */}
           {visibleTables.length === 0 && (
             <text x="50%" y="50%" textAnchor="middle" fill="#999" fontSize="16" fontFamily="'Plus Jakarta Sans', sans-serif">
-              Bu qavatda stollar yo'q
+              Bu qavatda столlar yo'q
             </text>
           )}
         </svg>

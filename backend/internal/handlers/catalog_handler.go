@@ -89,6 +89,10 @@ func (h *CatalogHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
+	if prod.Barcode != nil && *prod.Barcode == "" {
+		prod.Barcode = nil
+	}
+
 	if err := h.service.CreateProduct(&prod); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -122,6 +126,20 @@ func (h *CatalogHandler) GetProductsByCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, prods)
 }
 
+func (h *CatalogHandler) GetProductByBarcode(c *gin.Context) {
+	barcode := c.Param("barcode")
+	prod, err := h.service.GetProductByBarcode(barcode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if prod == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Продукт не найден"})
+		return
+	}
+	c.JSON(http.StatusOK, prod)
+}
+
 func (h *CatalogHandler) UpdateProduct(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var prod models.Product
@@ -130,6 +148,10 @@ func (h *CatalogHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 	prod.ID = id
+
+	if prod.Barcode != nil && *prod.Barcode == "" {
+		prod.Barcode = nil
+	}
 
 	if err := h.service.UpdateProduct(&prod); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

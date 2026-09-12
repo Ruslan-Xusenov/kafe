@@ -1,4 +1,4 @@
-# 🍽️ Yetuk Kafe - Avtomatlashtirilgan Boshqaruv Tizimi
+# 🍽️  Kafe - Avtomatlashtirilgan Boshqaruv Tizimi
 
 Ushbu loyiha kafe va yetkazib berish xizmatlarini to'liq avtomatlashtirish uchun mo'ljallangan. Tizim onlayn buyurtmalarni qabul qilish, oshxona va kurerlar faoliyatini muvofiqlashtirish hamda lokal printer orqali cheklarni avtomatik chop etish imkonini beradi.
 
@@ -25,21 +25,27 @@ Ushbu loyiha kafe va yetkazib berish xizmatlarini to'liq avtomatlashtirish uchun
 ## 🛠️ O'rnatish va Ishga tushirish
 
 ### 1. Lokal (Docker orqali)
+
 Loyihani o'z kompyuteringizda sinab ko'rish uchun:
+
 ```bash
 docker-compose up --build
 ```
+
 Loyiha `http://localhost:3001` (Frontend) va `http://localhost:8080` (Backend) manzillarida ishga tushadi.
 
 ### 2. Serverga joylash (Production)
+
 Domen: `kafe.com`
 IP: `46.0.0.0.0`
 
 Serverdagi `deploy.sh` skriptidan foydalaning:
+
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
 ```
+
 Ushbu skript avtomatik tarzda Github'dan kodni oladi, qayta yig'adi va log yozib boradi.
 
 ---
@@ -49,11 +55,13 @@ Ushbu skript avtomatik tarzda Github'dan kodni oladi, qayta yig'adi va log yozib
 Loyihaning eng muhim qismi - bu onlayn zakazlarni kafedagi printerdan avtomatik chiqarish.
 
 ### Qanday ishlaydi?
+
 1. Saytdan zakaz tushadi -> Server uni qabul qiladi.
 2. Server WebSocket orqali kafedagi **Bridge** dasturiga xabar yuboradi.
 3. **Bridge** dasturi (Windowsda orqa fonda ishlaydi) xabarni oladi va lokal IP-dagi (`192.168.0.0`) printerga buyruq beradi.
 
 ### Bridge sozlamalari (Kafedagi PC uchun):
+
 1. `bridge/main.go` ni Windows uchun yig'ing (`.exe`).
 2. `.env` faylida quyidagilarni to'g'rilang:
    - `SERVER_WS_URL=ws://kafe.ruslandev.uz/api/ws`
@@ -65,9 +73,11 @@ Loyihaning eng muhim qismi - bu onlayn zakazlarni kafedagi printerdan avtomatik 
 ## 🔒 Xavfsizlik va Tokenlar
 
 Printer serverga ulanishi uchun doimiy (10 yillik) token ishlatiladi. Tokenni yangilash uchun:
+
 ```bash
 go run backend/gen_token.go
 ```
+
 Chiqqan tokenni `.env` faylidagi `AUTH_TOKEN` qismiga joylashtiring.
 
 ---
@@ -79,6 +89,7 @@ Loyihani boshqa loyihalarga xalaqit bermasligi uchun serverdagi Nginx sozlamalar
 ## 📈 Monitoring
 
 Barcha deploy jarayonlarini `deploy.log` fayli orqali kuzatib borishingiz mumkin:
+
 ```bash
 tail -f deploy.log
 ```

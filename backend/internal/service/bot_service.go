@@ -11,8 +11,8 @@ import (
 )
 
 type BotService struct {
-	bot    *tgbotapi.BotAPI
-	chatID int64
+	bot     *tgbotapi.BotAPI
+	chatIDs []int64
 }
 
 func NewBotService() *BotService {
@@ -28,18 +28,31 @@ func NewBotService() *BotService {
 		return &BotService{}
 	}
 
-	// Get Chat ID from env (group or admin ID)
-	var chatID int64
-	fmt.Sscanf(os.Getenv("TELEGRAM_CHAT_ID"), "%d", &chatID)
+	// Get Chat IDs from env (comma-separated group or admin IDs)
+	raw := os.Getenv("TELEGRAM_REPORT_CHAT_IDS")
+	if raw == "" {
+		raw = os.Getenv("TELEGRAM_CHAT_ID")
+	}
+
+	var chatIDs []int64
+	for _, idStr := range strings.Split(raw, ",") {
+		idStr = strings.TrimSpace(idStr)
+		if idStr != "" {
+			var id int64
+			if _, err := fmt.Sscanf(idStr, "%d", &id); err == nil && id != 0 {
+				chatIDs = append(chatIDs, id)
+			}
+		}
+	}
 
 	return &BotService{
-		bot:    bot,
-		chatID: chatID,
+		bot:     bot,
+		chatIDs: chatIDs,
 	}
 }
 
 func (s *BotService) SendNewOrderNotification(order *models.Order, imageUrl *string) {
-	if s.bot == nil || s.chatID == 0 {
+	if s.bot == nil || len(s.chatIDs) == 0 {
 		return
 	}
 
@@ -54,44 +67,46 @@ func (s *BotService) SendNewOrderNotification(order *models.Order, imageUrl *str
 	
 	msgText += fmt.Sprintf("\n💰 *Итого: %s сум*", fmt.Sprintf("%.0f", order.TotalPrice))
 
-	var msg tgbotapi.Chattable
-	if imageUrl != nil && *imageUrl != "" {
-		// Attempt to send as photo
-		var photo tgbotapi.PhotoConfig
-		if strings.HasPrefix(*imageUrl, "http://") || strings.HasPrefix(*imageUrl, "https://") {
-			photo = tgbotapi.NewPhoto(s.chatID, tgbotapi.FileURL(*imageUrl))
-		} else {
-			imgPath := *imageUrl
-			if strings.HasPrefix(imgPath, "/") {
-				imgPath = "." + imgPath
-			}
-			photo = tgbotapi.NewPhoto(s.chatID, tgbotapi.FilePath(imgPath))
-		}
-		photo.Caption = msgText
-		photo.ParseMode = "Markdown"
-		msg = photo
-	} else {
-		// Fallback to text message
-		textMsg := tgbotapi.NewMessage(s.chatID, msgText)
-		textMsg.ParseMode = "Markdown"
-		msg = textMsg
-	}
-
-	_, err := s.bot.Send(msg)
-	if err != nil {
-		log.Printf("Failed to send Telegram notification: %v", err)
-		
-		// If photo sending failed (e.g., bad URL), retry as plain text
+	for _, chatID := range s.chatIDs {
+		var msg tgbotapi.Chattable
 		if imageUrl != nil && *imageUrl != "" {
-			textMsg := tgbotapi.NewMessage(s.chatID, msgText)
+			// Attempt to send as photo
+			var photo tgbotapi.PhotoConfig
+			if strings.HasPrefix(*imageUrl, "http://") || strings.HasPrefix(*imageUrl, "https://") {
+				photo = tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(*imageUrl))
+			} else {
+				imgPath := *imageUrl
+				if strings.HasPrefix(imgPath, "/") {
+					imgPath = "." + imgPath
+				}
+				photo = tgbotapi.NewPhoto(chatID, tgbotapi.FilePath(imgPath))
+			}
+			photo.Caption = msgText
+			photo.ParseMode = "Markdown"
+			msg = photo
+		} else {
+			// Fallback to text message
+			textMsg := tgbotapi.NewMessage(chatID, msgText)
 			textMsg.ParseMode = "Markdown"
-			s.bot.Send(textMsg)
+			msg = textMsg
+		}
+
+		_, err := s.bot.Send(msg)
+		if err != nil {
+			log.Printf("Failed to send Telegram notification to %d: %v", chatID, err)
+			
+			// If photo sending failed (e.g., bad URL), retry as plain text
+			if imageUrl != nil && *imageUrl != "" {
+				textMsg := tgbotapi.NewMessage(chatID, msgText)
+				textMsg.ParseMode = "Markdown"
+				s.bot.Send(textMsg)
+			}
 		}
 	}
 }
 
 func (s *BotService) SendOrderStatusNotification(order *models.Order, statusMsg string) {
-	if s.bot == nil || s.chatID == 0 {
+	if s.bot == nil || len(s.chatIDs) == 0 {
 		return
 	}
 
@@ -100,11 +115,47 @@ func (s *BotService) SendOrderStatusNotification(order *models.Order, statusMsg 
 	msgText += fmt.Sprintf("Клиент: %s\n", order.Phone)
 	msgText += fmt.Sprintf("Адрес: %s\n", order.Address)
 
-	textMsg := tgbotapi.NewMessage(s.chatID, msgText)
-	textMsg.ParseMode = "Markdown"
-	
-	_, err := s.bot.Send(textMsg)
-	if err != nil {
-		log.Printf("Failed to send order status notification: %v", err)
+	for _, chatID := range s.chatIDs {
+		textMsg := tgbotapi.NewMessage(chatID, msgText)
+		textMsg.ParseMode = "Markdown"
+		
+		_, err := s.bot.Send(textMsg)
+		if err != nil {
+			log.Printf("Failed to send order status notification to %d: %v", chatID, err)
+		}
+	}
+}
+func (s *BotService) SendNotificationToAll(msgText string, imageUrl string) {
+	if s.bot == nil || len(s.chatIDs) == 0 {
+		return
+	}
+
+	for _, chatID := range s.chatIDs {
+		var msg tgbotapi.Chattable
+
+		if imageUrl != "" {
+			var photo tgbotapi.PhotoConfig
+			if strings.HasPrefix(imageUrl, "http") {
+				photo = tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(imageUrl))
+			} else {
+				imgPath := imageUrl
+				if strings.HasPrefix(imgPath, "/") {
+					imgPath = "." + imgPath
+				}
+				photo = tgbotapi.NewPhoto(chatID, tgbotapi.FilePath(imgPath))
+			}
+			photo.Caption = msgText
+			photo.ParseMode = "Markdown"
+			msg = photo
+		} else {
+			textMsg := tgbotapi.NewMessage(chatID, msgText)
+			textMsg.ParseMode = "Markdown"
+			msg = textMsg
+		}
+
+		_, err := s.bot.Send(msg)
+		if err != nil {
+			log.Printf("Failed to send Telegram notification to %d: %v", chatID, err)
+		}
 	}
 }

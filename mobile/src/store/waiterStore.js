@@ -11,18 +11,26 @@ export const useWaiterStore = create((set, get) => ({
   loadingTables: false,
   loadingMenu: false,
   ws: null,
+  // FIX #7: Parallel ulanishning oldini olish uchun flag
+  _wsConnecting: false,
 
   // ─── WebSocket Connection ──────────────────────────────────────────
-  connectWS: (token) => {
-    if (get().ws) return; // Already connected
+  connectWS: async (token) => {
+    // FIX #7: Allaqachon ulanayotgan yoki ulanilgan bo'lsa — to'xtatish
+    if (get().ws || get()._wsConnecting) return;
 
-    const wsUrl = process.env.EXPO_PUBLIC_API_URL 
-      ? process.env.EXPO_PUBLIC_API_URL.replace('http', 'ws') + '/ws'
+    set({ _wsConnecting: true });
+
+    const wsUrl = process.env.EXPO_PUBLIC_API_URL
+      ? process.env.EXPO_PUBLIC_API_URL.replace(/^http/, 'ws') + '/ws'
       : 'wss://kafe.securehub.uz/api/ws';
 
     const ws = new WebSocket(wsUrl, ['auth.' + token]);
 
-    ws.onopen = () => console.log('Waiter WS Connected');
+    ws.onopen = () => {
+      console.log('Waiter WS Connected');
+      set({ _wsConnecting: false });
+    };
 
     ws.onmessage = (e) => {
       try {
@@ -37,14 +45,27 @@ export const useWaiterStore = create((set, get) => ({
 
     ws.onclose = () => {
       console.log('Waiter WS Disconnected');
-      set({ ws: null });
-      // Reconnect after 5 seconds if still authenticated
-      setTimeout(() => {
-        const authStore = require('./authStore').useAuthStore.getState();
-        if (authStore.isAuthenticated && authStore.user?.role === 'waiter') {
-          get().connectWS(token);
+      set({ ws: null, _wsConnecting: false });
+      // FIX #2: Reconnect da fresh token olish (eski closure token emas)
+      setTimeout(async () => {
+        try {
+          const { useAuthStore } = require('./authStore');
+          const authState = useAuthStore.getState();
+          if (authState.isAuthenticated && authState.user?.role === 'waiter') {
+            const freshToken = await AsyncStorage.getItem('token');
+            if (freshToken) {
+              get().connectWS(freshToken);
+            }
+          }
+        } catch (e) {
+          console.warn('WS reconnect error:', e);
         }
       }, 5000);
+    };
+
+    ws.onerror = (e) => {
+      console.error('WS Error:', e.message);
+      set({ _wsConnecting: false });
     };
 
     set({ ws });
@@ -54,7 +75,7 @@ export const useWaiterStore = create((set, get) => ({
     const ws = get().ws;
     if (ws) {
       ws.close();
-      set({ ws: null });
+      set({ ws: null, _wsConnecting: false });
     }
   },
 

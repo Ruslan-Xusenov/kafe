@@ -90,7 +90,7 @@ func (r *DebtRepository) AddDebtRecord(record *models.DebtRecord) error {
 		record.PaymentMethod, record.Description, record.CreatedBy,
 	).Scan(&record.ID, &record.CreatedAt)
 	if err != nil {
-		return fmt.Errorf("qarz yozuvini saqlashda xatolik: %w", err)
+		return fmt.Errorf("qarz yozuvini saqlashda ошибка: %w", err)
 	}
 
 	// Update total_debt on debtor

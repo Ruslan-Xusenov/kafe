@@ -63,13 +63,13 @@ func TestAddPayments_ValidationErrors(t *testing.T) {
 	repo := NewPaymentRepository(db)
 
 	err := repo.AddPayments(1, []models.PaymentInput{})
-	assert.ErrorContains(t, err, "to'lov ma'lumotlari bo'sh")
+	assert.ErrorContains(t, err, "оплата ma'lumotlari bo'sh")
 
 	err = repo.AddPayments(1, []models.PaymentInput{{Method: "invalid", Amount: 100}})
-	assert.ErrorContains(t, err, "noto'g'ri to'lov usuli")
+	assert.ErrorContains(t, err, "noto'g'ri оплата usuli")
 
 	err = repo.AddPayments(1, []models.PaymentInput{{Method: "cash", Amount: -10}})
-	assert.ErrorContains(t, err, "to'lov summasi musbat bo'lishi kerak")
+	assert.ErrorContains(t, err, "оплата summasi musbat bo'lishi kerak")
 }
 
 func TestGetPaymentsByOrderID(t *testing.T) {

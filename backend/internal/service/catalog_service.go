@@ -98,6 +98,10 @@ func (s *CatalogService) GetProductByID(id int) (*models.Product, error) {
 	return s.productRepo.GetByID(id)
 }
 
+func (s *CatalogService) GetProductByBarcode(barcode string) (*models.Product, error) {
+	return s.productRepo.GetByBarcode(barcode)
+}
+
 func (s *CatalogService) UpdateProduct(prod *models.Product) error {
 	return s.productRepo.Update(prod)
 }

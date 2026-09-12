@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { Star, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,11 +47,11 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
 
   const handleSubmit = async () => {
     if (order.cook_id && cookRating === 0) {
-      alert('Пожалуйста, оцените повара');
+      toast.success('Пожалуйста, оцените повара');
       return;
     }
     if (order.courier_id && courierRating === 0) {
-      alert('Пожалуйста, оцените курьера');
+      toast.success('Пожалуйста, оцените курьера');
       return;
     }
 
@@ -84,7 +85,7 @@ const RatingModal = ({ isOpen, onClose, order, onSuccess }) => {
     } catch (err) {
       console.error('Rating failed:', err);
       const serverMsg = err.response?.data?.error || "Попробуйте еще раз.";
-      alert(`Ошибка при оценке: ${serverMsg}`);
+      toast.error(`Ошибка при оценке: ${serverMsg}`);
     } finally {
       setLoading(false);
     }

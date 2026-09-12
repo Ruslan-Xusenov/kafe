@@ -134,7 +134,7 @@ func (h *RefundHandler) ApproveRefund(c *gin.Context) {
 		"refund_method": req.RefundMethod,
 	})
 
-	c.JSON(http.StatusOK, gin.H{"message": "Refund tasdiqlandi"})
+	c.JSON(http.StatusOK, gin.H{"message": "Возврат подтвержден"})
 }
 
 // RejectRefund rejects a pending refund (admin only)

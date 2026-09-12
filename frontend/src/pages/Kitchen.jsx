@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import api from '../store/authStore';
 import { useWebsocket } from '../hooks/useWebsocket';
@@ -50,7 +51,7 @@ const Kitchen = () => {
       fetchOrders();
       // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      alert('Ошибка при обновлении статуса');
+      toast.error('Ошибка при обновлении статуса');
     }
   };
 

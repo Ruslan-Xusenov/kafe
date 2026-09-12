@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
@@ -52,7 +53,7 @@ const Checkout = () => {
         navigate('/success', { state: { orderId: res.data.id } });
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Произошла ошибка при оформлении заказа');
+      toast.error(err.response?.data?.error || 'Произошла ошибка при оформлении заказа');
     } finally {
       setLoading(false);
     }

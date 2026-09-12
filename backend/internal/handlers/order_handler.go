@@ -35,7 +35,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	role, _ := c.Get("role")
 	id := userID.(int)
 
-	if role == string(models.RoleWaiter) {
+	if role == string(models.RoleWaiter) || role == string(models.RoleAdmin) {
 		order.WaiterID = &id
 	} else {
 		order.CustomerID = &id
@@ -424,7 +424,7 @@ func (h *OrderHandler) TransferOrderTable(c *gin.Context) {
 		ToTableID   int `json:"to_table_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Noto'g'ri so'rov qabul qilindi"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Получен неверный запрос"})
 		return
 	}
 
@@ -438,5 +438,5 @@ func (h *OrderHandler) TransferOrderTable(c *gin.Context) {
 		"to_table_id":   req.ToTableID,
 	})
 
-	c.JSON(http.StatusOK, gin.H{"message": "Buyurtma muvaffaqiyatli ko'chirildi"})
+	c.JSON(http.StatusOK, gin.H{"message": "Заказ успешно ko'chirildi"})
 }

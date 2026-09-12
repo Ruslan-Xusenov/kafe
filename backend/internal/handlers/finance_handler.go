@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -130,17 +131,33 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 		return
 	}
 
+	soldItems, err := h.financeRepo.GetShiftSoldItems()
+	if err != nil {
+		log.Printf("Error getting shift sold items: %v", err)
+	}
+
+	allTimeRevenue, err := h.financeRepo.GetAllTimeRevenue()
+	if err != nil {
+		log.Printf("Error getting all time revenue: %v", err)
+	}
+	allTimeRevenue += stats.TotalRevenue // Include current shift
+
 	// 2. Broadcast to printer
+	uzt := time.FixedZone("UZT", 5*3600)
+	nowUzt := time.Now().In(uzt)
+
 	shiftReportPayload := map[string]interface{}{
-		"type":           "shift_report",
-		"timestamp":      time.Now().Format("2006-01-02 15:04:05"),
-		"total_revenue":  stats.TotalRevenue,
-		"total_expenses": stats.TotalExpenses,
-		"net_profit":     stats.NetProfit,
-		"cash":           stats.CashRevenue,
-		"card":           stats.CardRevenue,
-		"click":          stats.ClickRevenue,
-		"nasiya":         stats.NasiyaRevenue,
+		"type":             "shift_report",
+		"timestamp":        nowUzt.Format("2006-01-02 15:04:05"),
+		"total_revenue":    stats.TotalRevenue,
+		"total_expenses":   stats.TotalExpenses,
+		"net_profit":       stats.NetProfit,
+		"cash":             stats.CashRevenue,
+		"card":             stats.CardRevenue,
+		"click":            stats.ClickRevenue,
+		"nasiya":           stats.NasiyaRevenue,
+		"all_time_revenue": allTimeRevenue,
+		"items_sold":       soldItems,
 	}
 	h.wsService.BroadcastToRole("printer", shiftReportPayload)
 
@@ -149,20 +166,41 @@ func (h *FinanceHandler) CloseShift(c *gin.Context) {
 	chatIDs := telegramReportChatIDs()
 
 	if botToken != "" && len(chatIDs) > 0 {
+		var itemsText string
+		if len(soldItems) > 0 {
+			itemsText = "\n\n🍽 <b>Sotilgan mahsulotlar:</b>\n"
+			
+			// Get current date string in Uzbek (e.g. 25-avgust)
+			months := map[int]string{1: "yanvar", 2: "fevral", 3: "mart", 4: "aprel", 5: "may", 6: "iyun", 7: "iyul", 8: "avgust", 9: "sentyabr", 10: "oktyabr", 11: "noyabr", 12: "dekabr"}
+			dateStr := fmt.Sprintf("%d-%s", nowUzt.Day(), months[int(nowUzt.Month())])
+			
+			for _, item := range soldItems {
+				var pricePerUnit float64
+				if item.Quantity > 0 {
+					pricePerUnit = item.TotalAmount / item.Quantity
+				}
+				itemsText += fmt.Sprintf("▪️ %s %s - x%g - %.0f = %.0f so'm\n", dateStr, item.ProductName, item.Quantity, pricePerUnit, item.TotalAmount)
+			}
+		}
+
 		msgText := fmt.Sprintf(
 			"📅 <b>ОТЧЕТ ЗА СМЕНУ ЗАКРЫТ</b>\n\n"+
-				"💰 Общая выручка: <b>%.0f</b> сум\n"+
-				"💸 Общие расходы: <b>%.0f</b> сум\n"+
+				"💰 Общая выручка (смена): <b>%.0f</b> сум\n"+
+				"💸 Операционные расходы: <b>%.0f</b> сум\n"+
+				"🛒 Закупка продуктов (склад): <b>%.0f</b> сум\n"+
+				"📉 Себестоимость проданных товаров: <b>%.0f</b> сум\n"+
 				"📈 Чистая прибыль: <b>%.0f</b> сум\n\n"+
 				"💳 <b>Способы оплаты:</b>\n"+
 				"💵 Наличные: %.0f сум\n"+
 				"💳 Терминал: %.0f сум\n"+
 				"📲 Click/Payme: %.0f сум\n"+
 				"📓 В долг: %.0f сум\n\n"+
+				"🌟 <b>ИСТОРИЧЕСКАЯ ОБЩАЯ ВЫРУЧКА: %.0f сум</b>%s\n\n"+
 				"🕒 Время закрытия: %s",
-			stats.TotalRevenue, stats.TotalExpenses, stats.NetProfit,
+			stats.TotalRevenue, stats.TotalExpenses, stats.TotalInventoryPurchase, stats.TotalCostPrice, stats.NetProfit,
 			stats.CashRevenue, stats.CardRevenue, stats.ClickRevenue, stats.NasiyaRevenue,
-			time.Now().Format("2006-01-02 15:04"),
+			allTimeRevenue, itemsText,
+			nowUzt.Format("2006-01-02 15:04"),
 		)
 
 		for _, chatID := range chatIDs {
@@ -208,6 +246,9 @@ func (h *FinanceHandler) SendRealProfit(c *gin.Context) {
 	chatIDs := telegramReportChatIDs()
 
 	if botToken != "" && len(chatIDs) > 0 {
+		uzt := time.FixedZone("UZT", 5*3600)
+		nowUzt := time.Now().In(uzt)
+
 		msgText := fmt.Sprintf(
 			"📊 <b>ОТЧЕТ: РЕАЛЬНАЯ ПРИБЫЛЬ</b>\n\n"+
 				"💰 Общая выручка: <b>%.0f</b> сум\n"+
@@ -216,7 +257,7 @@ func (h *FinanceHandler) SendRealProfit(c *gin.Context) {
 				"💎 <b>ЧИСТАЯ (РЕАЛЬНАЯ) ПРИБЫЛЬ: %.0f сум</b>\n\n"+
 				"🕒 Время отчета: %s",
 			stats.TotalRevenue, stats.TotalExpenses, stats.TotalSalaries, stats.RealProfit,
-			time.Now().Format("2006-01-02 15:04"),
+			nowUzt.Format("2006-01-02 15:04"),
 		)
 
 		for _, chatID := range chatIDs {
@@ -239,4 +280,18 @@ func (h *FinanceHandler) SendRealProfit(c *gin.Context) {
 		"message":     "Реальная прибыль успешно отправлена",
 		"real_profit": stats.RealProfit,
 	})
+}
+
+func (h *FinanceHandler) GetDailyReport(c *gin.Context) {
+	date := c.Query("date")
+	if date == "" {
+		uzt := time.FixedZone("UZT", 5*3600)
+		date = time.Now().In(uzt).Format("2006-01-02")
+	}
+	report, err := h.financeRepo.GetDailyReport(date)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, report)
 }
