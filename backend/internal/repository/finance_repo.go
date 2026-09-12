@@ -363,12 +363,13 @@ func (r *financeRepository) GetDailyReport(date string) (*models.DailyReport, er
 			COALESCE(SUM(CASE WHEN op.method='cash'   THEN op.amount ELSE 0 END),0),
 			COALESCE(SUM(CASE WHEN op.method='card'   THEN op.amount ELSE 0 END),0),
 			COALESCE(SUM(CASE WHEN op.method='click'  THEN op.amount ELSE 0 END),0),
-			COALESCE(SUM(CASE WHEN op.method='nasiya' THEN op.amount ELSE 0 END),0)
+			COALESCE(SUM(CASE WHEN op.method='nasiya' THEN op.amount ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN op.method='qr'     THEN op.amount ELSE 0 END),0)
 		FROM order_payments op
 		JOIN orders o ON op.order_id = o.id
 		WHERE o.status = 'delivered' AND %s`, baseFilter)
 	err = r.db.QueryRow(payQ, date).Scan(
-		&report.CashRevenue, &report.CardRevenue, &report.ClickRevenue, &report.NasiyaRevenue)report.CashRevenue, &report.CardRevenue, &report.ClickRevenue, &report.NasiyaRevenue, &report.QrRevenue)
+		&report.CashRevenue, &report.CardRevenue, &report.ClickRevenue, &report.NasiyaRevenue, &report.QrRevenue)
 	if err != nil {
 		// fallback
 		_ = r.db.QueryRow(fmt.Sprintf(`
@@ -376,7 +377,8 @@ func (r *financeRepository) GetDailyReport(date string) (*models.DailyReport, er
 				COALESCE(SUM(CASE WHEN payment_method='cash'   THEN total_price ELSE 0 END),0),
 				COALESCE(SUM(CASE WHEN payment_method='card'   THEN total_price ELSE 0 END),0),
 				COALESCE(SUM(CASE WHEN payment_method='click'  THEN total_price ELSE 0 END),0),
-				COALESCE(SUM(CASE WHEN payment_method='nasiya' THEN total_price ELSE 0 END),0)
+				COALESCE(SUM(CASE WHEN payment_method='nasiya' THEN total_price ELSE 0 END),0),
+				COALESCE(SUM(CASE WHEN payment_method='qr'     THEN total_price ELSE 0 END),0)
 			FROM orders o WHERE status='delivered' AND %s`, baseFilter), date).
 			Scan(&report.CashRevenue, &report.CardRevenue, &report.ClickRevenue, &report.NasiyaRevenue, &report.QrRevenue)
 	}
