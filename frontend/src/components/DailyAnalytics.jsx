@@ -100,7 +100,7 @@ const DailyAnalytics = ({ refreshTrigger, onDateChange }) => {
     { label: "Daromad",     val: fmt(report.revenue) + " so'm",    color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.18)', icon: <TrendingUp size={16}/> },
     { label: "Заказlar", val: report.orders_count,               color: '#6366f1', bg: 'rgba(99,102,241,0.08)',  border: 'rgba(99,102,241,0.18)', icon: <ShoppingBag size={16}/> },
     { label: "Opr. Xarajatlar",  val: fmt(report.expenses) + " so'm",   color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.18)',  icon: <Wallet size={16}/> },
-    { label: "Sof foyda",   val: fmt(report.net_profit) + " so'm", color: '#f97316', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.18)', icon: <Award, QrCode size={16}/> },
+    { label: "Sof foyda",   val: fmt(report.net_profit) + " so'm", color: '#f97316', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.18)', icon: <Award size={16}/> },
   ] : [];
 
   return (
